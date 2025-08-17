@@ -1,0 +1,28 @@
+django-helpdesk was originally written by Ross Poulton. After nearly nine
+years under his guidance, the project graduated to its own eponymous
+organization, and is currently maintained by:
+
+Christopher Broderick (@uhurusurfa)
+(@Benbb96)
+David Vadnais (@DavidVadnais)
+Alex Seeholzer (@flinz)
+Jonathan Barratt (@reduxionist)
+
+Since publishing the code a number of people have made some fantastic
+improvements and provided bug fixes and updates as the Django codebase
+has moved on and caused small portions of this application to break.
+
+To these people, and many more, our sincere thanks:
+
+Alex Barcelo
+Andreas Kotowicz
+Christopher Broderick 
+Chris Etcp
+Daryl Egarr
+David Clymer
+Garret Wassermann (@gwasser)
+Loe Spee
+Maxim Litnitskiy
+Nikolay Panov
+Stefano Brentegani
+Tony Zhu
