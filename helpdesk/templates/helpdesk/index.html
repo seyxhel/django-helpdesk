@@ -1,0 +1,102 @@
+{% extends "helpdesk/base.html" %}
+{% block helpdesk_body %}
+<div class="text-center py-4">
+	<img src="/static/helpdesk/img/pdlogo.png" alt="PD Logo" style="height:480px; vertical-align:middle; margin-right:10px;">
+	<p style="max-width:920px; margin:-90px auto 0; line-height:1.5; font-size:18px; color:#333;">
+		Empower your team with our intuitive ticketing system designed for seamless support.<br>
+		<span id="typewriter" aria-label="typing text" style="font-weight:600;"> </span>
+		<br><br>
+        Join us today and elevate your customer service game!
+	</p>
+	<style>
+		/* Typewriter caret implemented as a single vertical bar next to the active letter */
+		#typewriter { display: inline-block; white-space: nowrap; vertical-align: middle; text-decoration: none; }
+		#typewriter .typed { font-weight: 600; }
+		#typewriter .caret { display: inline-block; width: 2px; height: 1em; background: #333; margin-left: 6px; vertical-align: middle; opacity: 1; }
+	</style>
+	<script>
+		(function(){
+			const el = document.getElementById('typewriter');
+			const text = 'Fast Responses, Easy Ticket Management, Insightful Analytics.';
+			let i = 0;
+			// Slower phase: increased typing/erasing speed and longer pauses
+			const typingSpeed = 110; // ms per char (was 80)
+			const erasingSpeed = 100; // ms per char (was 80)
+			const pauseAfterTyping = 1600; // ms pause after the full line is typed (was 1400)
+
+			// create inner elements: one for typed text and one for the single blinking caret
+			const typed = document.createElement('span');
+			typed.className = 'typed';
+			const caret = document.createElement('span');
+			caret.className = 'caret';
+			caret.setAttribute('aria-hidden', 'true');
+			// ensure a defined starting opacity for predictable toggles
+			caret.style.opacity = '0';
+			el.appendChild(typed);
+			el.appendChild(caret);
+
+			let idleBlinkInterval = null;
+			// blink speed to use both during idle and while typing/erasing
+			const idleBlinkSpeed = 350; // ms
+
+			function startIdleBlink(interval = 400){
+				stopIdleBlink();
+				idleBlinkInterval = setInterval(()=>{
+					caret.style.opacity = (caret.style.opacity === '0') ? '1' : '0';
+				}, interval);
+			}
+
+			function stopIdleBlink(){
+				if(idleBlinkInterval){
+					clearInterval(idleBlinkInterval);
+					idleBlinkInterval = null;
+				}
+				caret.style.opacity = '1';
+			}
+
+			// Start idle blink only if not already running
+			function ensureIdleBlink(interval = idleBlinkSpeed){
+				if(!idleBlinkInterval){
+					startIdleBlink(interval);
+				}
+			}
+
+			// Note: syncBlinkInterval logic removed so we toggle caret once per
+			// character update (more predictable and visible).
+
+			function type(){
+				// keep caret blinking at the idle speed during typing
+				ensureIdleBlink(idleBlinkSpeed);
+				if(i < text.length){
+					typed.textContent += text.charAt(i);
+					i++;
+					setTimeout(type, typingSpeed);
+				} else {
+					// when finished typing, ensure idle blink continues
+					startIdleBlink(idleBlinkSpeed);
+					setTimeout(erase, pauseAfterTyping);
+				}
+			}
+
+			function erase(){
+				// keep caret blinking at the idle speed during erasing
+				ensureIdleBlink(idleBlinkSpeed);
+				if(i > 0){
+					typed.textContent = text.substring(0, i-1);
+					i--;
+					setTimeout(erase, erasingSpeed);
+				} else {
+					// small pause then restart typing with idle blink
+					startIdleBlink(idleBlinkSpeed);
+					setTimeout(type, 600);
+				}
+			}
+
+			// start
+			typed.textContent = '';
+			setTimeout(type, 400);
+		})();
+	</script>
+	</p>
+</div>
+{% endblock %}

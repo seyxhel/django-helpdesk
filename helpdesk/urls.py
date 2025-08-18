@@ -22,6 +22,7 @@ from helpdesk.views.api import (
     UserTicketViewSet,
 )
 from rest_framework.routers import DefaultRouter
+from django.shortcuts import redirect
 
 
 if helpdesk_settings.HELPDESK_KB_ENABLED:
@@ -161,10 +162,9 @@ if helpdesk_settings.HELPDESK_ENABLE_DEPENDENCIES_ON_TICKET:
             staff.ticket_dependency_del,
             name="ticket_dependency_del",
         ),
-    ]
+    # ] removed to fix unmatched bracket error
 
-urlpatterns += [
-    path("", protect_view(public.Homepage.as_view()), name="home"),
+## Removed duplicate root URL pattern so home_view is used exclusively
     path(
         "tickets/my-tickets/",
         protect_view(public.MyTickets.as_view()),
@@ -276,4 +276,15 @@ urlpatterns += [
         ),
         name="system_settings",
     ),
+    # About page
+    path("about/", TemplateView.as_view(template_name="helpdesk/about.html"), name="about"),
+]
+
+def home_view(request):
+    if request.user.is_authenticated:
+        return public.Homepage.as_view()(request)
+    return TemplateView.as_view(template_name="helpdesk/index.html")(request)
+
+urlpatterns += [
+    path("", home_view, name="home"),
 ]

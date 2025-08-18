@@ -354,8 +354,9 @@ footer.sticky-footer {
   bottom: 0;
   width: calc(100% - 90px);
   height: 80px;
-  background-color: #e9ecef;
+  background-color: #d3d3d3;
 }
+
 
 footer.sticky-footer .copyright {
   line-height: 1;
