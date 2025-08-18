@@ -21,6 +21,43 @@
             .logo { font-family: 'Montserrat', sans-serif; }
             /* Nav link font: Poppins, small size per request */
             .nav-links a { font-family: 'Poppins', sans-serif; font-size: 12px; }
+
+            /* Hover and active (onclick) effects for nav links */
+            /* Use :not(.login-btn) so the login button keeps its white background */
+            .nav-links a:not(.login-btn) {
+                padding: 6px 10px; /* small hit target for hover */
+                border-radius: 8px;
+                transition: background-color 150ms ease, transform 60ms ease;
+            }
+
+            /* subtle light background on hover */
+            .nav-links a:not(.login-btn):hover {
+                background-color: rgba(243, 231, 231, 0.12);
+                text-decoration: none;
+            }
+
+            /* stronger background and slight press effect on active (click) */
+            .nav-links a:not(.login-btn):active {
+                background-color: rgba(255,255,255,0.18);
+                transform: translateY(1px);
+            }
+                /* Login button hover: remove white background, show white border and white text */
+                .nav-links a.login-btn {
+                    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, transform 60ms ease;
+                }
+
+                .nav-links a.login-btn:hover {
+                    background-color: transparent !important;
+                    border: 1px solid rgba(255,255,255,0.95) !important;
+                    color: #ffffff !important;
+                    text-decoration: none;
+                    transform: translateY(-1px);
+                }
+
+                .nav-links a.login-btn:active {
+                    background-color: rgba(255,255,255,0.06) !important;
+                    transform: translateY(1px);
+                }
         </style>
 
         {% include 'helpdesk/base_js.html' %}
@@ -39,13 +76,9 @@
         <!-- Navigation on the right -->
         <div class="col-md-6 col-4" style="display: flex; align-items: center;">
             <div class="nav-links" style="display: flex; align-items: center; gap: 20px; justify-content: flex-end; width: 100%;">
-                {% comment %} Show 'Back' on the about page, otherwise 'About Us' linking to /about/ {% endcomment %}
-                {% if request.path == '/about/' %}
-                    <a href="/" class="about-link" style="color: white; text-decoration: none;">Back</a>
-                {% else %}
-                    <a href="/about/" class="about-link" style="color: white; text-decoration: none;">About Us</a>
-                {% endif %}
-                <a href="/login" class="login-btn" style="background-color: white; color: #000C7D; border: none; padding: 8px 20px; border-radius: 5px; text-decoration: none; margin-right: 20px;">Log In</a>
+                <a href="/" class="home-link" style="color: white; text-decoration: none;">Home</a>
+                <a href="/about" class="about-link" style="color: white; text-decoration: none;">About Us</a>
+                <a href="/login" class="login-btn" style="background-color: white; color: #000C7D; border: none; padding: 6px 25px; border-radius: 15px; text-decoration: none; margin-right: 20px;">Log In</a>
             </div>
         </div>
     </div>

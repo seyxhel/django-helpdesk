@@ -1,17 +1,37 @@
 {% extends "helpdesk/base.html" %}
 {% block helpdesk_body %}
-<div class="py-5 text-center" style="background: transparent;">
-  <div class="container" style="max-width:900px;">
-    <h1 style="font-family: 'Montserrat', sans-serif; font-weight:700; color:#000C7D;">About PrimeDesk Technologies</h1>
-    <p style="font-size:18px; line-height:1.6; color:#222;">
-      PrimeDesk Technologies builds intuitive ticketing and support solutions that help teams respond faster, stay organized, and deliver outstanding customer service. Our platform is designed for simplicity and scalability — whether you're a small team or an enterprise support organization.
-    </p>
+<div class="py-5" style="background: transparent;">
+  <div class="container" style="max-width:900px; color:#222;">
+    <h1 style="font-family: 'Montserrat', sans-serif; font-weight:700; color:#000C7D; text-align:center;">About PrimeDesk Technologies</h1>
 
-    <h3 style="margin-top:2rem; color:#000C7D;">Our mission</h3>
-    <p style="color:#222;">To empower support teams with tools that reduce friction, improve visibility, and deliver measurable improvements in customer satisfaction.</p>
+    <p style="font-size:16px; line-height:1.6; margin-top:1rem;">PrimeDesk Technologies builds and supports a modern, extensible helpdesk platform based on the proven django-helpdesk project. Our focus is on delivering a simple user experience for support teams while providing the configurability and integrations necessary for production deployments.</p>
 
-    <h3 style="margin-top:2rem; color:#000C7D;">Get in touch</h3>
-    <p style="color:#222;">Email: <a href="mailto:info@primedesk.example" style="color:#000C7D; text-decoration:underline;">info@primedesk.example</a></p>
+    <h3 style="margin-top:2rem; color:#000C7D; font-family:'Poppins', sans-serif;">Overview</h3>
+    <p style="color:#222; font-family: 'Roboto', sans-serif; font-size:14px;">The platform provides ticket-based customer support with flexible queue management, assignment and escalation rules, automated email handling, and customizable templates. It scales from small teams to multi-tenant environments and exposes APIs and webhooks for automation and integrations.</p>
+
+    <h3 style="margin-top:1.5rem; color:#000C7D; font-family:'Poppins', sans-serif;">Key features</h3>
+    <ul style="text-align:left; margin:0 auto; color:#222; font-family: 'Roboto', sans-serif; font-size:14px; line-height:1.6; padding-left:2px; margin-left:25px; list-style-position:inside;">
+      <li><strong>Ticket queues & routing</strong> — Organize incoming issues into queues and route them automatically to the right teams or agents.</li>
+      <li><strong>Email integration</strong> — Inbound and outbound email handling with templates, threading, and attachments.</li>
+      <li><strong>Permissions & teams</strong> — Fine-grained staff roles, per-queue permissions, and shared inbox workflows.</li>
+      <li><strong>Automation</strong> — Saved replies, canned responses, SLA rules, and queue-specific behaviors to reduce manual work.</li>
+      <li><strong>Reporting & analytics</strong> — Built-in reports and exportable metrics for response time, backlog, and agent performance.</li>
+      <li><strong>Extensibility</strong> — REST API, webhooks, and template overrides for custom integrations and UI changes.</li>
+    </ul>
+
+    <h3 style="margin-top:1.5rem; color:#000C7D; font-family:'Poppins', sans-serif;">Security & reliability</h3>
+    <p style="color:#222; font-family: 'Roboto', sans-serif; font-size:14px;">The system supports secure authentication, role-based access control, and configurable logging. Deployments commonly run behind HTTPS and integrate with existing identity providers and monitoring systems.</p>
+
+    <h3 style="margin-top:1.5rem; color:#000C7D; font-family:'Poppins', sans-serif;">Deployment & integrations</h3>
+    <p style="color:#222; font-family: 'Roboto', sans-serif; font-size:14px;">PrimeDesk is deployable as a standalone Django application or alongside existing services. Common integrations include SMTP/IMAP email, SSO providers, external ticketing or CRM systems, and chat platforms via webhooks.</p>
+
+    <h3 style="margin-top:1.5rem; color:#000C7D; font-family:'Poppins', sans-serif;">Getting started</h3>
+    <p style="color:#222; font-family: 'Roboto', sans-serif; font-size:14px;">To evaluate PrimeDesk, install the demo or follow the documentation to connect your mailboxes and create your first queue. Configure staff accounts, saved replies, and a basic workflow to see immediate value.</p>
+
+    <h3 style="margin-top:1.5rem; color:#000C7D; font-family:'Poppins', sans-serif;">Community & support</h3>
+    <p style="color:#222; font-family: 'Roboto', sans-serif; font-size:14px;">PrimeDesk builds on an active open-source community; you can find documentation, guides, and community support in the project docs. For commercial support and custom integrations, contact our team below.</p>
+
+    <p style="margin-top:1.5rem; color:#222; font-family: 'Roboto', sans-serif;">Contact: <a href="mailto:info@primedesk.example" style="color:#000C7D; text-decoration:underline;">info@primedesk.example</a></p>
   </div>
 </div>
 {% endblock %}
