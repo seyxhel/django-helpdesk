@@ -97,6 +97,15 @@ HELPDESK_SHOW_MY_TICKETS_IN_NAV_FOR_STAFF = getattr(
     settings, "HELPDESK_SHOW_MY_TICKETS_IN_NAV_FOR_STAFF", True
 )
 
+# Remember-me cookie settings
+HELPDESK_REMEMBER_COOKIE_NAME = getattr(settings, 'HELPDESK_REMEMBER_COOKIE_NAME', 'helpdesk_remember')
+# Duration in seconds for remember-me cookie (default: 30 days)
+HELPDESK_REMEMBER_DURATION = getattr(settings, 'HELPDESK_REMEMBER_DURATION', 60*60*24*30)
+# Cookie security flags - follow project SESSION_COOKIE_SECURE by default
+HELPDESK_REMEMBER_COOKIE_SECURE = getattr(settings, 'HELPDESK_REMEMBER_COOKIE_SECURE', getattr(settings, 'SESSION_COOKIE_SECURE', False))
+# SameSite policy for remember cookie
+HELPDESK_REMEMBER_COOKIE_SAMESITE = getattr(settings, 'HELPDESK_REMEMBER_COOKIE_SAMESITE', 'Lax')
+
 # use public CDNs to serve jquery and other javascript by default?
 # otherwise, use built-in static copy
 HELPDESK_USE_CDN = getattr(settings, "HELPDESK_USE_CDN", False)
