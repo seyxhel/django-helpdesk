@@ -229,11 +229,10 @@ urlpatterns += [
     path("login/", login.login, name="login"),
     path(
         "logout/",
-        auth_views.LogoutView.as_view(
-            template_name="helpdesk/registration/logged_out.html"
-        ),
+        login.logout,
         name="logout",
     ),
+    path("remember_credentials/", login.remember_credentials, name="remember_credentials"),
     path(
         "password_change/",
         auth_views.PasswordChangeView.as_view(

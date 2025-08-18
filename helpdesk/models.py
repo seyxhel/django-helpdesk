@@ -33,6 +33,32 @@ import uuid
 User = get_user_model()
 
 
+class RememberMeToken(models.Model):
+    """
+    Persistent login tokens for 'remember me' feature.
+    Stores a hash of the token issued to the user's browser. The raw token
+    is only ever sent to the browser cookie (HttpOnly).
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="remember_tokens")
+    token_hash = models.CharField(max_length=128, db_index=True)
+    created = models.DateTimeField(auto_now_add=True)
+    last_used = models.DateTimeField(auto_now=True)
+    user_agent = models.CharField(max_length=300, blank=True, null=True)
+
+    def __str__(self):
+        return f"RememberMeToken(user={self.user}, created={self.created})"
+
+
+class RememberedCredentials(models.Model):
+    """Store signed credentials linked to a RememberMeToken."""
+    token = models.OneToOneField(RememberMeToken, on_delete=models.CASCADE, related_name='credentials')
+    signed_data = models.TextField()
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"RememberedCredentials(token={self.token})"
+
+
 class EscapeHtml(Extension):
     def extendMarkdown(self, md):
         md.preprocessors.deregister("html_block")

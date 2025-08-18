@@ -11,26 +11,30 @@
       <div class="card card-login mx-auto mt-5">
         <div class="card-header">{% trans 'Please Sign In' %}</div>
         <div class="card-body">
-          <form role="form" method='post' action='./'>
-                {% if form.errors %}
-                <div class="alert alert-danger">{% trans "Your username and password didn't match. Please try again." %}</div>
+          <form role="form" method='post' action='./' novalidate>
+                {% if error_type == 'missing_fields' %}
+                  <div class="alert alert-danger">{% trans "Please fill in all the required fields." %}</div>
+                {% elif error_type == 'invalid_credentials' %}
+                  <div class="alert alert-danger">{% trans "Invalid credentials." %}</div>
                 {% endif %}
             <div class="form-group">
               <div class="form-label-group">
-                <input type="text" id="username" name="username" class="form-control" placeholder="Username" required="required" autofocus="autofocus">
-                <label for="username">Username</label>
+                {{ form.username }}
+                  <label for="{{ form.username.id_for_label }}">{% trans 'Username or Email' %}</label>
+                  <!-- Required field error now shown in the alert above -->
               </div>
             </div>
             <div class="form-group">
               <div class="form-label-group">
-                <input type="password" id="password" name="password" class="form-control" placeholder="Password" required="required">
-                <label for="password">Password</label>
+                {{ form.password }}
+                  <label for="{{ form.password.id_for_label }}">Password</label>
+                  <!-- Error message for required fields is shown above in username section -->
               </div>
             </div>
             <div class="form-group">
               <div class="checkbox">
                 <label>
-                  <input type="checkbox" value="remember-me">
+                  {{ form.remember_me }}
                   {% trans 'Remember Password' %}
                 </label>
               </div>
@@ -43,6 +47,44 @@
         </div>
       </div>
     </div>
+
+  <!-- Client-side credential storage removed for security; remember-me is handled server-side -->
+    <script>
+      (function(){
+        // Attempt to fetch stored credentials from server-side endpoint
+        fetch("{% url 'helpdesk:remember_credentials' %}", {credentials: 'same-origin'})
+          .then(function(resp){
+            if (!resp.ok) throw new Error('no creds');
+            return resp.json();
+          })
+          .then(function(data){
+            if (data.username) document.getElementById('{{ form.username.id_for_label }}').value = data.username;
+            if (data.password) document.getElementById('{{ form.password.id_for_label }}').value = data.password;
+          })
+          .catch(function(){
+            // no remembered credentials or error
+          });
+      })();
+      // Prevent pasting into the password field so users must type their password manually
+      (function(){
+        try {
+          var pw = document.getElementById('{{ form.password.id_for_label }}');
+          if (pw) {
+            pw.addEventListener('paste', function(e){ e.preventDefault(); });
+            pw.addEventListener('drop', function(e){ e.preventDefault(); });
+            pw.addEventListener('beforeinput', function(e){ if (e.inputType === 'insertFromPaste') e.preventDefault(); });
+            pw.addEventListener('keydown', function(e){
+              var k = e.key || String.fromCharCode(e.keyCode);
+              if ((e.ctrlKey || e.metaKey) && (k === 'v' || k === 'V')) {
+                e.preventDefault();
+              }
+            });
+          }
+        } catch (err) {
+          /* ignore errors */
+        }
+      })();
+    </script>
 
 {% endif %}
 {% endblock %}
