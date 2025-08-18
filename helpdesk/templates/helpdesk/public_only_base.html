@@ -39,13 +39,13 @@
         <!-- Navigation on the right -->
         <div class="col-md-6 col-4" style="display: flex; align-items: center;">
             <div class="nav-links" style="display: flex; align-items: center; gap: 20px; justify-content: flex-end; width: 100%;">
-                {% comment %} Show 'Back' on the about page, otherwise 'About Us' linking to /about/ {% endcomment %}
+                <a href="/" class="home-link" style="color: white; text-decoration: none;">Home</a>
                 {% if request.path == '/about/' %}
                     <a href="/" class="about-link" style="color: white; text-decoration: none;">Back</a>
                 {% else %}
-                    <a href="/about/" class="about-link" style="color: white; text-decoration: none;">About Us</a>
+                    <a href="/about" class="about-link" style="color: white; text-decoration: none;">About Us</a>
                 {% endif %}
-                <a href="/login" class="login-btn" style="background-color: white; color: #000C7D; border: none; padding: 8px 20px; border-radius: 5px; text-decoration: none; margin-right: 20px;">Log In</a>
+                <a href="/login" class="login-btn" style="background-color: white; color: #000C7D; border: none; padding: 6px 25px; border-radius: 15px; text-decoration: none; margin-right: 20px;">Log In</a>
             </div>
         </div>
     </div>

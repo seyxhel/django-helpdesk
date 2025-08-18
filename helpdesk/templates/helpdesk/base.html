@@ -82,16 +82,20 @@
 </div>
 
     <div id="wrapper">
-        {% include "helpdesk/navigation-sidebar.html" %}
+        {% if request.path != '/about/' %}
+            {% include "helpdesk/navigation-sidebar.html" %}
+        {% endif %}
 
         <div id="content-wrapper">
 
             <div class="container-fluid">
 
                 <!-- Breadcrumbs-->
+                {% if request.path != '/about/' %}
                 <ol class="breadcrumb">
                     {% block helpdesk_breadcrumb %}{% endblock %}
                 </ol>
+                {% endif %}
 
                 {% block helpdesk_body %}{% endblock %}
 
