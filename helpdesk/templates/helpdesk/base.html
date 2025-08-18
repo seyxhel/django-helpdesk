@@ -1,67 +1,37 @@
 {% load i18n %}
-{% load saved_queries %}
-{% load load_helpdesk_settings %}
 {% load static %}
+{% load load_helpdesk_settings %}
 {% with request|load_helpdesk_settings as helpdesk_settings %}
-{% with user|saved_queries as user_saved_queries_ %}
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-
-        {% include 'helpdesk/base-head.html' %}
-        {% block helpdesk_head %}{% endblock %}
-
-        <!-- Load fonts: Montserrat for logo, Poppins for nav links -->
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Poppins:wght@400;500&display=swap" rel="stylesheet">
-        <style>
-            /* Prevent horizontal scrolling */
-            html, body { overflow-x: hidden; }
-
-            .logo { font-family: 'Montserrat', sans-serif; }
-            /* Nav link font: Poppins, small size per request */
-            .nav-links a { font-family: 'Poppins', sans-serif; font-size: 12px; }
-        </style>
-
-        {% include 'helpdesk/base_js.html' %}
+    {% include 'helpdesk/base-head.html' %}
+    {% block helpdesk_head %}{% endblock %}
 
 </head>
 
 <body id="bg-dark">
 
-<div class="container-fluid px-0" style="background-color: #000C7D;">
-    <div class="row align-items-center" style="min-height: 50px;">
-        <!-- Logo on the left -->
-        <div class="col-md-6 col-8" style="display: flex; align-items: center;">
-            <span class="logo" style="color: white; text-decoration: none; font-size: 16px; font-weight: bold; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; pointer-events: none; margin-left: 20px;">PrimeDesk Technologies</span>
-        </div>
-        
-        <!-- Navigation on the right -->
-        <div class="col-md-6 col-4" style="display: flex; align-items: center;">
-            <div class="nav-links" style="display: flex; align-items: center; gap: 20px; justify-content: flex-end; width: 100%;">
-                {% comment %} Show 'Back' on the about page, otherwise 'About Us' linking to /about/ {% endcomment %}
-                {% if request.path == '/about/' %}
-                    <a href="/" class="about-link" style="color: white; text-decoration: none;">Back</a>
-                {% else %}
-                    <a href="/about/" class="about-link" style="color: white; text-decoration: none;">About Us</a>
-                {% endif %}
-                <a href="/login" class="login-btn" style="background-color: white; color: #000C7D; border: none; padding: 8px 20px; border-radius: 5px; text-decoration: none; margin-right: 20px;">Log In</a>
-            </div>
-        </div>
-    </div>
-</div>
+    {% include "helpdesk/navigation-header.html" %}
 
     <div id="wrapper">
+        {% include "helpdesk/navigation-sidebar.html" %}
 
         <div id="content-wrapper">
-        
+
             <div class="container-fluid">
-            
+
+                <!-- Breadcrumbs-->
+                <ol class="breadcrumb">
+                    {% block helpdesk_breadcrumb %}{% endblock %}
+                </ol>
+
                 {% block helpdesk_body %}{% endblock %}
-            
+
             </div>
             <!-- /.container-fluid -->
-        
+
             {% include "helpdesk/attribution.html" %}
         </div>
         <!-- /.content-wrapper -->
@@ -70,10 +40,8 @@
     <!-- /#wrapper -->
 
     {% include "helpdesk/debug.html" %}
-    <script src="{% static 'helpdesk/js/sb-admin.js' %}"></script>
+    {% include 'helpdesk/base_js.html' %}
     {% block helpdesk_js %}{% endblock %}
-
 </body>
 </html>
-{% endwith %}
 {% endwith %}
