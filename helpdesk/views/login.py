@@ -11,8 +11,31 @@ from django.core import signing
 from helpdesk.models import RememberedCredentials
 
 class CustomLoginForm(forms.Form):
-    username = forms.CharField(max_length=150, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Username or Email", "autofocus": "autofocus"}))
-    password = forms.CharField(widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "Password"}))
+    username = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Username or Email",
+                "autofocus": "autofocus",
+                "autocomplete": "username",
+            }
+        ),
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Password",
+                # discourage browser autofill / password managers
+                "autocomplete": "new-password",
+                "spellcheck": "false",
+                "autocorrect": "off",
+                "autocapitalize": "off",
+                "data-lpignore": "true",
+            }
+        )
+    )
     remember_me = forms.BooleanField(required=False)
 
 def login(request):

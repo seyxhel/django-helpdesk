@@ -14,6 +14,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.forms import SetPasswordForm
 from helpdesk import settings as helpdesk_settings
 from helpdesk.lib import (
     convert_value,
@@ -51,6 +52,53 @@ if helpdesk_settings.HELPDESK_KB_ENABLED:
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
+
+def validate_password_strength(password):
+    """Validate password strength used by registration and reset forms.
+
+    Raises ValidationError on failure.
+    """
+    if not password:
+        raise ValidationError(_("Please confirm your password."))
+    if len(password) < 8:
+        raise ValidationError(_("Password must be at least 8 characters."))
+    if not any(c.isdigit() for c in password) or not any(c.isalpha() for c in password):
+        raise ValidationError(_("Password must include both letters and numbers."))
+    # optional: require uppercase/lowercase and special
+    if not any(c.isupper() for c in password):
+        raise ValidationError(_("Password must contain an uppercase letter."))
+    if not any(c.islower() for c in password):
+        raise ValidationError(_("Password must contain a lowercase letter."))
+    # require a special character
+    if not any(not c.isalnum() for c in password):
+        raise ValidationError(_("Password must contain a special character."))
+
+
+class CustomSetPasswordForm(SetPasswordForm):
+    """SetPasswordForm that enforces the same strength rules as registration."""
+
+    def clean_new_password2(self):
+        # Re-implement validation so we don't rely on a super method that may
+        # not exist across Django versions. Enforce matching, run Django's
+        # password validators, and then our shared strength validator.
+        password1 = self.cleaned_data.get('new_password1')
+        password2 = self.cleaned_data.get('new_password2')
+
+        if password1 and password2:
+            if password1 != password2:
+                raise ValidationError(_("The two password fields didn't match."))
+
+        # Run Django's configured password validators (may raise ValidationError)
+        from django.contrib.auth import password_validation
+
+        if password2:
+            password_validation.validate_password(password2, self.user)
+
+        # Run the project-specific strength validator
+        validate_password_strength(password2)
+
+        return password2
 
 
 class CustomFieldMixin(object):
@@ -776,3 +824,56 @@ class CreateChecklistForm(ChecklistForm):
 
 class FormControlDeleteFormSet(forms.BaseInlineFormSet):
     deletion_widget = forms.CheckboxInput(attrs={"class": "form-control"})
+
+
+class RegistrationForm(forms.ModelForm):
+    """Public registration form for creating a normal (non-staff) user."""
+
+    password1 = forms.CharField(
+        label=_("Password"),
+        strip=False,
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+    )
+    password2 = forms.CharField(
+        label=_("Confirm password"),
+        strip=False,
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+    )
+
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name", "username", "email")
+
+    def clean_username(self):
+        username = self.cleaned_data.get("username")
+        if username and User.objects.filter(username__iexact=username).exists():
+            raise ValidationError(_("A user with that username already exists."))
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise ValidationError(_("A user with that email address already exists."))
+        return email
+
+    def clean_password2(self):
+        p1 = self.cleaned_data.get("password1")
+        p2 = self.cleaned_data.get("password2")
+        if not p1 or not p2:
+            raise ValidationError(_("Please confirm your password."))
+        if p1 != p2:
+            raise ValidationError(_("The two password fields didn\'t match."))
+        # delegate complexity checks
+        validate_password_strength(p1)
+        return p2
+
+    def save(self, commit=True):
+        user = super(RegistrationForm, self).save(commit=False)
+        # Ensure newly registered users are normal users (no staff/superuser)
+        user.is_active = True
+        user.is_staff = False
+        user.is_superuser = False
+        user.set_password(self.cleaned_data["password1"])
+        if commit:
+            user.save()
+        return user

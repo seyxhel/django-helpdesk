@@ -1,0 +1,18 @@
+{% extends "helpdesk/public_base.html" %}{% load i18n %}
+
+{% block helpdesk_title %}{% trans "Registration successful" %}{% endblock %}
+
+{% block helpdesk_body %}
+  <div class="page-empty">
+    <div class="empty-card">
+      <h1>{% trans "Account created" %}</h1>
+      <p class="lead">{% trans "Your account has been created successfully." %}</p>
+      <p>{% trans "You can now log in using your credentials." %}</p>
+      <p><a class="btn btn-primary" href="{{ login_url }}">{% trans "Go to login" %}</a></p>
+      <script>
+        // Auto-redirect to login after 4 seconds
+        setTimeout(function(){ window.location = "{{ login_url }}"; }, 4000);
+      </script>
+    </div>
+  </div>
+{% endblock %}

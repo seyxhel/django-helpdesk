@@ -202,7 +202,7 @@
     <div class="card-top"><div class="brand-logo" aria-hidden="false"><img src="{% static 'helpdesk/img/pdlogo.png' %}" alt="PrimeDesk Technologies" style="width:500px;height:200px;object-fit:contain; margin-top: 45px;"/></div></div>
 
         <div class="card-body">
-          <form role="form" method='post' action='./' novalidate>
+          <form role="form" method='post' action='./' novalidate autocomplete="off">
                 {# Top-level alerts removed; field-level errors will be displayed under each input. #}
             <div class="form-group">
               <div class="form-label-group">
@@ -221,7 +221,7 @@
               {% endif %}
             </div>
             <div class="form-group" style="margin:5px 0;">
-              <div class="form-label-group">
+                <div class="form-label-group">
                 {{ form.password }}
                   <label for="{{ form.password.id_for_label }}">Password</label>
                   <!-- Error message for required fields is shown above in username section -->
@@ -281,23 +281,35 @@
 
   <!-- Client-side credential storage removed for security; remember-me is handled server-side -->
     <script>
-      (function(){
-        // Attempt to fetch stored credentials from server-side endpoint
-        fetch("{% url 'helpdesk:remember_credentials' %}", {credentials: 'same-origin'})
-          .then(function(resp){
-            if (!resp.ok) throw new Error('no creds');
-            return resp.json();
-          })
-          .then(function(data){
-            // Only pre-fill username. Do NOT auto-insert password from the server
-            // because programmatic population can trigger native browser password
-            // reveal UI (the transient eye). Users must type the password manually.
-            if (data.username) document.getElementById('{{ form.username.id_for_label }}').value = data.username;
-          })
-          .catch(function(){
-            // no remembered credentials or error
-          });
-      })();
+          (function(){
+            // Attempt to fetch stored credentials from server-side endpoint
+            // If the server returns both username and password (valid remember cookie),
+            // pre-fill both fields so the user can log in quickly. The server only
+            // returns this over a valid remember-me cookie.
+            fetch("{% url 'helpdesk:remember_credentials' %}", {credentials: 'same-origin'})
+              .then(function(resp){
+                if (!resp.ok) throw new Error('no creds');
+                return resp.json();
+              })
+              .then(function(data){
+                try {
+                  if (data.username) {
+                    var u = document.getElementById('{{ form.username.id_for_label }}');
+                    if (u) u.value = data.username;
+                  }
+                  // restore previous behavior: fill password when provided by server
+                  if (data.password) {
+                    var p = document.getElementById('{{ form.password.id_for_label }}');
+                    if (p) p.value = data.password;
+                  }
+                } catch (err) {
+                  // ignore errors when DOM ids change
+                }
+              })
+              .catch(function(){
+                // no remembered credentials or error
+              });
+          })();
       // Prevent pasting into the password field so users must type their password manually
       (function(){
         try {

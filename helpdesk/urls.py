@@ -14,6 +14,7 @@ from django.views.generic import TemplateView
 from helpdesk import settings as helpdesk_settings
 from helpdesk.decorators import helpdesk_staff_member_required, protect_view
 from helpdesk.views import feeds, login, public, staff
+from helpdesk.forms import CustomSetPasswordForm
 from helpdesk.views.api import (
     CreateUserView,
     FollowUpAttachmentViewSet,
@@ -237,7 +238,7 @@ urlpatterns += [
         "password_change/",
         auth_views.PasswordChangeView.as_view(
             template_name="helpdesk/registration/change_password.html",
-            success_url="./done",
+            success_url="/password_change/done",
         ),
         name="password_change",
     ),
@@ -278,14 +279,11 @@ urlpatterns += [
     # About page
     path("about/", TemplateView.as_view(template_name="helpdesk/about.html"), name="about"),
     # Dedicated pages for user self-service
-    path("register/", TemplateView.as_view(template_name="helpdesk/register.html"), name="register"),
+    path("register/", public.RegisterView.as_view(), name="register"),
     # Password reset (forgot password) - show form to enter email and send reset link
     path(
         "password-reset/",
-        auth_views.PasswordResetView.as_view(
-            template_name="helpdesk/password_reset.html",
-            success_url="./done",
-        ),
+        public.HelpdeskPasswordResetView.as_view(),
         name="password_reset",
     ),
     path(
@@ -294,6 +292,22 @@ urlpatterns += [
             template_name="helpdesk/password_reset_done.html"
         ),
         name="password_reset_done",
+    ),
+    path(
+        "password-reset/confirm/<uidb64>/<token>/",
+        auth_views.PasswordResetConfirmView.as_view(
+            template_name="helpdesk/password_reset_confirm.html",
+            success_url="/password-reset/complete",
+            form_class=CustomSetPasswordForm,
+        ),
+        name="password_reset_confirm",
+    ),
+    path(
+        "password-reset/complete",
+        auth_views.PasswordResetCompleteView.as_view(
+            template_name="helpdesk/password_reset_complete.html"
+        ),
+        name="password_reset_complete",
     ),
 ]
 
