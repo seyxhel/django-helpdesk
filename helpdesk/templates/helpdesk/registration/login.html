@@ -1,50 +1,281 @@
-{% extends "helpdesk/public_base.html" %}{% load i18n bootstrap4form %}
-{% block helpdesk_title %}{% trans "Helpdesk Login" %}{% endblock %}
+{% extends "helpdesk/public_base.html" %}{% load i18n bootstrap4form static %}
+{% block helpdesk_title %}{
+  % trans "Helpdesk Login" %}{% endblock %}
+
+{% block helpdesk_head %}
+  <!-- Load fonts just for the login page to match base.html -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Poppins:wght@400;500&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* Login page typography to match base layout */
+    body { font-family: 'Roboto', Arial, sans-serif; font-size: 14px; }
+    .logo { font-family: 'Montserrat', sans-serif; font-weight:700; font-size:16px; }
+    .nav-links a { font-family: 'Poppins', sans-serif; font-size: 12px; }
+  .card-login .card-header { font-family: 'Poppins', sans-serif; font-size:16px; }
+  .card-login .card-body { font-family: 'Roboto', sans-serif; font-size:14px; }
+
+  /* Reusable card design (layout only) */
+  .card-login { width: 480px; border-radius: 12px; overflow: hidden; border: 1px solid #9c9c9c; background: rgba(255,255,255,0.02); }
+  .card-login .card-header { background: transparent; border-bottom: none; padding-top: 18px; padding-bottom: 8px; text-align: center; }
+  .card-top { height: 150px; display:flex; align-items:center; justify-content:center; }
+  .card-top .brand-logo { width: 110px; height: 110px; border-radius: 12px; background: rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; }
+  /* small gap between visual top area and the form body */
+  .card-top { margin-bottom: 10px; }
+  </style>
+{% endblock %}
 
 {% block helpdesk_body %}
+
+<style>
+  /* Make header flush to viewport edges and fixed on this page */
+  body { margin: 0; }
+  .site-header { position: fixed; top: 0; left: 0; right: 0; z-index: 9999; margin: 0; }
+  .site-header .container-fluid { padding-left: 0 !important; padding-right: 0 !important; }
+  .site-header .nav-links { padding-right: 12px; }
+  .login-wrapper { padding-top: 62px; }
+
+  /* Ensure login page uses 14px Roboto across elements */
+  .login-wrapper, .login-wrapper * {
+    font-size: 14px !important;
+    font-family: 'Roboto', Arial, sans-serif !important;
+  }
+
+  /* Smaller auth helper links (override the global 14px) */
+  .auth-links, .auth-links a {
+    font-size: 12px !important;
+  }
+
+  /* Interactive effects to match base.html */
+  .site-header .nav-links a:not(.login-btn) {
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: background-color 150ms ease, transform 60ms ease;
+  }
+
+  .site-header .nav-links a:not(.login-btn):hover {
+    background-color: rgba(243, 231, 231, 0.12);
+    text-decoration: none;
+  }
+
+  .site-header .nav-links a:not(.login-btn):active {
+    background-color: rgba(255,255,255,0.18);
+    transform: translateY(1px);
+  }
+
+  .site-header .nav-links a.login-btn {
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, transform 60ms ease;
+  }
+
+  .site-header .nav-links a.login-btn:hover {
+    background-color: transparent !important;
+    border: 1px solid rgba(255,255,255,0.95) !important;
+    color: #ffffff !important;
+    text-decoration: none;
+    transform: translateY(-1px);
+  }
+
+  .site-header .nav-links a.login-btn:active {
+    background-color: rgba(255,255,255,0.06) !important;
+    transform: translateY(1px);
+  }
+  /* Login submit styling: allow resizing and rounded corners */
+  .login-submit {
+    width: 70% !important;
+    border-radius: 15px !important;
+    margin: 0px auto 0 auto; /* center the button, smaller gap to previous element */
+    display: block;
+    padding: 8px 12px;
+  }
+  /* Override primary button color for the login action to match brand */
+  .login-submit {
+    background-color: #000C7D !important;
+    color: #ffffff !important;
+    border: 1px solid #000C7D !important;
+  }
+  .login-submit:hover, .login-submit:focus {
+    background-color: #08104f !important; /* slightly darker on hover */
+    border-color: #08104f !important;
+    color: #ffffff !important;
+  }
+  /* Field-level error styling (professional, compact) */
+  .field-error {
+    color: #c62828; /* professional red */
+    font-size: 12px;
+    margin-top: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .field-error::before {
+    content: "\26A0"; /* warning triangle */
+    font-size: 13px;
+    line-height: 1;
+    color: #c62828;
+  }
+  /* Fallback styling for inputs if Bootstrap's .is-invalid is not present */
+  input.is-invalid, textarea.is-invalid {
+    border-color: #c62828 !important;
+    box-shadow: none !important;
+  }
+  /*
+    Hide native/browser-injected password reveal/clear icons inside the login card.
+    Covers Edge/IE (::-ms-reveal / ::-ms-clear) and attempts for WebKit/Blink pseudo elements.
+    Keep the scope limited to .card-login so other pages aren't affected.
+  */
+  .card-login input[type="password"] {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    background-image: none !important;
+  }
+  .card-login input[type="password"]::-ms-reveal,
+  .card-login input[type="password"]::-ms-clear,
+  .card-login input[type="password"]::-webkit-clear-button,
+  .card-login input[type="password"]::-webkit-textfield-decoration-button,
+  .card-login input[type="password"]::-webkit-textfield-decoration-container {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  /* Password toggle button position and visuals */
+  .form-label-group { position: relative; }
+  .toggle-eye {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    padding: 2px;
+    color: #555;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+  }
+  .toggle-eye:focus { outline: none; box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15); border-radius: 6px; }
+  .eye-svg { display: block; transition: transform 140ms ease; }
+  /* closed eye visible when password is hidden */
+  .eye-closed { opacity: 1; transform-origin: center; transition: opacity 120ms ease; }
+  .eye-open { opacity: 0; transform-origin: center; transition: opacity 120ms ease; }
+  /* when active/opened show open eye */
+  .toggle-eye[aria-pressed="true"] .eye-open { opacity: 1; }
+  .toggle-eye[aria-pressed="true"] .eye-closed { opacity: 0; }
+
+  /* blink animation: briefly scale the iris to simulate a blink */
+  @keyframes eye-blink {
+    0% { transform: scaleY(1); }
+    30% { transform: scaleY(0.08); }
+    60% { transform: scaleY(1.05); }
+    100% { transform: scaleY(1); }
+  }
+  .eye-blink .iris { transform-origin: center; animation: eye-blink 360ms ease-in-out; }
+  
+  
+</style>
+
+<header class="site-header">
+  <div class="container-fluid px-0" style="background-color: #000C7D; width:100%;">
+    <div class="row align-items-center" style="min-height: 50px; margin:0;">
+      <!-- Logo on the left -->
+      <div class="col-md-6 col-8" style="display: flex; align-items: center; padding-left:12px;">
+        <span class="logo" style="color: white; text-decoration: none; font-size: 16px; font-weight: bold; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; pointer-events: none; margin-left: 8px;">PrimeDesk Technologies</span>
+      </div>
+        <div class="col-md-6 col-4" style="display: flex; align-items: center;">
+            <div class="nav-links" style="display: flex; align-items: center; gap: 20px; justify-content: flex-end; width: 100%;">
+                <a href="/" class="home-link" style="color: white; text-decoration: none;">Home</a>
+                <a href="/about" class="about-link" style="color: white; text-decoration: none;">About Us</a>
+                <a href="/login" class="login-btn" style="background-color:white;color: #000C7D; border: none; padding: 6px 25px; border-radius: 15px; text-decoration: none;">Log In</a>
+            </div>
+      </div>
+    </div> 
+  </div>
+</header>
 
 {% if request.user.is_authenticated %}
     <meta http-equiv="REFRESH" content="0;url={% url 'helpdesk:home' %}">
 {% else %}
 
-    <div class="container">
+    <div class="login-wrapper">
+      <div class="container">
       <div class="card card-login mx-auto mt-5">
-        <div class="card-header">{% trans 'Please Sign In' %}</div>
+    <div class="card-top"><div class="brand-logo" aria-hidden="false"><img src="{% static 'helpdesk/img/pdlogo.png' %}" alt="PrimeDesk Technologies" style="width:500px;height:200px;object-fit:contain; margin-top: 45px;"/></div></div>
+
         <div class="card-body">
           <form role="form" method='post' action='./' novalidate>
-                {% if error_type == 'missing_fields' %}
-                  <div class="alert alert-danger">{% trans "Please fill in all the required fields." %}</div>
-                {% elif error_type == 'invalid_credentials' %}
-                  <div class="alert alert-danger">{% trans "Invalid credentials." %}</div>
-                {% endif %}
+                {# Top-level alerts removed; field-level errors will be displayed under each input. #}
             <div class="form-group">
               <div class="form-label-group">
                 {{ form.username }}
                   <label for="{{ form.username.id_for_label }}">{% trans 'Username or Email' %}</label>
                   <!-- Required field error now shown in the alert above -->
               </div>
+              {% if form.username.errors %}
+                {% for err in form.username.errors %}
+                  {% if err == "This field is required." %}
+                    <div id="{{ form.username.id_for_label }}-error" class="field-error" aria-live="polite">{% trans "Please fill in the required field." %}</div>
+                  {% else %}
+                    <div id="{{ form.username.id_for_label }}-error" class="field-error" aria-live="polite">{{ err }}</div>
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
             </div>
-            <div class="form-group">
+            <div class="form-group" style="margin:5px 0;">
               <div class="form-label-group">
                 {{ form.password }}
                   <label for="{{ form.password.id_for_label }}">Password</label>
                   <!-- Error message for required fields is shown above in username section -->
+                  <!-- Password visibility toggle: custom eye (no eyelashes). Closed when masked, open when visible. -->
+                  <button type="button" class="toggle-eye" aria-label="Toggle password visibility" data-target="{{ form.password.id_for_label }}" aria-pressed="false">
+                    <svg class="eye-svg" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+                      <!-- open eye path -->
+                      <g class="eye-open" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1.5 12s4-6.5 10.5-6.5S22.5 12 22.5 12s-4 6.5-10.5 6.5S1.5 12 1.5 12z" />
+                        <circle class="iris" cx="12" cy="12" r="3" fill="currentColor" />
+                      </g>
+                      <!-- closed eye (simple curved line) -->
+                      <g class="eye-closed" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12c3.5-3 7-3 9-3s5.5 0 9 3" />
+                      </g>
+                    </svg>
+                  </button>
               </div>
+              {% if form.password.errors %}
+                {% for err in form.password.errors %}
+                  {% if err == "This field is required." %}
+                    <div id="{{ form.password.id_for_label }}-error" class="field-error" aria-live="polite">{% trans "Please fill in the required field." %}</div>
+                  {% else %}
+                    <div id="{{ form.password.id_for_label }}-error" class="field-error" aria-live="polite">{{ err }}</div>
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+              {# If server indicates invalid credentials, show a clear message under password #}
+              {% if error_type == 'invalid_credentials' %}
+                <div id="{{ form.password.id_for_label }}-error-invalid" class="field-error" aria-live="polite">{% trans "Invalid credentials" %}</div>
+              {% endif %}
             </div>
-            <div class="form-group">
-              <div class="checkbox">
-                <label>
+            <div class="form-group" style="display:flex; justify-content:left; align-items:center; margin:0 0 5px 0;">
+              <div class="checkbox" style="margin:0;">
+                <label style="display:flex; align-items:center; gap:8px; color:#777777; font-size:14px;">
                   {{ form.remember_me }}
-                  {% trans 'Remember Password' %}
+                  {% trans 'Remember me' %}
                 </label>
               </div>
             </div>
-            <input class="btn btn-lg btn-primary btn-block" type='submit' value='{% trans "Login" %}' />
+            <input class="btn btn-lg btn-primary login-submit" type='submit' value='{% trans "Login" %}' />
             {% if next %}
               <input type="hidden" name="next" value="{{ next }}" />
             {% endif %}
           {% csrf_token %}</form>
+
+          <!-- auth helper links: forgot password, divider, create account -->
+          <div class="auth-links" style="text-align:center; margin-top:14px; font-family: 'Roboto', Arial, sans-serif; font-size:11px !important;">
+            <a href="/password-reset/" class="forgot-link" style="color:#333333; text-decoration:none; font-weight:500;">{% trans "Forgot password?" %}</a>
+            <div class="auth-divider" style="height:1px; background: #9c9c9c; margin:10px auto; width:80%;"></div>
+            <a href="/register/" class="create-link" style="color:#0f0f0f; text-decoration:none; font-weight:500;">{% trans "Create a new account" %}</a>
+          </div>
         </div>
+      </div>
       </div>
     </div>
 
@@ -58,8 +289,10 @@
             return resp.json();
           })
           .then(function(data){
+            // Only pre-fill username. Do NOT auto-insert password from the server
+            // because programmatic population can trigger native browser password
+            // reveal UI (the transient eye). Users must type the password manually.
             if (data.username) document.getElementById('{{ form.username.id_for_label }}').value = data.username;
-            if (data.password) document.getElementById('{{ form.password.id_for_label }}').value = data.password;
           })
           .catch(function(){
             // no remembered credentials or error
@@ -84,6 +317,91 @@
           /* ignore errors */
         }
       })();
+    </script>
+
+      <script>
+        // Password toggle behavior: show/hide and blink animation
+        (function(){
+          try {
+            var toggles = document.querySelectorAll('.toggle-eye');
+            Array.prototype.forEach.call(toggles, function(btn){
+              var targetId = btn.getAttribute('data-target');
+              var input = document.getElementById(targetId);
+              if (!input) return;
+              // initialize state
+              btn.setAttribute('aria-pressed', 'false');
+              // ensure closed eye shown by default
+              btn.classList.remove('eye-blink');
+
+              function doBlink() {
+                btn.classList.remove('eye-blink');
+                // trigger reflow to restart animation
+                void btn.offsetWidth;
+                btn.classList.add('eye-blink');
+                // remove class after animation ends
+                setTimeout(function(){ btn.classList.remove('eye-blink'); }, 450);
+              }
+
+              btn.addEventListener('click', function(e){
+                e.preventDefault();
+                var isPressed = btn.getAttribute('aria-pressed') === 'true';
+                if (isPressed) {
+                  // currently visible -> hide
+                  input.type = 'password';
+                  btn.setAttribute('aria-pressed', 'false');
+                } else {
+                  // currently hidden -> show and blink
+                  input.type = 'text';
+                  btn.setAttribute('aria-pressed', 'true');
+                  doBlink();
+                }
+                // keep keyboard focus on the input for usability
+                input.focus({preventScroll: true});
+              });
+
+              // Sync visual state if browser or other scripts change the input type
+              var observer = new MutationObserver(function(mutations){
+                mutations.forEach(function(m){
+                  if (m.attributeName === 'type'){
+                    var t = input.type === 'text';
+                    btn.setAttribute('aria-pressed', t ? 'true' : 'false');
+                  }
+                });
+              });
+              observer.observe(input, { attributes: true });
+            });
+          } catch (err) { /* ignore */ }
+        })();
+      </script>
+
+    <script>
+      // Accessibility: if there are field error elements, link them to inputs
+      (function(){
+        try {
+          var usernameInput = document.getElementById('{{ form.username.id_for_label }}');
+          var passwordInput = document.getElementById('{{ form.password.id_for_label }}');
+          if (usernameInput) {
+            var uErr = document.getElementById('{{ form.username.id_for_label }}-error');
+            if (uErr) {
+              usernameInput.setAttribute('aria-invalid', 'true');
+              usernameInput.setAttribute('aria-describedby', uErr.id);
+              usernameInput.classList.add('is-invalid');
+            }
+          }
+          if (passwordInput) {
+            var pErr = document.getElementById('{{ form.password.id_for_label }}-error');
+            var pErrInv = document.getElementById('{{ form.password.id_for_label }}-error-invalid');
+            var firstErr = pErr || pErrInv;
+            if (firstErr) {
+              passwordInput.setAttribute('aria-invalid', 'true');
+              passwordInput.setAttribute('aria-describedby', firstErr.id);
+              passwordInput.classList.add('is-invalid');
+            }
+          }
+        } catch (e) { /* ignore */ }
+      })();
+      
+      
     </script>
 
 {% endif %}

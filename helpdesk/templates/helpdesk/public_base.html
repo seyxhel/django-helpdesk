@@ -13,31 +13,28 @@
 
 <body id="bg-dark">
 
-    {% include "helpdesk/navigation-header.html" %}
-
-    <div id="wrapper">
-        {% include "helpdesk/navigation-sidebar.html" %}
-
-        <div id="content-wrapper">
-
-            <div class="container-fluid">
-
-                <!-- Breadcrumbs-->
-                <ol class="breadcrumb">
-                    {% block helpdesk_breadcrumb %}{% endblock %}
-                </ol>
-
-                {% block helpdesk_body %}{% endblock %}
-
+{% block header %}
+    <!-- Slim header for public/auth pages -->
+    <div class="container-fluid px-0" style="background-color: #0b1333;">
+        <div class="row align-items-center" style="min-height: 50px;">
+            <div class="col-12" style="display:flex; align-items:center; justify-content:center;">
+                <a href="/" style="color:#fff; text-decoration:none; font-weight:600;">PrimeDesk</a>
             </div>
-            <!-- /.container-fluid -->
-
-            {% include "helpdesk/attribution.html" %}
         </div>
-        <!-- /.content-wrapper -->
-
     </div>
-    <!-- /#wrapper -->
+{% endblock %}
+
+        <div id="wrapper">
+                <div id="content-wrapper">
+                        <div class="container-fluid">
+                                {% block helpdesk_body %}{% endblock %}
+                        </div>
+                        <!-- /.container-fluid -->
+                        {% include "helpdesk/attribution.html" %}
+                </div>
+                <!-- /.content-wrapper -->
+        </div>
+        <!-- /#wrapper -->
 
     {% include "helpdesk/debug.html" %}
     {% include 'helpdesk/base_js.html' %}

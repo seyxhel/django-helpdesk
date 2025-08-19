@@ -1,0 +1,367 @@
+{% extends "helpdesk/public_base.html" %}{% load i18n static %}
+
+{% block helpdesk_title %}{% trans "Create account" %}{% endblock %}
+
+{% block helpdesk_head %}
+  <style>
+    .page-empty { padding: 60px 20px; display:flex; align-items:center; justify-content:center; }
+    .empty-card, .register-card { width: 600px; max-width:94%; padding: 28px; border-radius: 12px; background: #fff; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border: 1px solid #e6e6e6; }
+    .register-card { text-align: left; }
+    .register-card h1 { margin: 0 0 8px 0; font-size: 20px; }
+  .register-card p.lead { margin: 0 0 16px 0; color: #666; font-size: 15px; }
+
+    .form-row { margin-bottom: 12px; }
+    .form-row label { display:block; margin-bottom:6px; font-weight:600; color:#222; }
+    .form-row input { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #d9d9d9; background: #fff; box-sizing: border-box; font-size:14px; }
+    .form-row input:focus { outline: none; border-color:#9bb0ff; box-shadow: 0 0 0 3px rgba(16,87,255,0.06); }
+
+    /* Two-column layout for name fields on wider screens */
+    .name-row { display:block; }
+    .name-row .form-row { width:100%; }
+    @media(min-width:700px) {
+      .name-row { display:flex; gap:12px; }
+      .name-row .form-row { width:50%; }
+    }
+
+    .form-errors { background:#fff4f4; border:1px solid #ffd7d7; color:#7a1212; padding:10px 12px; border-radius:8px; margin-bottom:12px; }
+    .form-note { margin-top:8px; color:#666; font-size:13px; }
+
+    /* Field error visuals (consistent with password_reset) */
+    .field-error {
+      color: #c62828; /* professional red */
+      font-size: 12px;
+      margin-top: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .field-error::before {
+      content: "\26A0"; /* warning triangle */
+      font-size: 13px;
+      line-height: 1;
+      color: #c62828;
+    }
+    input.is-invalid { border-color: #c62828 !important; box-shadow: none !important; }
+
+  .register-actions { display:flex; gap:12px; align-items:center; justify-content:center; margin-top:18px; width:100%; }
+    .btn-primary {
+      min-width: 180px;
+      padding: 8px 12px;
+      border-radius: 15px;
+      background-color: #000C7D;
+      color: #ffffff;
+      border: 1px solid #000C7D;
+      font-weight: normal;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 90ms ease, background-color 120ms ease, box-shadow 120ms ease;
+      display: inline-block;
+      font-size: 14px;
+    }
+    .btn-primary:hover, .btn-primary:focus {
+      background-color: #08104f;
+      border-color: #08104f;
+      transform: translateY(-1px);
+    }
+    /* Secondary button: white with brand border/text */
+    .btn-secondary {
+      min-width: 140px;
+      padding: 8px 12px;
+      border-radius: 15px;
+      background: #ffffff;
+      border: 1px solid #333;
+      color: #333;
+      text-align: center;
+      display: inline-block;
+      font-weight: normal;
+      font-size: 14px;
+    }
+    .btn-secondary:hover, .btn-secondary:focus {
+      background: #3333336c;
+      text-decoration: none;
+    }
+      /* Shared interactive behavior for both buttons */
+      .btn-primary,
+      .btn-secondary {
+        min-width: 140px;
+        padding: 8px 12px;
+        border-radius: 15px;
+        text-align: center;
+        display: inline-block;
+        font-weight: normal;
+        cursor: pointer;
+        transition: transform 90ms ease, background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
+        will-change: transform, background-color;
+      }
+      /* Primary color (brand) */
+      .btn-primary {
+        background-color: #000C7D;
+        color: #ffffff;
+        border: 1px solid #000C7D;
+      }
+      /* Secondary: white with brand border/text */
+      .btn-secondary {
+        background: #ffffff;
+        border: 1px solid #333;
+        color: #333;
+      }
+      /* Hover and focus show the same motion/feedback for both buttons */
+      .btn-primary:hover,
+      .btn-primary:focus,
+      .btn-secondary:hover,
+      .btn-secondary:focus {
+        transform: translateY(-1px);
+        outline: none;
+      }
+      /* Color-specific hover adjustments */
+      .btn-primary:hover { background-color: #08104f; border-color: #08104f; }
+      .btn-secondary:hover { background-color: #33333334; color: #333;}
+      /* Strong focus ring for keyboard users (use brand accent) */
+      .btn-primary:focus-visible {
+        box-shadow: 0 0 0 4px rgba(0,12,125,0.12);
+      }
+      /* Active/pressed state */
+      .btn-primary:active,
+      .btn-secondary:active {
+        transform: translateY(0);
+        transition-duration: 60ms;
+      }
+    /* Disabled primary button visual: dark gray, non-interactive */
+    .btn-primary[disabled], .btn-primary[aria-disabled="true"] {
+      background-color: #000535d8;
+      border-color: #000535d8;
+      color: #fff;
+      opacity: 0.65;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .btn-primary[disabled]:hover, .btn-primary[aria-disabled="true"]:hover { background-color: #444444; border-color: #444444; }
+      /* Disabled primary button visual: dark gray, non-interactive (but keep pointer-events so hover/tooltip works) */
+      .btn-primary[disabled], .btn-primary[aria-disabled="true"] {
+        background-color: #444444;
+        border-color: #444444;
+        color: #ffffff;
+        opacity: 1;
+        cursor: not-allowed;
+        /* do NOT disable pointer-events so users can hover and see the tooltip */
+        box-shadow: none;
+      }
+      .btn-primary[disabled]:hover, .btn-primary[aria-disabled="true"]:hover { background-color: #444444; border-color: #444444; }
+
+      /* Tooltip wrapper for disabled button */
+      .tooltip-wrap { position: relative; display: inline-block; }
+      .tooltip-wrap::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #222;
+        color: #fff;
+        padding: 6px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 120ms ease;
+        z-index: 30;
+      }
+      .tooltip-wrap:hover::after,
+      .tooltip-wrap.show-tooltip::after { opacity: 1; }
+    @media (max-width: 480px) {
+      .register-actions { flex-direction: column; align-items:stretch; }
+      .btn-primary, .btn-secondary { width: 90% !important; display: block; }
+    }
+  </style>
+{% endblock %}
+
+{% block helpdesk_body %}
+  <div class="page-empty">
+    <div class="register-card">
+      <h1>{% trans "Create a new account" %}</h1>
+      <p class="lead">{% trans "Fill in the fields below to create your account. All fields marked required must be completed." %}</p>
+
+      {% comment %} Display form-level errors if a Django form is passed in the context {% endcomment %}
+      {% if form and form.non_field_errors %}
+        <div class="form-errors">
+          {% for err in form.non_field_errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" action="" novalidate>
+        {% csrf_token %}
+
+        <div class="name-row">
+          <div class="form-row">
+            <label for="id_first_name">{% trans "First name" %}</label>
+            <input id="id_first_name" name="first_name" type="text" autocomplete="given-name" value="{{ form.first_name.value|default_if_none:'' }}">
+            {% if form and form.first_name.errors %}<div class="form-errors">{{ form.first_name.errors|join:' ' }}</div>{% endif %}
+          </div>
+
+          <div class="form-row">
+            <label for="id_last_name">{% trans "Last name" %}</label>
+            <input id="id_last_name" name="last_name" type="text" autocomplete="family-name" value="{{ form.last_name.value|default_if_none:'' }}">
+            {% if form and form.last_name.errors %}<div class="form-errors">{{ form.last_name.errors|join:' ' }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="id_username">{% trans "Username" %} <span style="color:#999;font-weight:400">*</span></label>
+          <input id="id_username" name="username" type="text" autocomplete="username" required value="{{ form.username.value|default_if_none:'' }}">
+          {% if form and form.username.errors %}<div class="form-errors">{{ form.username.errors|join:' ' }}</div>{% endif %}
+          <div id="id_username-client-error" class="field-error" style="display:none;" aria-live="polite"></div>
+        </div>
+
+        <div class="form-row">
+          <label for="id_email">{% trans "Email address" %} <span style="color:#999;font-weight:400">*</span></label>
+          <input id="id_email" name="email" type="email" autocomplete="email" required value="{{ form.email.value|default_if_none:'' }}">
+          {% if form and form.email.errors %}<div class="form-errors">{{ form.email.errors|join:' ' }}</div>{% endif %}
+          <div id="id_email-client-error" class="field-error" style="display:none;" aria-live="polite"></div>
+        </div>
+
+        <div class="form-row">
+          <label for="id_password1">{% trans "Password" %} <span style="color:#999;font-weight:400">*</span></label>
+          <input id="id_password1" name="password1" type="password" autocomplete="new-password" required aria-required="true">
+          {% if form and form.password1.errors %}<div class="form-errors">{{ form.password1.errors|join:' ' }}</div>{% endif %}
+          <div id="id_password1-client-error" class="field-error" style="display:none;" aria-live="polite"></div>
+        </div>
+
+        <div class="form-row">
+          <label for="id_password2">{% trans "Confirm password" %} <span style="color:#999;font-weight:400">*</span></label>
+          <input id="id_password2" name="password2" type="password" autocomplete="new-password" required aria-required="true">
+          {% if form and form.password2.errors %}<div class="form-errors">{{ form.password2.errors|join:' ' }}</div>{% endif %}
+          <div id="id_password2-client-error" class="field-error" style="display:none;" aria-live="polite"></div>
+        </div>
+
+        <div class="form-note">{% trans "Passwords must be at least 8 characters and include a mix of letters and numbers." %}</div>
+
+        <div class="register-actions">
+          <a href="/login/" class="btn-secondary">{% trans "Return to login" %}</a>
+          <button id="register-submit" type="submit" class="btn-primary" disabled aria-disabled="true">{% trans "Create account" %}</button>
+        </div>
+      </form>
+      <script>
+        (function(){
+          var form = document.querySelector('.register-card form');
+          if (!form) return;
+          var pwd1 = document.getElementById('id_password1');
+          var pwd2 = document.getElementById('id_password2');
+          var err1 = document.getElementById('id_password1-client-error');
+          var err2 = document.getElementById('id_password2-client-error');
+          var username = document.getElementById('id_username');
+          var email = document.getElementById('id_email');
+          var errUsername = document.getElementById('id_username-client-error');
+          var errEmail = document.getElementById('id_email-client-error');
+
+          function showError(el, box, msg) {
+            if (!box) return;
+            box.textContent = msg;
+            box.style.display = 'inline-flex';
+            el.classList.add('is-invalid');
+            el.setAttribute('aria-invalid', 'true');
+            el.setAttribute('aria-describedby', box.id);
+          }
+
+          function clearError(el, box) {
+            if (!box) return;
+            box.textContent = '';
+            box.style.display = 'none';
+            el.classList.remove('is-invalid');
+            el.removeAttribute('aria-invalid');
+            el.removeAttribute('aria-describedby');
+          }
+
+          function validatePasswords() {
+            var v1 = pwd1.value || '';
+            var v2 = pwd2.value || '';
+            var ok = true;
+            // length rule
+            if (v1.length && v1.length < 8) {
+              showError(pwd1, err1, 'Password must be at least 8 characters.');
+              ok = false;
+            } else {
+              clearError(pwd1, err1);
+            }
+            // match rule (only if both have content)
+            if (v1 && v2 && v1 !== v2) {
+              showError(pwd2, err2, 'Passwords do not match.');
+              ok = false;
+            } else {
+              clearError(pwd2, err2);
+            }
+            return ok;
+          }
+
+          function validateUsername() {
+            if (!username) return true;
+            var v = username.value ? username.value.trim() : '';
+            if (!v) {
+              showError(username, errUsername, 'Please enter a username.');
+              return false;
+            }
+            if (v.length < 3) {
+              showError(username, errUsername, 'Username must be at least 3 characters.');
+              return false;
+            }
+            clearError(username, errUsername);
+            return true;
+          }
+
+          function validateEmail() {
+            if (!email) return true;
+            var v = email.value ? email.value.trim() : '';
+            if (!v) {
+              showError(email, errEmail, 'Please enter an email address.');
+              return false;
+            }
+            // basic email regex
+            var re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+            if (!re.test(v)) {
+              showError(email, errEmail, 'Please enter a valid email address.');
+              return false;
+            }
+            clearError(email, errEmail);
+            return true;
+          }
+
+          var submitBtn = document.getElementById('register-submit');
+
+          function checkFormValidity() {
+            var requiredFields = ['id_username', 'id_email', 'id_password1', 'id_password2'];
+            var filled = requiredFields.every(function(id){
+              var el = document.getElementById(id);
+              return el && el.value && el.value.trim().length > 0;
+            });
+            var pwdOk = validatePasswords();
+            if (filled && pwdOk) {
+              submitBtn.disabled = false;
+              submitBtn.removeAttribute('aria-disabled');
+            } else {
+              submitBtn.disabled = true;
+              submitBtn.setAttribute('aria-disabled', 'true');
+            }
+          }
+
+          if (pwd1 && pwd2) {
+            pwd1.addEventListener('input', function(){ validatePasswords(); checkFormValidity(); });
+            pwd2.addEventListener('input', function(){ validatePasswords(); checkFormValidity(); });
+          }
+          if (username) username.addEventListener('input', function(){ validateUsername(); checkFormValidity(); });
+          if (email) email.addEventListener('input', function(){ validateEmail(); checkFormValidity(); });
+
+          // initial check on load
+          checkFormValidity();
+
+          form.addEventListener('submit', function(e){
+            if (!validatePasswords()) {
+              e.preventDefault();
+              var firstInvalid = form.querySelector('.is-invalid');
+              if (firstInvalid) firstInvalid.focus();
+            }
+          });
+        })();
+      </script>
+    </div>
+  </div>
+{% endblock %}

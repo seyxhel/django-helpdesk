@@ -63,6 +63,7 @@
 
 <body id="bg-dark">
 
+{% block header %}
 <div class="container-fluid px-0" style="background-color: #000C7D;">
     <div class="row align-items-center" style="min-height: 50px;">
         <!-- Logo on the left -->
@@ -75,11 +76,12 @@
             <div class="nav-links" style="display: flex; align-items: center; gap: 20px; justify-content: flex-end; width: 100%;">
                 <a href="/" class="home-link" style="color: white; text-decoration: none;">Home</a>
                 <a href="/about" class="about-link" style="color: white; text-decoration: none;">About Us</a>
-                <a href="/login" class="login-btn" style="background-color: white; color: #000C7D; border: none; padding: 6px 25px; border-radius: 15px; text-decoration: none; margin-right: 20px;">Log In</a>
+                <a href="/login" class="login-btn" style="background-color: white; color: #000C7D; border: none; padding: 6px 25px; border-radius: 15px; text-decoration: none; margin-right: 15px;">Log In</a>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
     <div id="wrapper">
         {% if request.path != '/about/' %}

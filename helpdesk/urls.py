@@ -277,6 +277,24 @@ urlpatterns += [
     ),
     # About page
     path("about/", TemplateView.as_view(template_name="helpdesk/about.html"), name="about"),
+    # Dedicated pages for user self-service
+    path("register/", TemplateView.as_view(template_name="helpdesk/register.html"), name="register"),
+    # Password reset (forgot password) - show form to enter email and send reset link
+    path(
+        "password-reset/",
+        auth_views.PasswordResetView.as_view(
+            template_name="helpdesk/password_reset.html",
+            success_url="./done",
+        ),
+        name="password_reset",
+    ),
+    path(
+        "password-reset/done",
+        auth_views.PasswordResetDoneView.as_view(
+            template_name="helpdesk/password_reset_done.html"
+        ),
+        name="password_reset_done",
+    ),
 ]
 
 def home_view(request):
