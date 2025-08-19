@@ -83,6 +83,181 @@ table.ticket-stats tbody th, table.ticket-stats tbody tr {padding-left: 20px}
 /*
 Add your custom styles here
 */
+/* Base typography sizes: normal text 14px, headers 15px */
+body {
+    font-size: 14px;
+    line-height: 1.45;
+}
+h1, h2, h3, h4, h5, h6 {
+    font-size: 15px;
+    line-height: 1.25;
+    font-weight: 600;
+}
+/* Navbar search styling */
+.navbar .form-control.rounded-pill {
+    border-radius: 999px;
+    padding-left: 1rem;
+    padding-right: 0.5rem;
+    background-color: rgba(255,255,255,0.08);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.navbar .form-control.rounded-pill::placeholder {
+    color: rgba(255,255,255,0.7);
+}
+.navbar .form-control.rounded-pill:focus {
+    background-color: rgba(255,255,255,0.12);
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(0,12,125,0.15);
+}
+.navbar .input-group-append .btn {
+    border-radius: 999px;
+}
+.navbar .input-group-append .btn.btn-outline-light {
+    color: rgba(255,255,255,0.9);
+    border-color: rgba(255,255,255,0.12);
+}
+.navbar .input-group-append .btn.btn-outline-light:hover {
+    background-color: rgba(255,255,255,0.06);
+}
+
+/* Compact pill search styles */
+.navbar .search-pill { max-width: 700px; }
+.navbar .search-pill .search-icon { position: absolute; left: 0.4rem; z-index: 3; color: rgba(255,255,255,0.9); font-size: 0.95rem; margin-right: 10px; }
+.navbar .search-pill .form-control { background-color: rgba(252, 252, 252, 0.63); border: 0; color: #fff; padding: 0.45rem 0.75rem; }
+.navbar .search-pill .form-control::placeholder { color: rgba(255, 255, 255, 0.6); }
+
+/* New wrappers and positioning for in-input buttons */
+.navbar .search-pill .search-input-wrap { position: relative; display: flex; align-items: center; }
+.navbar .search-pill .search-input { width: 100%; padding-right: 6rem; /* leave space for buttons inside */ padding-left: 2.8rem; /* leave space for left icon + gap */ }
+.navbar .search-pill .search-input::-webkit-search-decoration,
+.navbar .search-pill .search-input::-webkit-search-cancel-button,
+.navbar .search-pill .search-input::-webkit-search-results-button,
+.navbar .search-pill .search-input::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+}
+/* Hide IE/Edge clear button */
+.navbar .search-pill .search-input::-ms-clear,
+.navbar .search-pill .search-input::-ms-reveal {
+    display: none;
+    width: 0;
+    height: 0;
+}
+.navbar .search-pill .clear-btn, .navbar .search-pill .submit-btn { position: absolute; right: 0.25rem; top: 50%; transform: translateY(-50%); z-index: 2; }
+.navbar .search-pill .clear-btn { right: 3.4rem; background: transparent; border: 0; color: rgba(255,255,255,0.6); padding: 0.25rem 0.45rem; }
+.navbar .search-pill .clear-btn:hover { color: #fff; background: rgba(255,255,255,0.02); border-radius: 6px; }
+.navbar .search-pill .submit-btn { right: 0.25rem; border-radius: 999px; padding: 0.18rem 0.6rem; min-width: auto; display: inline-flex; align-items: center; background: #fff; border: 1px solid rgba(0,0,0,0.08); box-shadow: none; }
+.navbar .search-pill .submit-btn i { display: none; }
+.navbar .search-pill .submit-btn span { color: #111; font-weight: 600; font-size: 0.9rem; }
+.navbar .search-pill .submit-btn:hover { background: #f2f2f2; color: #000; }
+.navbar .search-pill .input-group-text { background: transparent; border: 0; }
+.navbar .search-pill .form-control:focus { box-shadow: none; outline: none; background-color: rgba(255, 255, 255, 0.486); }
+
+/* Ensure the logged-in user's name and icons in the navbar are white */
+.navbar #userDropdown, .navbar #userDropdown i, .navbar a#userDropdown {
+    color: #fff !important;
+}
+.navbar #userDropdown:hover, .navbar a#userDropdown:hover {
+    color: #fff !important;
+}
+
+/* Professional user dropdown styling */
+.dropdown-menu.dropdown-menu-right {
+    min-width: 220px;
+    border-radius: 8px;
+    padding: 0.5rem 0;
+    box-shadow: 0 6px 20px rgba(2,6,23,0.18);
+    border: 0;
+    background: #fff;
+}
+.dropdown-profile-header {
+    background: linear-gradient(90deg, rgba(0,12,125,0.03), rgba(0,12,125,0.02));
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.dropdown-profile-header .avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #000C7D;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+.dropdown-profile-header .profile-name { font-weight: 600; color: #222; }
+.dropdown-profile-header .profile-email { color: #666; }
+.dropdown-menu .dropdown-item { color: #222; padding: 0.6rem 1rem; }
+.dropdown-menu .dropdown-item i { color: rgba(0,0,0,0.45); margin-right: 0.6rem; }
+.dropdown-menu .dropdown-item:hover { background: rgba(0,12,125,0.02); color: #000; }
+.dropdown-menu .dropdown-divider { margin: 0.25rem 0; }
+
+/* User dropdown link & icon interaction (hover / active) */
+.navbar a#userDropdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: background-color 0.18s ease, color 0.18s ease;
+}
+/* Hover/focus/active use the same light background */
+.navbar a#userDropdown:hover,
+.navbar a#userDropdown:focus,
+.navbar a#userDropdown:active,
+.navbar a#userDropdown:focus-visible {
+    background-color: rgba(255,255,255,0.06);
+    text-decoration: none;
+}
+/* Keep background when dropdown is open (Bootstrap adds .show to parent) or aria-expanded is true */
+.nav-item.dropdown.show > a#userDropdown,
+.navbar a#userDropdown[aria-expanded="true"] {
+    background-color: rgba(255,255,255,0.06);
+}
+
+/* Use the brand/palette blue for user icons and dropdown item icons on hover */
+.navbar a#userDropdown .fa-user-circle {
+    color: #000C7D; /* brand blue */
+    font-size: 1.05rem;
+    transition: color 0.18s ease, transform 0.12s ease;
+}
+.navbar a#userDropdown:hover .fa-user-circle,
+.navbar a#userDropdown:focus .fa-user-circle,
+.navbar a#userDropdown[aria-expanded="true"] .fa-user-circle {
+    color: #000C7D;
+    transform: translateY(-1px);
+}
+
+/* Make dropdown item icons use brand blue on hover/active for visual consistency */
+.dropdown-menu .dropdown-item:hover i,
+.dropdown-menu .dropdown-item:focus i,
+.dropdown-menu .dropdown-item:active i {
+    color: #000C7D;
+}
+
+/* Ensure caret color matches text and remains subtle */
+.navbar a#userDropdown .fa-caret-down {
+    color: rgba(255,255,255,0.9);
+    margin-left: 0.25rem;
+}
+
+/* Make the Logout dropdown item appear red to indicate destructive action */
+.dropdown-menu .dropdown-item[type="submit"] {
+    color: #b00020; /* semantic red */
+}
+.dropdown-menu .dropdown-item[type="submit"] i {
+    color: #b00020;
+}
+.dropdown-menu .dropdown-item[type="submit"]:hover,
+.dropdown-menu .dropdown-item[type="submit"]:focus {
+    background: rgba(176,0,32,0.06);
+    color: #b00020;
+}
+.dropdown-menu .dropdown-item[type="submit"]:hover i,
+.dropdown-menu .dropdown-item[type="submit"]:focus i {
+    color: #b00020;
+}
+
 #footer {
     border-top: 2px solid #AAAAAA;
     margin-top: 20px;
@@ -112,3 +287,262 @@ table .tickettitle {
 .handle {
 	cursor: grab;
 }
+
+/* Sidebar responsive toggling */
+ul.sidebar {
+    transition: transform 0.18s ease, opacity 0.18s ease;
+}
+/* Dark themed sidebar: background and white text/icons */
+/* Dark themed sidebar: background and white text/icons */
+ul.sidebar {
+    background: #f5f5f5; /* keep existing background */
+    color: #000C7D; /* brand blue for sidebar text */
+    font-family: 'Poppins', sans-serif; /* use Poppins for sidebar */
+    font-size: 13px !important; /* enforce 13px for all sidebar text */
+    line-height: 1.45;
+}
+/* Ensure all sidebar anchors, nav links and dropdown items use brand blue */
+ul.sidebar a,
+ul.sidebar .nav-link,
+ul.sidebar .nav-link span,
+ul.sidebar .dropdown-item {
+    color: #000C7D !important;
+    font-family: inherit;
+    font-size: 13px !important;
+}
+/* Icons in the sidebar should also use the brand color */
+ul.sidebar .nav-link .fa-fw,
+ul.sidebar .nav-link i {
+    color: #000C7D !important;
+    margin-right: 0.6rem;
+}
+/* Active and hover states: keep subtle blue tint backgrounds, text remains brand blue */
+ul.sidebar .nav-item.active > a.nav-link {
+    background: rgba(0,12,125,0.06);
+    color: #000C7D !important;
+}
+ul.sidebar .nav-link:hover {
+    background: rgba(0,12,125,0.03);
+    color: #000C7D !important;
+    text-decoration: none;
+}
+/* Dropdown menu inside sidebar: inherit the light background and blue text */
+ul.sidebar .dropdown-menu {
+    background: inherit; /* keep dropdown on same light background as sidebar */
+    border: 0;
+}
+ul.sidebar .dropdown-menu .dropdown-item:hover { background: rgba(0,12,125,0.03); color: #000C7D !important; }
+ul.sidebar.d-none {
+    transform: translateX(-8px);
+    opacity: 0;
+}
+@media(min-width: 768px) {
+    /* keep sidebar visible on larger screens */
+    ul.sidebar { transform: none !important; opacity: 1 !important; }
+    ul.sidebar { position: static; transform: none; box-shadow: none; width: auto; }
+}
+
+/* end of file */
+
+/* Stats card stretching and spacing */
+.stats-card { display:flex; flex-direction:column; width:100%; min-height:150px; }
+.stats-card .card-body { display:flex; gap: 1rem; align-items: center; padding: 1.4rem; }
+.card-body-icon { font-size: 1.8rem; opacity: 0.98; margin-right: 0.8rem; width: 44px; text-align: center; }
+.stats-text { font-size: 1.5rem; font-weight: 700; }
+.stats-text .small { display:block; opacity: 0.95; font-weight: 600; }
+
+/* Make sure the cards visually fill the width of their grid/column */
+.stats-card { width: 100%; }
+.stats-card .card-footer { background: rgba(0,0,0,0.04); border-top: 1px solid rgba(255,255,255,0.06); }
+
+/* Typography for stats content */
+.stats-count { font-size: 2rem; font-weight: 800; line-height: 1; }
+.stats-label { font-size: 1rem; opacity: 0.95; margin-top: 0.22rem; }
+
+/* Footer layout */
+.card-footer .footer-left { float: left; }
+.card-footer .footer-right { float: right; }
+.card-footer[aria-disabled="true"] { opacity: 0.55; pointer-events: none; }
+
+/* Responsive tweaks */
+@media (max-width: 575.98px) {
+    .stats-count { font-size: 1.6rem; }
+    .stats-label { font-size: 0.9rem; }
+}
+
+/* Center the stats grid and limit max width for readability */
+.stats-wrapper { max-width: 1200px; margin: 0 auto; padding-left: 8px; padding-right: 8px; }
+.stats-wrapper .card { flex: 1 1 auto; }
+
+/* CSS grid for stats: auto-fit so 3 cards will expand to fill width evenly */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+    align-items: stretch;
+}
+.stats-grid-item { display:flex; }
+.stats-grid .card { width:100%; }
+
+/* Dashboard specific styling */
+.dashboard-actions .card-header { border-bottom: 0; }
+.dashboard-actions .btn { text-align: left; }
+.card.shadow-sm { box-shadow: 0 4px 16px rgba(2,6,23,0.06); border-radius: 8px; }
+.card .card-body { padding: 1rem 1.25rem; }
+
+/* Quick actions styling */
+.quick-actions .btn { padding: 0.6rem 0.9rem; font-weight: 600; }
+.quick-actions .btn i { width: 22px; text-align: center; }
+.quick-actions .btn .mr-2 { margin-right: 0.6rem; }
+
+/* Hamburger toggle styling */
+.sidebar-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: background-color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+}
+.sidebar-toggle-btn:hover {
+    background: rgba(255,255,255,0.08);
+    transform: translateY(-1px);
+}
+.sidebar-toggle-btn:focus {
+    outline: none;
+    box-shadow: 0 6px 18px rgba(2,6,23,0.12);
+}
+
+/* When sidebar is visible, show a subtle active state */
+.sidebar-toggle-btn[aria-expanded="true"] {
+    background: rgba(255,255,255,0.09);
+    border-color: rgba(255,255,255,0.12);
+}
+
+/* Sidebar visual tweaks */
+#helpdesk-sidebar { transition: transform 0.18s ease, opacity 0.18s ease; }
+
+/* Collapsed sidebar: show icons only (force-hide labels) */
+#helpdesk-sidebar.collapsed {
+    width: 64px !important;
+    overflow: hidden;
+}
+/* Transition helpers for labels */
+#helpdesk-sidebar .nav-link span {
+    transition: opacity 140ms ease, width 160ms ease, margin 120ms ease, font-size 120ms ease;
+    white-space: nowrap;
+}
+/* When collapsed, fully hide text labels and remove their layout footprint */
+#helpdesk-sidebar.collapsed .nav-link span,
+#helpdesk-sidebar.collapsed .nav-link .nav-text,
+#helpdesk-sidebar.collapsed .dropdown-toggle span {
+    opacity: 0 !important;
+    width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    visibility: hidden !important;
+    display: inline-block !important;
+    overflow: hidden !important;
+}
+
+/* Center icons when labels are hidden */
+#helpdesk-sidebar.collapsed .nav-link { justify-content: center; padding-left: 0.4rem; padding-right: 0.4rem; }
+#helpdesk-sidebar .nav-link i { width: 28px; text-align: center; }
+
+/* Hover expansion disabled: keep collapsed state persistent on hover per user preference */
+@media(min-width: 768px) {
+    /* intentionally left blank to prevent hover-to-expand behaviour */
+}
+
+/* Tickets list improvements */
+/* Card header */
+.card.mb-3 .card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 15px;
+    font-weight: 700;
+    color: #111;
+    background: linear-gradient(90deg, #fff, #fbfbff);
+    border-bottom: 0;
+}
+.card.mb-3 .card-header i {
+    font-size: 1.05rem;
+    color: #000C7D; /* brand blue */
+}
+
+/* Table spacing and responsive wrapper */
+.card .table-responsive { padding: 0.35rem 0; }
+.table.table-sm th, .table.table-sm td { padding: 0.6rem 0.75rem; vertical-align: middle; }
+
+/* Ticket title link styling */
+.tickettitle a {
+    color: #0b0f66;
+    font-weight: 600;
+    display: inline-block;
+    max-width: 44ch;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.table tbody tr:hover { background: rgba(0,12,125,0.03); }
+
+/* Small muted footer */
+.card-footer.small { font-size: 12px; color: #6c757d; background: transparent; border-top: 0; }
+
+/* Pagination clean styling */
+.pagination { display: flex; gap: 0.35rem; padding-left: 0; list-style: none; margin: 0; }
+.pagination li { display: inline-block; }
+.pagination li a, .pagination li span {
+    display: inline-block;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(0,0,0,0.06);
+    color: #000C7D;
+    text-decoration: none;
+    background: transparent;
+}
+.pagination li.active span { background: #000C7D; color: #fff; border-color: #000C7D; }
+.pagination li.disabled span { color: #adb5bd; border-color: transparent; background: transparent; }
+
+/* Accessibility: focus styles for links inside the table */
+.table a:focus, .table a:focus-visible { outline: 3px solid rgba(0,12,125,0.12); border-radius: 4px; }
+
+@media (max-width: 575.98px) {
+    .tickettitle a { max-width: 28ch; }
+    .table.table-sm th, .table.table-sm td { padding: 0.5rem 0.4rem; }
+}
+
+/* Corporate filter styling */
+.corporate-filter-form { width: 100%; }
+.filter-grid { margin-top: 0.5rem; }
+.filter-card {
+    background: #ffffff;
+    border: 1px solid rgba(2,6,23,0.06);
+    padding: 0.9rem;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(2,6,23,0.04);
+}
+.filter-card .filterHelp, .filter-card .form-row { margin-top: 0.5rem; color: #6c757d; }
+.filter-card label { font-weight: 600; color: #222; font-size: 0.95rem; }
+.filter-card select, .filter-card input[type="text"], .filter-card textarea { width: 100%; }
+.filter-actions { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.filter-actions .btn { margin-right: 0.5rem; }
+
+/* Make actions align properly on small screens */
+@media (max-width: 575.98px) {
+    .filter-actions { flex-direction: column; gap: 0.5rem; align-items: stretch; }
+    .filter-actions .ml-auto { margin-left: 0 !important; }
+}
+
+/* Slightly tighten spacing when filters are hidden */
+.filterBox { display: none; }
+.filterBoxShow { display: block; }
+

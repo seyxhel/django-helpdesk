@@ -1,25 +1,30 @@
 {% load i18n %}
 
-<!-- Icon Cards-->
-          <div class="row">
+<!-- Icon Cards: full width -->
+          <div class="container stats-wrapper">
+            <div class="stats-grid">
             {% for entry in basic_ticket_stats.open_ticket_stats %}
-            <div class="col-xl-3 col-sm-6 mb-3">
-              <div class="card text-white bg-{{ entry.2 }} o-hidden h-100">
-                <div class="card-body">
-                  <div class="card-body-icon">
-                    <i class="fas fa-fw fa-list"></i>
+              <div class="stats-grid-item">
+                <div class="card text-white bg-{{ entry.2 }} o-hidden h-100 stats-card">
+                  <div class="card-body d-flex align-items-center">
+                    <div class="card-body-icon mr-3" aria-hidden="true">
+                      <i class="fas fa-fw fa-list"></i>
+                    </div>
+                    <div class="w-100">
+                      <div class="stats-count">{{ entry.1 }}</div>
+                      <div class="stats-label">{{ entry.0 }}</div>
+                    </div>
                   </div>
-                  <div class="mr-5">{{ entry.1 }} {{ entry.0 }}</div>
+                  <a class="card-footer text-white clearfix small z-1" role="button" aria-label="{% trans 'View tickets for' %} {{ entry.0 }}" href="{% if entry.1 > 0 %}{% url 'helpdesk:list' %}?{{ entry.3 }}{% else %}#{% endif %}"{% if entry.1 == 0 %} aria-disabled="true" tabindex="-1"{% endif %}>
+                    <span class="footer-left">{% if entry.1 > 0 %}{% trans "View Tickets" %}{% else %}{% trans "No tickets in this range" %}{% endif %}</span>
+                    <span class="footer-right">
+                      <i class="fas fa-angle-right"></i>
+                    </span>
+                  </a>
                 </div>
-                <a class="card-footer text-white clearfix small z-1" href="{% if entry.1 > 0 %}{% url 'helpdesk:list' %}?{{ entry.3 }}{% else %}#{% endif %}">
-                  <span class="float-left">{% if entry.1 > 0 %}{% trans "View Tickets" %}{% else %}{% trans "No tickets in this range" %}{% endif %}</span>
-                  <span class="float-right">
-                    <i class="fas fa-angle-right"></i>
-                  </span>
-                </a>
               </div>
-            </div>
             {% endfor %}
+            </div>
           </div>
 
 

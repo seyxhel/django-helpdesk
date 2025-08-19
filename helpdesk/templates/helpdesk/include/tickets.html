@@ -1,4 +1,7 @@
-{% load i18n humanize %}
+{% extends "helpdesk/base.html" %}{% load i18n humanize %}
+
+{# Use the site-wide navigation header for this page instead of the base default header #}
+{% block header %}{% include 'helpdesk/navigation-header.html' %}{% endblock %}
 
 <!-- DataTables Example -->
 <div class="card mb-3">

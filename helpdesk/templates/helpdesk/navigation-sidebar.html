@@ -1,7 +1,7 @@
 {% load i18n helpdesk_staff %}
 
-    <!-- Sidebar -->
-    <ul class="sidebar navbar-nav">
+  <!-- Sidebar -->
+  <ul id="helpdesk-sidebar" class="sidebar navbar-nav">
     {% if helpdesk_settings.HELPDESK_NAVIGATION_ENABLED and user.is_authenticated or user|is_helpdesk_staff %}
         <li class="nav-item{% if 'dashboard' in request.path %} active{% endif %}">
           <a class="nav-link" href="{% url 'helpdesk:dashboard' %}">
@@ -101,3 +101,40 @@
         {% endif %}
     {% endif %}
     </ul>
+    <script>
+    (function(){
+      var sidebar = document.getElementById('helpdesk-sidebar');
+      if(!sidebar) return;
+
+      // Ensure clicks on icons/links work when sidebar is collapsed.
+      sidebar.addEventListener('click', function(e){
+        var el = e.target;
+        if(!el) return;
+        // Find nearest anchor
+        var a = el.closest ? el.closest('a') : null;
+        if(!a) return;
+
+        // If collapsed, handle dropdown toggles specially and allow normal links to navigate
+        if(sidebar.classList.contains('collapsed')){
+          var parent = a.closest('.nav-item');
+          var menu = parent ? parent.querySelector('.dropdown-menu') : null;
+
+          if(menu){
+            // Sidebar is collapsed — do NOT open dropdowns unless the user explicitly toggles the sidebar.
+            // Prevent default anchor behavior (and avoid accidental expansion/jumps).
+            e.preventDefault();
+            return;
+          }
+
+          // If the anchor is a pure '#' do not navigate (prevent jump)
+          var href = a.getAttribute('href') || '';
+          if(href.trim() === '#'){
+            e.preventDefault();
+            return;
+          }
+
+          // Otherwise, allow navigation to proceed (click will follow the link)
+        }
+      });
+    })();
+    </script>

@@ -197,58 +197,48 @@
                             </form>
                         </div>
 
-                        <form method="get">
-                            <ul class="list-group list-group-flush">
-                                <li id="filterBoxSort"
-                                    class="filterBox{% if query_params.sorting %} filterBoxShow{% endif %} list-group-item"
-                                    id="filterBoxSort">
+                        <form method="get" class="corporate-filter-form">
+                            <div class="filter-grid row">
+                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.sorting %} filterBoxShow{% endif %}" id="filterBoxSort">
                                     {% include 'helpdesk/filters/sorting.html' %}
-                                </li>
-                                <li class="list-group-item filterBox{% if query_params.filtering.priority__in %} filterBoxShow{% endif %}"
-                                    id="filterBoxPriority">
+                                </div>
+                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.priority__in %} filterBoxShow{% endif %}" id="filterBoxPriority">
                                     {% include 'helpdesk/filters/priority.html' %}
-                                </li>
-                                <li class="filterBox{% if query_params.filtering.assigned_to__id__in or query_params.filtering_null.assigned_to__id__isnull %} filterBoxShow{% endif %} list-group-item"
-                                    id=filterBoxOwner>
+                                </div>
+
+                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.assigned_to__id__in or query_params.filtering_null.assigned_to__id__isnull %} filterBoxShow{% endif %}" id="filterBoxOwner">
                                     {% include 'helpdesk/filters/owner.html' %}
-                                </li>
-                                <li class="list-group-item filterBox{% if query_params.filtering.queue__id__in or query_params.filtering_null.queue__id__isnull %} filterBoxShow{% endif %}"
-                                    id="filterBoxQueue">
+                                </div>
+                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.queue__id__in or query_params.filtering_null.queue__id__isnull %} filterBoxShow{% endif %}" id="filterBoxQueue">
                                     {% include 'helpdesk/filters/queue.html' %}
-                                </li>
-                                <li class="list-group-item filterBox{% if query_params.filtering.status__in %} filterBoxShow{% endif %}"
-                                    id="filterBoxStatus">
+                                </div>
+
+                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.status__in %} filterBoxShow{% endif %}" id="filterBoxStatus">
                                     {% include 'helpdesk/filters/status.html' %}
-                                </li>
-                                <li class="list-group-item filterBox{% if query_params.filtering.created__gte or query_params.filtering.created__lte %} filterBoxShow{% endif %}"
-                                    id='filterBoxDates'>
+                                </div>
+                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.created__gte or query_params.filtering.created__lte %} filterBoxShow{% endif %}" id="filterBoxDates">
                                     {% include 'helpdesk/filters/date.html' %}
-                                </li>
-                                <li class="list-group-item filterBox{% if query_params.search_string %} filterBoxShow{% endif %}"
-                                    id="filterBoxKeywords">
+                                </div>
+
+                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.search_string %} filterBoxShow{% endif %}" id="filterBoxKeywords">
                                     {% include 'helpdesk/filters/keywords.html' %}
-                                </li>
-                                <li class="list-group-item filterBox{% if query_params.filtering.kbitem__in or query_params.filtering_null.kbitem__isnull %} filterBoxShow{% endif %}"
-                                    id="filterBoxKBItems">
+                                </div>
+                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.kbitem__in or query_params.filtering_null.kbitem__isnull %} filterBoxShow{% endif %}" id="filterBoxKBItems">
                                     {% include 'helpdesk/filters/kbitems.html' %}
-                                </li>
-                                <li class="list-group-item">
-                                    <input class="btn btn-primary btn-sm" type='submit' value='{% trans "Apply Filters" %}'/>
-                                </li>
-                                {% if from_saved_query and saved_query.user == user %}
-                                    <li class="list-group-item">
-                                        {% blocktrans with saved_query.title as query_name %}You are currently viewing saved query <strong>"{{ query_name }}"</strong>.{% endblocktrans %}
-                                        <a href='{% url 'helpdesk:delete_query' saved_query.id %}'>
-                                            {% trans "Delete Saved Query" %}
-                                        </a>
-                                    </li>
-                                {% endif %}
+                                </div>
+
+                                <div class="col-12 d-flex gap-2 align-items-center filter-actions">
+                                    <button class="btn btn-primary btn-sm" type="submit">{% trans "Apply Filters" %}</button>
+                                    <a href="{% url 'helpdesk:list' %}" class="btn btn-outline-secondary btn-sm">{% trans "Clear Filters" %}</a>
+                                    {% if from_saved_query and saved_query.user == user %}
+                                        <div class="ml-auto small text-muted">{% blocktrans with saved_query.title as query_name %}Viewing saved query <strong>"{{ query_name }}"</strong>.{% endblocktrans %} <a href='{% url 'helpdesk:delete_query' saved_query.id %}'> {% trans "Delete" %}</a></div>
+                                    {% endif %}
+                                </div>
+
                                 {% if from_saved_query %}
-                                    <li class="list-group-item">
-                                        {% blocktrans with saved_query.id as query_id %}<a href='../reports/?saved_query={{ query_id }}'>Run a report</a> on this query to see stats and charts for the data listed below.{% endblocktrans %}
-                                    </li>
+                                    <div class="col-12 small text-muted mt-2">{% blocktrans with saved_query.id as query_id %}<a href='../reports/?saved_query={{ query_id }}'>Run a report</a> on this query to see stats and charts for the data listed below.{% endblocktrans %}</div>
                                 {% endif %}
-                            </ul>
+                            </div>
                         </form>
                     </div>
                 </div> <!-- end card -->
@@ -326,6 +316,9 @@
         <!-- end card-body -->
     </div>
     <!-- end top card -->
+
+    <!-- Entries controls (DataTables length & pagination) will be moved here on init -->
+    <div id="entriesControls" class="d-flex justify-content-between align-items-center mt-3"></div>
 
 {% endblock %}
 
@@ -469,6 +462,33 @@
                     {data: "kbitem"},
                     {% endif %}
                 ],
+                initComplete: function(settings, json) {
+                    try {
+                        var container = $('#entriesControls');
+                        if(!container.length) return;
+                        if(!container.find('.entries-left').length){
+                            container.html('<div class="entries-left d-flex align-items-center"></div><div class="entries-right"></div>');
+                        }
+                        var left = container.find('.entries-left');
+                        var right = container.find('.entries-right');
+                        // Move length control and info to left, pagination to right
+                        $('.dataTables_length').appendTo(left);
+                        $('.dataTables_info').appendTo(left).addClass('ml-2 text-muted small');
+                        $('.dataTables_paginate').appendTo(right);
+                    } catch (e) {
+                        console.warn('Could not relocate DataTables controls', e);
+                    }
+                },
+                drawCallback: function(settings) {
+                    // Ensure controls stay in place after draw (pagination redraws)
+                    var container = $('#entriesControls');
+                    if(!container.length) return;
+                    var left = container.find('.entries-left');
+                    var right = container.find('.entries-right');
+                    $('.dataTables_length').appendTo(left);
+                    $('.dataTables_info').appendTo(left);
+                    $('.dataTables_paginate').appendTo(right);
+                },
                 order: []
             });
 
