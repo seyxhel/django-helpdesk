@@ -10,8 +10,8 @@
     .register-card h1 { margin: 0 0 8px 0; font-size: 20px; }
   .register-card p.lead { margin: 0 0 16px 0; color: #666; font-size: 15px; }
 
-    .form-row { margin-bottom: 12px; }
-    .form-row label { display:block; margin-bottom:6px; font-weight:600; color:#222; }
+  .form-row { margin-bottom: 4px; }
+  .form-row label { display:block; margin-bottom:2px; font-weight:600; color:#222; }
     .form-row input { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #d9d9d9; background: #fff; box-sizing: border-box; font-size:14px; }
     .form-row input:focus { outline: none; border-color:#9bb0ff; box-shadow: 0 0 0 3px rgba(16,87,255,0.06); }
 
@@ -23,28 +23,31 @@
       .name-row .form-row { width:50%; }
     }
 
-    .form-errors { background:#fff4f4; border:1px solid #ffd7d7; color:#7a1212; padding:10px 12px; border-radius:8px; margin-bottom:12px; }
+  .form-errors { background:#fff4f4; border:1px solid #ffd7d7; color:#7a1212; padding:6px 12px 6px 12px; border-radius:8px; margin-bottom:4px; }
+  /* Server-rendered field errors: reserve space so showing messages doesn't shift the form layout */
+  /* Remove left padding so server error text is flush with the start of the field */
+  .server-field-error { min-height:24px; visibility: hidden; padding:6px 0; margin-bottom:4px; border-radius:8px; background:#fff4f4; border:1px solid #ffd7d7; color:#7a1212; }
+  .server-field-error:not(:empty) { visibility: visible; }
     .form-note { margin-top:8px; color:#666; font-size:13px; }
 
     /* Field error visuals (consistent with password_reset) */
     .field-error {
-      color: #c62828; /* professional red */
-      font-size: 12px;
-      margin-top: 6px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+  color: #c62828; /* professional red */
+  font-size: 12px;
+    margin-top: 1px;
+  /* Reserve vertical space so showing/hiding the error doesn't shift layout */
+  display: block;
+  min-height: 12px;
+  visibility: hidden; /* use visibility so element still occupies space */
+  padding-left: 0; /* flush with start of field (no left padding) */
+  margin-left: 0;
     }
-    .field-error::before {
-      content: "\26A0"; /* warning triangle */
-      font-size: 13px;
-      line-height: 1;
-      color: #c62828;
-    }
+  /* removed visual icon to keep message minimal */
+  .field-error::before { content: none; }
     input.is-invalid { border-color: #c62828 !important; box-shadow: none !important; }
 
-  .register-actions { display:flex; gap:12px; align-items:center; justify-content:center; margin-top:18px; width:100%; }
-    .btn-primary {
+  .register-actions { display:flex; gap:12px; align-items:center; justify-content:center; margin-top:8px; width:100%; }
+    .btn-primary { 
       min-width: 180px;
       padding: 8px 12px;
       border-radius: 15px;
@@ -182,56 +185,53 @@
       <h1>{% trans "Create a new account" %}</h1>
       <p class="lead">{% trans "Fill in the fields below to create your account. All fields marked required must be completed." %}</p>
 
-      {% comment %} Display form-level errors if a Django form is passed in the context {% endcomment %}
-      {% if form and form.non_field_errors %}
-        <div class="form-errors">
-          {% for err in form.non_field_errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
-        </div>
-      {% endif %}
+  {# server non-field errors removed per UX request; per-field server error containers remain and reserve space to prevent layout shifts #}
 
       <form method="post" action="" novalidate>
         {% csrf_token %}
 
         <div class="name-row">
           <div class="form-row">
-            <label for="id_first_name">{% trans "First name" %}</label>
-            <input id="id_first_name" name="first_name" type="text" autocomplete="given-name" value="{{ form.first_name.value|default_if_none:'' }}">
-            {% if form and form.first_name.errors %}<div class="form-errors">{{ form.first_name.errors|join:' ' }}</div>{% endif %}
+            <label for="id_first_name">{% trans "First name" %} <span style="color:#999;font-weight:400">*</span></label>
+            <input id="id_first_name" name="first_name" type="text" autocomplete="given-name" required value="{{ form.first_name.value|default_if_none:'' }}">
+            <div id="id_first_name-server-error" class="form-errors server-field-error" aria-live="polite">{% if form and form.first_name.errors %}{{ form.first_name.errors|join:' ' }}{% endif %}</div>
+            <div id="id_first_name-client-error" class="field-error" aria-live="polite"></div>
           </div>
 
           <div class="form-row">
-            <label for="id_last_name">{% trans "Last name" %}</label>
-            <input id="id_last_name" name="last_name" type="text" autocomplete="family-name" value="{{ form.last_name.value|default_if_none:'' }}">
-            {% if form and form.last_name.errors %}<div class="form-errors">{{ form.last_name.errors|join:' ' }}</div>{% endif %}
+            <label for="id_last_name">{% trans "Last name" %} <span style="color:#999;font-weight:400">*</span></label>
+            <input id="id_last_name" name="last_name" type="text" autocomplete="family-name" required value="{{ form.last_name.value|default_if_none:'' }}">
+            <div id="id_last_name-server-error" class="form-errors server-field-error" aria-live="polite">{% if form and form.last_name.errors %}{{ form.last_name.errors|join:' ' }}{% endif %}</div>
+            <div id="id_last_name-client-error" class="field-error" aria-live="polite"></div>
           </div>
         </div>
 
         <div class="form-row">
           <label for="id_username">{% trans "Username" %} <span style="color:#999;font-weight:400">*</span></label>
           <input id="id_username" name="username" type="text" autocomplete="username" required value="{{ form.username.value|default_if_none:'' }}">
-          {% if form and form.username.errors %}<div class="form-errors">{{ form.username.errors|join:' ' }}</div>{% endif %}
-          <div id="id_username-client-error" class="field-error" style="display:none;" aria-live="polite"></div>
+          <div id="id_username-server-error" class="form-errors server-field-error" aria-live="polite">{% if form and form.username.errors %}{{ form.username.errors|join:' ' }}{% endif %}</div>
+          <div id="id_username-client-error" class="field-error" aria-live="polite"></div>
         </div>
 
         <div class="form-row">
           <label for="id_email">{% trans "Email address" %} <span style="color:#999;font-weight:400">*</span></label>
           <input id="id_email" name="email" type="email" autocomplete="email" required value="{{ form.email.value|default_if_none:'' }}">
-          {% if form and form.email.errors %}<div class="form-errors">{{ form.email.errors|join:' ' }}</div>{% endif %}
-          <div id="id_email-client-error" class="field-error" style="display:none;" aria-live="polite"></div>
+          <div id="id_email-server-error" class="form-errors server-field-error" aria-live="polite">{% if form and form.email.errors %}{{ form.email.errors|join:' ' }}{% endif %}</div>
+          <div id="id_email-client-error" class="field-error" aria-live="polite"></div>
         </div>
 
         <div class="form-row">
           <label for="id_password1">{% trans "Password" %} <span style="color:#999;font-weight:400">*</span></label>
           <input id="id_password1" name="password1" type="password" autocomplete="new-password" required aria-required="true">
-          {% if form and form.password1.errors %}<div class="form-errors">{{ form.password1.errors|join:' ' }}</div>{% endif %}
-          <div id="id_password1-client-error" class="field-error" style="display:none;" aria-live="polite"></div>
+          <div id="id_password1-server-error" class="form-errors server-field-error" aria-live="polite">{% if form and form.password1.errors %}{{ form.password1.errors|join:' ' }}{% endif %}</div>
+          <div id="id_password1-client-error" class="field-error" aria-live="polite"></div>
         </div>
 
         <div class="form-row">
           <label for="id_password2">{% trans "Confirm password" %} <span style="color:#999;font-weight:400">*</span></label>
           <input id="id_password2" name="password2" type="password" autocomplete="new-password" required aria-required="true">
-          {% if form and form.password2.errors %}<div class="form-errors">{{ form.password2.errors|join:' ' }}</div>{% endif %}
-          <div id="id_password2-client-error" class="field-error" style="display:none;" aria-live="polite"></div>
+          <div id="id_password2-server-error" class="form-errors server-field-error" aria-live="polite">{% if form and form.password2.errors %}{{ form.password2.errors|join:' ' }}{% endif %}</div>
+          <div id="id_password2-client-error" class="field-error" aria-live="polite"></div>
         </div>
 
         <div class="form-note">{% trans "Passwords must be at least 8 characters and include a mix of letters and numbers." %}</div>
@@ -254,10 +254,12 @@
           var errUsername = document.getElementById('id_username-client-error');
           var errEmail = document.getElementById('id_email-client-error');
 
+          var REQUIRED_MSG = 'Please fill in the required field.';
+
           function showError(el, box, msg) {
             if (!box) return;
             box.textContent = msg;
-            box.style.display = 'inline-flex';
+            box.style.visibility = 'visible';
             el.classList.add('is-invalid');
             el.setAttribute('aria-invalid', 'true');
             el.setAttribute('aria-describedby', box.id);
@@ -266,59 +268,107 @@
           function clearError(el, box) {
             if (!box) return;
             box.textContent = '';
-            box.style.display = 'none';
+            box.style.visibility = 'hidden';
             el.classList.remove('is-invalid');
             el.removeAttribute('aria-invalid');
             el.removeAttribute('aria-describedby');
           }
 
-          function validatePasswords() {
+          // showErrorsForPwd1 controls showing required/length for pwd1
+          // showErrorsForPwd2 controls showing confirm-required and mismatch for pwd2
+          function validatePasswords(showErrorsForPwd1, showErrorsForPwd2) {
             var v1 = pwd1.value || '';
             var v2 = pwd2.value || '';
             var ok = true;
-            // length rule
-            if (v1.length && v1.length < 8) {
-              showError(pwd1, err1, 'Password must be at least 8 characters.');
+
+            // pwd1: required and complex requirements
+            if (!v1) {
+              if (showErrorsForPwd1) showError(pwd1, err1, REQUIRED_MSG);
               ok = false;
             } else {
-              clearError(pwd1, err1);
+              var parts = [];
+              // length requirement
+              if (v1.length < 8) parts.push('Password must be at least 8 characters');
+
+              // character requirements (collect short labels)
+              var missing = [];
+              if (!/[A-Z]/.test(v1)) missing.push('uppercase');
+              if (!/[a-z]/.test(v1)) missing.push('lowercase');
+              if (!/[0-9]/.test(v1)) missing.push('number');
+              // special: contains a character outside letters, numbers, space, dot, apostrophe or hyphen
+              if (!/[^A-Za-z0-9\s.\'\-]/.test(v1)) {
+                missing.push('special character');
+              }
+
+              if (parts.length === 0 && missing.length === 0) {
+                // all good
+                clearError(pwd1, err1);
+              } else {
+                ok = false;
+                // compose message
+                var msg = '';
+                var missingMsg = '';
+                if (missing.length) {
+                  missingMsg = missing.length === 1 ? missing[0] : (missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length - 1]);
+                }
+                if (parts.length) {
+                  msg = parts[0];
+                  if (missingMsg) msg = msg + ' and must contain ' + missingMsg;
+                } else {
+                  // only missing character types
+                  msg = 'Password must contain ' + missingMsg;
+                }
+                if (showErrorsForPwd1) showError(pwd1, err1, msg);
+              }
             }
-            // match rule (only if both have content)
-            if (v1 && v2 && v1 !== v2) {
-              showError(pwd2, err2, 'Passwords do not match.');
+
+            // pwd2: required (confirm) and mismatch
+            if (!v2) {
+              // Only show the required message for the confirm field if it's been touched
+              if (showErrorsForPwd2 && typeof touched !== 'undefined' && touched.password2) showError(pwd2, err2, REQUIRED_MSG);
               ok = false;
             } else {
+              // clear prior confirm error; mismatch handled below
               clearError(pwd2, err2);
             }
+
+            if (v2 && v1 !== v2) {
+              // Show mismatch instantly regardless of showErrorsForPwd2 flag
+              showError(pwd2, err2, 'Password did not match');
+              ok = false;
+            } else if (v2 && v1 === v2) {
+              clearError(pwd2, err2);
+            }
+
             return ok;
           }
 
-          function validateUsername() {
+      function validateUsername(showErrors) {
             if (!username) return true;
             var v = username.value ? username.value.trim() : '';
             if (!v) {
-              showError(username, errUsername, 'Please enter a username.');
+        if (showErrors) showError(username, errUsername, REQUIRED_MSG);
               return false;
             }
             if (v.length < 3) {
-              showError(username, errUsername, 'Username must be at least 3 characters.');
+        if (showErrors) showError(username, errUsername, 'Username must be at least 3 characters.');
               return false;
             }
             clearError(username, errUsername);
             return true;
           }
 
-          function validateEmail() {
+      function validateEmail(showErrors) {
             if (!email) return true;
             var v = email.value ? email.value.trim() : '';
             if (!v) {
-              showError(email, errEmail, 'Please enter an email address.');
+        if (showErrors) showError(email, errEmail, REQUIRED_MSG);
               return false;
             }
             // basic email regex
             var re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
             if (!re.test(v)) {
-              showError(email, errEmail, 'Please enter a valid email address.');
+              if (showErrors) showError(email, errEmail, 'Please enter a valid email address.');
               return false;
             }
             clearError(email, errEmail);
@@ -327,14 +377,34 @@
 
           var submitBtn = document.getElementById('register-submit');
 
+  function validateNameField(el, box, showErrors) {
+    if (!el) return true;
+    var v = el.value ? el.value.trim() : '';
+    if (!v) {
+    if (showErrors) showError(el, box, REQUIRED_MSG);
+      return false;
+    }
+    // Allow letters (unicode), spaces, dot, apostrophe, hyphen
+    // Disallow digits and other special characters
+    var validNameRe = /^[\p{L} .'\-]+$/u;
+    if (!validNameRe.test(v)) {
+    if (showErrors) showError(el, box, 'Invalid Character');
+      return false;
+    }
+    clearError(el, box);
+    return true;
+      }
+
           function checkFormValidity() {
-            var requiredFields = ['id_username', 'id_email', 'id_password1', 'id_password2'];
+            var requiredFields = ['id_first_name','id_last_name','id_username', 'id_email', 'id_password1', 'id_password2'];
             var filled = requiredFields.every(function(id){
               var el = document.getElementById(id);
               return el && el.value && el.value.trim().length > 0;
             });
-            var pwdOk = validatePasswords();
-            if (filled && pwdOk) {
+            var namesOk = validateNameField(document.getElementById('id_first_name'), document.getElementById('id_first_name-client-error'), false) &&
+                          validateNameField(document.getElementById('id_last_name'), document.getElementById('id_last_name-client-error'), false);
+            var pwdOk = validatePasswords(false);
+            if (filled && pwdOk && namesOk && validateUsername(false) && validateEmail(false)) {
               submitBtn.disabled = false;
               submitBtn.removeAttribute('aria-disabled');
             } else {
@@ -343,18 +413,132 @@
             }
           }
 
-          if (pwd1 && pwd2) {
-            pwd1.addEventListener('input', function(){ validatePasswords(); checkFormValidity(); });
-            pwd2.addEventListener('input', function(){ validatePasswords(); checkFormValidity(); });
+          // Generic touched flags
+          var touched = {
+            first_name: false,
+            last_name: false,
+            username: false,
+            email: false,
+            // independent flags for each password field
+            password1: false,
+            password2: false
+          };
+
+          function attachTouchedHandlers(el, validator, boxId) {
+            if (!el) return;
+            var box = document.getElementById(boxId);
+            // consider a field "touched" only when the user actively clicks/taps into it
+            el.addEventListener('pointerdown', function(){ touched[el.id.replace('id_','')] = true; });
+            el.addEventListener('mousedown', function(){ touched[el.id.replace('id_','')] = true; });
+            el.addEventListener('input', function(){
+              // clear error while typing
+              clearError(el, box);
+              checkFormValidity();
+            });
+            el.addEventListener('blur', function(){
+              // only show errors on blur if the field was clicked/touched before
+              var ok = validator(touched[el.id.replace('id_','')]);
+              if (touched[el.id.replace('id_','')] && !ok) {
+                // validator already showed the error when called with true
+              }
+              checkFormValidity();
+            });
           }
-          if (username) username.addEventListener('input', function(){ validateUsername(); checkFormValidity(); });
-          if (email) email.addEventListener('input', function(){ validateEmail(); checkFormValidity(); });
+
+          // Attach handlers to name, username and email fields
+          attachTouchedHandlers(document.getElementById('id_first_name'), function(show){ return validateNameField(document.getElementById('id_first_name'), document.getElementById('id_first_name-client-error'), show); }, 'id_first_name-client-error');
+          attachTouchedHandlers(document.getElementById('id_last_name'), function(show){ return validateNameField(document.getElementById('id_last_name'), document.getElementById('id_last_name-client-error'), show); }, 'id_last_name-client-error');
+          // Immediate character validation for name fields: show "Invalid Character" as soon as a disallowed character is typed
+          (function(){
+            var firstEl = document.getElementById('id_first_name');
+            var lastEl = document.getElementById('id_last_name');
+            var firstBox = document.getElementById('id_first_name-client-error');
+            var lastBox = document.getElementById('id_last_name-client-error');
+            // Allow letters (unicode), spaces, dot, apostrophe, hyphen
+            var nameValidRe = /^[\p{L} .'\-]+$/u;
+            function attachImmediate(el, box){
+              if (!el || !box) return;
+              el.addEventListener('input', function(){
+                var v = el.value ? el.value.trim() : '';
+                if (v && !nameValidRe.test(v)) {
+                  showError(el, box, 'Invalid Character');
+                } else {
+                  // clear any client error while typing if the content is valid or empty
+                  clearError(el, box);
+                }
+                checkFormValidity();
+              });
+            }
+            attachImmediate(firstEl, firstBox);
+            attachImmediate(lastEl, lastBox);
+          })();
+          attachTouchedHandlers(username, function(show){ return validateUsername(show); }, 'id_username-client-error');
+          attachTouchedHandlers(email, function(show){ return validateEmail(show); }, 'id_email-client-error');
+
+          // Passwords: independent touched flags so each field's click+blur shows only its own errors
+          function attachPasswordTouchedHandlers(pwEl, boxId, which) {
+            if (!pwEl) return;
+            var box = document.getElementById(boxId);
+            // mark this specific password field touched only when the user actively clicks/taps into it
+            pwEl.addEventListener('pointerdown', function(){ touched[which] = true; });
+            pwEl.addEventListener('mousedown', function(){ touched[which] = true; });
+            pwEl.addEventListener('input', function(){
+              // run full password validation on every keystroke so mismatch shows instantly
+              validatePasswords(true, true);
+              checkFormValidity();
+            });
+            pwEl.addEventListener('blur', function(){
+              // on blur, show errors only for the field that was clicked/touched.
+              if (which === 'password1') {
+                // show errors for password1 (required/length). Do not show mismatch here.
+                validatePasswords(touched.password1, false);
+              } else {
+                // for password2 (confirm) show confirm-required and mismatch
+                validatePasswords(false, touched.password2);
+              }
+              checkFormValidity();
+            });
+          }
+
+          attachPasswordTouchedHandlers(pwd1, 'id_password1-client-error', 'password1');
+          attachPasswordTouchedHandlers(pwd2, 'id_password2-client-error', 'password2');
+
+          // Prevent pasting into the confirm-password field (no content from clipboard should be inserted)
+          (function(){
+            var confirmEl = document.getElementById('id_password2');
+            if (!confirmEl) return;
+            // block standard paste
+            confirmEl.addEventListener('paste', function(e){
+              e.preventDefault();
+            });
+            // block drop (drag-and-drop)
+            confirmEl.addEventListener('drop', function(e){
+              e.preventDefault();
+            });
+            // block 'beforeinput' paste insertion where supported
+            confirmEl.addEventListener('beforeinput', function(e){
+              try {
+                if (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop') e.preventDefault();
+              } catch (err) {
+                // ignore
+              }
+            });
+          })();
 
           // initial check on load
           checkFormValidity();
 
           form.addEventListener('submit', function(e){
-            if (!validatePasswords()) {
+            // mark all fields as touched so errors surface on submit
+            for (var k in touched) if (touched.hasOwnProperty(k)) touched[k] = true;
+            var allOk = true;
+            allOk = validateNameField(document.getElementById('id_first_name'), document.getElementById('id_first_name-client-error'), true) && allOk;
+            allOk = validateNameField(document.getElementById('id_last_name'), document.getElementById('id_last_name-client-error'), true) && allOk;
+            allOk = validateUsername(true) && allOk;
+            allOk = validateEmail(true) && allOk;
+            allOk = validatePasswords(true) && allOk;
+            // ensure passwords match check was applied to pwd2 as well
+            if (!allOk) {
               e.preventDefault();
               var firstInvalid = form.querySelector('.is-invalid');
               if (firstInvalid) firstInvalid.focus();
