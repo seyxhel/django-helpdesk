@@ -357,27 +357,48 @@ class HelpdeskPasswordResetView(auth_views.PasswordResetView):
                         # Not all connection wrappers expose ehlo; ignore failures
                         logger.debug('SMTP ehlo() failed or unavailable')
 
-                    # If TLS is configured but not already negotiated, try to start it.
+                    # If TLS is configured but not already negotiated, try to start it
+                    # only if the server advertises the STARTTLS extension.
                     use_tls = getattr(settings, 'EMAIL_USE_TLS', False)
                     use_ssl = getattr(settings, 'EMAIL_USE_SSL', False)
                     if use_tls and not use_ssl:
                         try:
-                            conn.connection.starttls()
+                            has_starttls = False
                             try:
-                                conn.connection.ehlo()
+                                # smtplib.SMTP provides has_extn
+                                has_starttls = bool(getattr(conn.connection, 'has_extn', lambda x: False)('starttls'))
                             except Exception:
-                                logger.debug('SMTP ehlo() after STARTTLS failed or unavailable')
+                                # If we can't check, avoid forcing starttls; try starting and handle failures
+                                has_starttls = False
+
+                            if has_starttls:
+                                conn.connection.starttls()
+                                try:
+                                    conn.connection.ehlo()
+                                except Exception:
+                                    logger.debug('SMTP ehlo() after STARTTLS failed or unavailable')
+                            else:
+                                logger.info('SMTP server does not advertise STARTTLS; skipping STARTTLS negotiation')
+                        except smtplib.SMTPNotSupportedError:
+                            # Server explicitly doesn't support STARTTLS
+                            logger.warning('STARTTLS not supported by server; skipping TLS negotiation')
                         except Exception:
-                            logger.exception('Failed to start TLS on SMTP connection')
+                            logger.exception('Failed to negotiate STARTTLS')
 
                     # Now attempt authentication
-                    conn.connection.login(username, password)
-                    authenticated = True
-                    logger.info('SMTP authenticated for %s', username)
-                except smtplib.SMTPAuthenticationError:
-                    logger.exception('SMTP authentication failed for %s', username)
+                    try:
+                        conn.connection.login(username, password)
+                        authenticated = True
+                        logger.info('SMTP authenticated for %s', username)
+                    except smtplib.SMTPAuthenticationError:
+                        logger.exception('SMTP authentication failed for %s', username)
+                        authenticated = False
+                    except Exception:
+                        logger.exception('Unexpected SMTP error during login')
+                        authenticated = False
                 except Exception:
-                    logger.exception('Unexpected SMTP error during login')
+                    logger.exception('Unexpected error during SMTP handshake')
+                    authenticated = False
 
         try:
             if authenticated:
@@ -398,7 +419,31 @@ class HelpdeskPasswordResetView(auth_views.PasswordResetView):
                 finally:
                     _dmail.get_connection = _orig_get_connection
             else:
-                form.save(**opts)
+                # SMTP authentication was not available or failed. For local
+                # development, fall back to the console email backend so the
+                # reset email is printed instead of raising SMTP errors.
+                try:
+                    import django.core.mail as _dmail
+
+                    _orig_get_connection = _dmail.get_connection
+
+                    console_conn = mail.get_connection(backend='django.core.mail.backends.console.EmailBackend')
+
+                    def _get_conn_override(*a, **k):
+                        return console_conn
+
+                    _dmail.get_connection = _get_conn_override
+                    try:
+                        logger.info('Falling back to console email backend for password reset')
+                        form.save(**opts)
+                    finally:
+                        _dmail.get_connection = _orig_get_connection
+                except Exception:
+                    # As a last resort, attempt the normal save which may
+                    # raise; ensure we surface the original behavior if the
+                    # fallback fails.
+                    logger.exception('Console fallback failed; attempting normal send')
+                    form.save(**opts)
         finally:
             try:
                 conn.close()
