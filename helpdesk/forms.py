@@ -178,6 +178,12 @@ class AddUserForm(UserCreationForm):
 
                 self.fields[f].error_messages = getattr(self.fields[f], "error_messages", {})
                 self.fields[f].error_messages["required"] = req_msg
+                # Provide a clearer message for duplicate usernames
+                if f == "username":
+                    self.fields[f].error_messages["unique"] = "Invalid Username."
+                # Also provide a clearer message for duplicate emails
+                if f == "email":
+                    self.fields[f].error_messages["unique"] = "Invalid Email."
                 # ensure the HTML widget has the required attribute for client-side
                 try:
                     self.fields[f].widget.attrs["required"] = "required"

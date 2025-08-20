@@ -39,6 +39,7 @@ from django.views.generic.edit import FormView
 from django.core import mail
 from helpdesk.forms import RegistrationForm
 from helpdesk.forms import AddUserForm
+from django.db import IntegrityError, transaction
 from django.contrib.auth import get_user_model, login
 
 
@@ -103,23 +104,75 @@ def initial_setup(request):
     if request.method == "POST":
         form = AddUserForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            # Ensure the created account is a superuser and staff
-            user.is_superuser = True
-            user.is_staff = True
-            user.is_active = True
-            user.save()
             try:
-                form.save_m2m()
-            except Exception:
-                pass
-            # Log the new superuser in and redirect to home
-            try:
-                login(request, user)
-            except Exception:
-                # Ignore login failures; still redirect
-                pass
-            return HttpResponseRedirect(reverse("helpdesk:home"))
+                with transaction.atomic():
+                    # Create user but disable the account app's automatic account/email creation
+                    user = form.save(commit=False)
+                    user._disable_account_creation = True
+                    # Ensure the created account is a superuser and staff
+                    user.is_superuser = True
+                    user.is_staff = True
+                    user.is_active = True
+                    user.save()
+                    try:
+                        form.save_m2m()
+                    except Exception:
+                        pass
+
+                    # If the optional `account` app is installed, create an Account
+                    # without auto-adding the EmailAddress, then create the
+                    # EmailAddress via get_or_create so we can detect duplicates
+                    try:
+                        from account.models import Account, EmailAddress
+
+                        try:
+                            # Create Account but do NOT auto-create an EmailAddress
+                            Account.create(user=user, create_email=False)
+                        except Exception:
+                            logger.exception("Failed to create Account for initial setup user %s", user)
+
+                        # Ensure EmailAddress exists and belongs to our user. If an
+                        # EmailAddress with the same email exists for another user
+                        # this will raise IntegrityError which we catch below and
+                        # convert into a friendly form error.
+                        try:
+                            with transaction.atomic():
+                                email_obj, created = EmailAddress.objects.get_or_create(
+                                    email=user.email,
+                                    defaults={"user": user, "verified": True, "primary": True},
+                                )
+                                if not created:
+                                    # Existing EmailAddress found; if it belongs to a different
+                                    # user that's a duplicate-email conflict.
+                                    if getattr(email_obj, "user_id", None) != user.id:
+                                        raise IntegrityError("account_emailaddress.email")
+                                    # Otherwise ensure flags are set for this user
+                                    email_obj.verified = True
+                                    email_obj.primary = True
+                                    if getattr(email_obj, "user", None) != user:
+                                        email_obj.user = user
+                                    email_obj.save()
+                        except IntegrityError:
+                            # Re-raise to be handled by outer block which will
+                            # attach a form error and not crash the page.
+                            raise
+                    except ImportError:
+                        # account app not installed — nothing further to do
+                        pass
+
+                    # Log the new superuser in and redirect to home
+                    try:
+                        login(request, user)
+                    except Exception:
+                        # Ignore login failures; still redirect
+                        pass
+                    return HttpResponseRedirect(reverse("helpdesk:home"))
+            except IntegrityError as e:
+                msg = str(e)
+                if "account_emailaddress.email" in msg or "UNIQUE constraint failed: account_emailaddress.email" in msg:
+                    form.add_error("email", "Invalid Email.")
+                else:
+                    form.add_error(None, _("A database error occurred. Please try again or contact support."))
     else:
         form = AddUserForm()
 

@@ -30,6 +30,7 @@ from django.utils.html import escape
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import requires_csrf_token
 from django.views.generic.edit import FormView, UpdateView
+from django.db import IntegrityError, transaction
 from helpdesk import settings as helpdesk_settings
 from helpdesk.decorators import (
     helpdesk_staff_member_required,
@@ -384,16 +385,55 @@ def add_user(request):
     if request.method == "POST":
         form = AddUserForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            # set active/staff flags from cleaned_data (UserCreationForm doesn't include them by default)
-            if "is_active" in form.cleaned_data:
-                user.is_active = form.cleaned_data["is_active"]
-            if "is_staff" in form.cleaned_data:
-                user.is_staff = form.cleaned_data["is_staff"]
-            user.save()
-            # set password using the form's save implementation
-            form.save_m2m()
-            return redirect("helpdesk:system_settings")
+            try:
+                with transaction.atomic():
+                    user = form.save(commit=False)
+                    # set active/staff flags from cleaned_data (UserCreationForm doesn't include them by default)
+                    if "is_active" in form.cleaned_data:
+                        user.is_active = form.cleaned_data["is_active"]
+                    if "is_staff" in form.cleaned_data:
+                        user.is_staff = form.cleaned_data["is_staff"]
+                    # disable automatic account/email creation from the account app
+                    user._disable_account_creation = True
+                    user.save()
+                    # set password using the form's save implementation
+                    form.save_m2m()
+
+                    # If account app present, create Account without auto-email and attach EmailAddress safely
+                    try:
+                        from account.models import Account, EmailAddress
+                        try:
+                            Account.create(user=user, create_email=False)
+                        except Exception:
+                            logger.exception("Failed to create Account for user %s", user)
+
+                        try:
+                            with transaction.atomic():
+                                email_obj, created = EmailAddress.objects.get_or_create(
+                                    email=user.email,
+                                    defaults={"user": user, "verified": True, "primary": True},
+                                )
+                                if not created:
+                                    if getattr(email_obj, "user_id", None) != user.id:
+                                        raise IntegrityError("account_emailaddress.email")
+                                    email_obj.verified = True
+                                    email_obj.primary = True
+                                    if getattr(email_obj, "user", None) != user:
+                                        email_obj.user = user
+                                    email_obj.save()
+                        except IntegrityError:
+                            # re-raise to be handled below
+                            raise
+                    except ImportError:
+                        pass
+
+                    return redirect("helpdesk:system_settings")
+            except IntegrityError as e:
+                msg = str(e)
+                if "account_emailaddress.email" in msg or "UNIQUE constraint failed: account_emailaddress.email" in msg:
+                    form.add_error("email", "Invalid Email.")
+                else:
+                    form.add_error(None, _("A database error occurred. Please try again or contact support."))
     else:
         form = AddUserForm()
 
