@@ -1,0 +1,52 @@
+{% extends "helpdesk/base.html" %}{% load i18n %}
+
+{% block helpdesk_title %}{% trans "Initial setup" %}{% endblock %}
+
+{% block helpdesk_body %}
+<h2>{% trans "Initial setup - create the first superuser" %}</h2>
+<p>{% trans "Create an administrator account for this helpdesk installation. This is only required once." %}</p>
+<form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+        {% for err in form.non_field_errors %}
+            <div class="alert alert-danger">{{ err }}</div>
+        {% endfor %}
+    {% endif %}
+    <div class="mb-3">
+        <label for="id_username" class="form-label">{{ form.username.label }}</label>
+        {{ form.username }}
+        {% for err in form.username.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+    </div>
+    <div class="mb-3">
+        <label for="id_first_name" class="form-label">{{ form.first_name.label }}</label>
+        {{ form.first_name }}
+        {% for err in form.first_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+    </div>
+    <div class="mb-3">
+        <label for="id_last_name" class="form-label">{{ form.last_name.label }}</label>
+        {{ form.last_name }}
+        {% for err in form.last_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+    </div>
+    <div class="mb-3">
+        <label for="id_email" class="form-label">{{ form.email.label }}</label>
+        {{ form.email }}
+        {% for err in form.email.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+    </div>
+    <div class="mb-3">
+        <label for="id_password1" class="form-label">{{ form.password1.label }}</label>
+        {{ form.password1 }}
+        {% for err in form.password1.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+    </div>
+    <div class="mb-3">
+        <label for="id_password2" class="form-label">{{ form.password2.label }}</label>
+        {{ form.password2 }}
+        {% for err in form.password2.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+    </div>
+    <div class="mb-3">
+        <small class="text-muted">Password requirements: at least 8 characters, include uppercase and lowercase letters, numbers, and a special character; avoid using your username or parts of your name.</small>
+    </div>
+    <div class="d-flex">
+        <button type="submit" class="btn btn-primary">{% trans "Create superuser" %}</button>
+    </div>
+</form>
+{% endblock %}

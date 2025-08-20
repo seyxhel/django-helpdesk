@@ -5,7 +5,7 @@
         <h2>{% blocktrans with category.title as kbcat %}{{ kbcat }}{% endblocktrans %}</h2>
         {{ category.description|linebreaks }}
     </div>
-    {% if staff %}
+    {% if request.user.is_superuser %}
     <div class="ml-3">
         <a href="{% url 'helpdesk:kb_category_add' %}" class="btn btn-outline-primary btn-sm" title="{% trans "Add KB category" %}">
             <i class="fa fa-plus" aria-hidden="true"></i>

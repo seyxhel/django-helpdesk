@@ -321,6 +321,13 @@ urlpatterns += [
 ]
 
 def home_view(request):
+    # If no superuser exists, present the initial setup page so an admin
+    # can be created via the web UI instead of requiring manage.py createsuperuser.
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    if not User.objects.filter(is_superuser=True).exists():
+        return public.initial_setup(request)
+
     if request.user.is_authenticated:
         return public.Homepage.as_view()(request)
     return TemplateView.as_view(template_name="helpdesk/index.html")(request)

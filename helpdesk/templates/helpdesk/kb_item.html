@@ -101,7 +101,7 @@
         <div class="form-group">
                 {{ form.category.label_tag }}
                 {{ form.category }}
-                {% if staff %}
+                {% if request.user.is_superuser %}
                 <a href="{% url 'helpdesk:kb_category_add' %}" class="btn btn-outline-primary btn-sm ml-2" title="{% trans 'Add KB category' %}">
                     <i class="fa fa-plus" aria-hidden="true"></i>
                     <span class="sr-only">{% trans 'Add KB category' %}</span>

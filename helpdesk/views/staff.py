@@ -378,7 +378,7 @@ def followup_edit(request, ticket_id, followup_id):
 followup_edit = staff_member_required(followup_edit)
 
 
-@helpdesk_superuser_required
+@helpdesk_staff_member_required
 def add_user(request):
     """In-app user creation view. Restricted to superusers."""
     if request.method == "POST":
@@ -400,7 +400,7 @@ def add_user(request):
     return render(request, "helpdesk/add_user.html", {"form": form})
 
 
-add_user = helpdesk_superuser_required(add_user)
+add_user = helpdesk_staff_member_required(add_user)
 
 
 @helpdesk_staff_member_required

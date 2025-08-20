@@ -38,6 +38,8 @@ from django.urls import reverse_lazy
 from django.views.generic.edit import FormView
 from django.core import mail
 from helpdesk.forms import RegistrationForm
+from helpdesk.forms import AddUserForm
+from django.contrib.auth import get_user_model, login
 
 
 logger = logging.getLogger(__name__)
@@ -86,6 +88,42 @@ class BaseCreateTicketView(abstract_views.AbstractCreateTicketMixin, FormView):
 
         # If none of the above conditions returned, continue normal dispatch
         return super().dispatch(*args, **kwargs)
+
+
+def initial_setup(request):
+    """
+    Initial setup view: if no superuser exists, present a form to create the
+    first superuser. Once a superuser exists this view redirects to the home.
+    """
+    User = get_user_model()
+    if User.objects.filter(is_superuser=True).exists():
+        # Someone already created a superuser - redirect to normal home
+        return HttpResponseRedirect(reverse("helpdesk:home"))
+
+    if request.method == "POST":
+        form = AddUserForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            # Ensure the created account is a superuser and staff
+            user.is_superuser = True
+            user.is_staff = True
+            user.is_active = True
+            user.save()
+            try:
+                form.save_m2m()
+            except Exception:
+                pass
+            # Log the new superuser in and redirect to home
+            try:
+                login(request, user)
+            except Exception:
+                # Ignore login failures; still redirect
+                pass
+            return HttpResponseRedirect(reverse("helpdesk:home"))
+    else:
+        form = AddUserForm()
+
+    return render(request, "helpdesk/setup_initial_superuser.html", {"form": form})
 
 
 
