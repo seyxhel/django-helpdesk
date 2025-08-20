@@ -400,6 +400,31 @@ def add_user(request):
     return render(request, "helpdesk/add_user.html", {"form": form})
 
 
+@helpdesk_superuser_required
+def user_list(request):
+    """Render a simple list of users for superusers to manage."""
+    users = User.objects.all().order_by('username')
+    return render(request, 'helpdesk/user_list.html', {'users': users})
+
+
+@helpdesk_superuser_required
+def edit_user(request, user_id):
+    user_obj = get_object_or_404(User, id=user_id)
+    if request.method == 'POST':
+        form = AddUserForm(request.POST, instance=user_obj)
+        # use EditUserForm to avoid password handling
+        form = None
+        form = None
+        form = None
+        form = None
+    else:
+        from helpdesk.forms import EditUserForm
+
+        form = EditUserForm(instance=user_obj)
+
+    return render(request, 'helpdesk/add_user.html', {'form': form, 'editing': True, 'user_obj': user_obj})
+
+
 add_user = helpdesk_staff_member_required(add_user)
 
 

@@ -26,6 +26,6 @@
     <li><a href='{% url 'helpdesk:kb_add' %}'>{% trans "Maintain Knowledgebase Items" %}</a></li>
     {% endif %}
     <li><a href='{% url 'admin:helpdesk_emailtemplate_changelist' %}'>{% trans "Maintain E-Mail Templates" %}</a></li>
-    <li><a href='{% url 'helpdesk:add_user' %}'>{% trans "Maintain Users" %}</a></li>
+    <li><a href='{% url 'helpdesk:user_list' %}'>{% trans "Maintain Users" %}</a></li>
 </ul>
 {% endblock %}

@@ -185,6 +185,28 @@ class AddUserForm(UserCreationForm):
                     pass
 
 
+class EditUserForm(forms.ModelForm):
+    """Minimal form to edit existing users without changing password."""
+
+    class Meta:
+        model = get_user_model()
+        fields = ("username", "email", "first_name", "last_name", "is_staff", "is_active")
+
+    def __init__(self, *args, **kwargs):
+        super(EditUserForm, self).__init__(*args, **kwargs)
+        for fname in ("username", "email", "first_name", "last_name"):
+            if fname in self.fields:
+                self.fields[fname].widget.attrs.update({"class": "form-control"})
+        for bool_field in ("is_staff", "is_active"):
+            if bool_field in self.fields:
+                self.fields[bool_field].widget.attrs.update({"class": "form-check-input"})
+        req_msg = "Please fill in the required field."
+        for f in ("username", "email", "first_name", "last_name"):
+            if f in self.fields:
+                self.fields[f].error_messages = getattr(self.fields[f], "error_messages", {})
+                self.fields[f].error_messages["required"] = req_msg
+
+
 class CustomFieldMixin(object):
     """
     Mixin that provides a method to turn CustomFields into an actual field

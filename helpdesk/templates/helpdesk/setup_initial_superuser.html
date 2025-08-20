@@ -2,51 +2,327 @@
 
 {% block helpdesk_title %}{% trans "Initial setup" %}{% endblock %}
 
+{% block header %}
+<nav class="navbar navbar-expand static-top" style="background-color: #000C7D;">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#" style="color: white; text-decoration: none; font-size: 16px; font-weight: 700; font-family: 'Montserrat', sans-serif; user-select: none;">{% trans 'PrimeDesk Technologies' %}</a>
+    </div>
+    </nav>
+    <style>
+        /* Hide the regular sidebar and hamburger for the initial setup page */
+        #helpdesk-sidebar { display: none !important; }
+        .sidebar-toggle-btn { display: none !important; }
+        /* Ensure content fills available width */
+        #content-wrapper { margin-left: 0 !important; }
+        /* Hide breadcrumbs on this page (clean header) */
+        ol.breadcrumb { display: none !important; }
+        /* Tweak widths so single-field rows don't look too long, and two-field rows don't look too short */
+        /* Two-column fields (col-md-6) should fill their column */
+        .card .col-md-6 input,
+        .card .col-md-6 select,
+        .card .col-md-6 textarea,
+        .card .col-md-6 .form-control {
+            /* keep two-column fields visually consistent but bounded so they don't grow
+               when container padding changes */
+            width: min(80%, 320px);
+            max-width: 320px;
+            box-sizing: border-box;
+        }
+
+        /* Single-row fields (col-12) should be slightly narrower and centered */
+            .card .col-12 input,
+            .card .col-12 select,
+            .card .col-12 textarea,
+            .card .col-12 .form-control {
+                /* single-row fields stay bounded to avoid growing when padding changes */
+                max-width: 580px; /* slightly shorter single-row fields */
+                width: min(90%, 580px);
+                margin: 0; /* align to left */
+                box-sizing: border-box;
+                display: block;
+            }
+
+              /* Reduce inner right padding of the card body so the form's right gap is smaller
+                  without changing input widths or field styles. Restore on very small screens. */
+              .card .card-body { padding-right: 0px; }
+
+        /* On very small screens, allow inputs to use full width */
+        @media (max-width: 576px) {
+            .card .col-12 .form-control,
+            .card .col-12 input,
+            .card .col-12 select,
+            .card .col-12 textarea {
+                max-width: 100%;
+            }
+            /* avoid squeezing inputs on very small screens */
+            .card .card-body { padding-right: initial; }
+        }
+    </style>
+{% endblock %}
+
 {% block helpdesk_body %}
-<h2>{% trans "Initial setup - create the first superuser" %}</h2>
-<p>{% trans "Create an administrator account for this helpdesk installation. This is only required once." %}</p>
-<form method="post" novalidate>
-    {% csrf_token %}
-    {% if form.non_field_errors %}
-        {% for err in form.non_field_errors %}
-            <div class="alert alert-danger">{{ err }}</div>
-        {% endfor %}
-    {% endif %}
-    <div class="mb-3">
-        <label for="id_username" class="form-label">{{ form.username.label }}</label>
-        {{ form.username }}
-        {% for err in form.username.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+<div class="d-flex justify-content-center align-items-center" style="padding:48px 8px 48px 15px; min-height: calc(100vh - 72px);">
+    <div class="card" style="max-width:600px; width:100%; box-shadow: 0 6px 18px rgba(2,6,23,0.12); border-radius:12px;">
+        <div class="card-header text-white" style="background-color: #000C7D; border-top-left-radius:12px; border-top-right-radius:12px;">
+            <h5 class="mb-0" style="font-weight:700;">{% trans "Initial setup - create the first superuser" %}</h5>
+        </div>
+    <div class="card-body">
+            <p class="text-muted">{% trans "Create the first admin account for this helpdesk installation. This is only required once." %}</p>
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                        {% for err in form.non_field_errors %}
+                                <div class="alert alert-danger">{{ err }}</div>
+                        {% endfor %}
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="id_first_name" class="form-label">{{ form.first_name.label }}</label>
+                        {{ form.first_name }}
+                        {% for err in form.first_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+                        <div id="id_first_name-client-error" class="text-danger small" aria-live="polite"></div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="id_last_name" class="form-label">{{ form.last_name.label }}</label>
+                        {{ form.last_name }}
+                        {% for err in form.last_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+                        <div id="id_last_name-client-error" class="text-danger small" aria-live="polite"></div>
+                    </div>
+
+                    <div class="col-12 mb-3">
+                        <label for="id_username" class="form-label">{{ form.username.label }}</label>
+                        {{ form.username }}
+                        {% for err in form.username.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+                        <div id="id_username-client-error" class="text-danger small" aria-live="polite"></div>
+                    </div>
+
+                    <div class="col-12 mb-3">
+                        <label for="id_email" class="form-label">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% for err in form.email.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+                        <div id="id_email-client-error" class="text-danger small" aria-live="polite"></div>
+                    </div>
+
+                    <div class="col-12 mb-3">
+                        <label for="id_password1" class="form-label">{{ form.password1.label }}</label>
+                        {{ form.password1 }}
+                        {% for err in form.password1.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+                        <div id="id_password1-client-error" class="text-danger small" aria-live="polite"></div>
+                    </div>
+
+                    <div class="col-12 mb-3">
+                        <label for="id_password2" class="form-label">{{ form.password2.label }}</label>
+                        {{ form.password2 }}
+                        {% for err in form.password2.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+                        <div id="id_password2-client-error" class="text-danger small" aria-live="polite"></div>
+                    </div>
+                </div>
+
+                
+
+                <div class="row">
+                    <div class="col-md-6"></div>
+                    <div class="col-md-6">
+                        <div class="form-actions" style="width:80%; max-width:none; margin:0; display:flex; justify-content:flex-end;">
+                            <button type="submit" class="btn btn-primary">{% trans "Create superuser" %}</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
-    <div class="mb-3">
-        <label for="id_first_name" class="form-label">{{ form.first_name.label }}</label>
-        {{ form.first_name }}
-        {% for err in form.first_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
-    </div>
-    <div class="mb-3">
-        <label for="id_last_name" class="form-label">{{ form.last_name.label }}</label>
-        {{ form.last_name }}
-        {% for err in form.last_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
-    </div>
-    <div class="mb-3">
-        <label for="id_email" class="form-label">{{ form.email.label }}</label>
-        {{ form.email }}
-        {% for err in form.email.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
-    </div>
-    <div class="mb-3">
-        <label for="id_password1" class="form-label">{{ form.password1.label }}</label>
-        {{ form.password1 }}
-        {% for err in form.password1.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
-    </div>
-    <div class="mb-3">
-        <label for="id_password2" class="form-label">{{ form.password2.label }}</label>
-        {{ form.password2 }}
-        {% for err in form.password2.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
-    </div>
-    <div class="mb-3">
-        <small class="text-muted">Password requirements: at least 8 characters, include uppercase and lowercase letters, numbers, and a special character; avoid using your username or parts of your name.</small>
-    </div>
-    <div class="d-flex">
-        <button type="submit" class="btn btn-primary">{% trans "Create superuser" %}</button>
-    </div>
-</form>
+</div>
+
+{% endblock %}
+
+{% block helpdesk_js %}
+<script>
+    (function(){
+        // Validation adapted from register.html
+        var card = document.querySelector('.card');
+        if(!card) return;
+
+        // Ensure inputs have form-control class for consistent styling
+        Array.prototype.forEach.call(card.querySelectorAll('input, textarea, select'), function(f){
+            if(!f.classList.contains('form-control')) f.classList.add('form-control');
+        });
+
+        var first = document.getElementById('id_first_name');
+        var last = document.getElementById('id_last_name');
+        var username = document.getElementById('id_username');
+        var email = document.getElementById('id_email');
+        var pwd1 = document.getElementById('id_password1');
+        var pwd2 = document.getElementById('id_password2');
+
+        var firstErr = document.getElementById('id_first_name-client-error');
+        var lastErr = document.getElementById('id_last_name-client-error');
+        var usernameErr = document.getElementById('id_username-client-error');
+        var emailErr = document.getElementById('id_email-client-error');
+        var pwd1Err = document.getElementById('id_password1-client-error');
+        var pwd2Err = document.getElementById('id_password2-client-error');
+
+        var submitBtn = card.querySelector('button[type="submit"]');
+
+        var REQUIRED_MSG = 'Please fill in the required field.';
+    var INVALID_NAME_MSG = 'Invalid character.';
+        var USERNAME_MIN = 3;
+    var USERNAME_MIN_MSG = 'Username must be at least 3 characters.';
+
+        function showError(el, box, msg){
+            if(!box) return;
+            box.textContent = msg;
+            box.style.visibility = 'visible';
+            if(el) el.classList.add('is-invalid');
+            if(el) el.setAttribute('aria-invalid','true');
+            if(el && box.id) el.setAttribute('aria-describedby', box.id);
+        }
+        function clearError(el, box){
+            if(!box) return;
+            box.textContent = '';
+            box.style.visibility = 'hidden';
+            if(el) el.classList.remove('is-invalid');
+            if(el) el.removeAttribute('aria-invalid');
+            if(el) el.removeAttribute('aria-describedby');
+        }
+
+        function validateNameField(el, box, showErrors){
+            if(!el) return true;
+            var v = (el.value || '').trim();
+            if(!v){ if(showErrors) showError(el, box, REQUIRED_MSG); return false; }
+            var validNameRe = /^[\p{L} .'\-]+$/u;
+            if(!validNameRe.test(v)) { if(showErrors) showError(el, box, INVALID_NAME_MSG); return false; }
+            clearError(el, box);
+            return true;
+        }
+
+        function validateUsername(showErrors){
+            if(!username) return true;
+            var v = (username.value || '').trim();
+            if(!v){ if(showErrors && touched.username) showError(username, usernameErr, REQUIRED_MSG); return false; }
+            if(v.length < USERNAME_MIN){ if(showErrors) showError(username, usernameErr, USERNAME_MIN_MSG); return false; }
+            clearError(username, usernameErr);
+            return true;
+        }
+
+        function validateEmail(showErrors){
+            if(!email) return true;
+            var v = (email.value || '').trim();
+            if(!v){ if(showErrors) showError(email, emailErr, REQUIRED_MSG); return false; }
+            var re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+            if(!re.test(v)){ if(showErrors) showError(email, emailErr, 'Please enter a valid email address.'); return false; }
+            clearError(email, emailErr);
+            return true;
+        }
+
+        function validatePasswords(showPwd1Errors, showPwd2Errors){
+            var v1 = (pwd1 && pwd1.value) ? pwd1.value : '';
+            var v2 = (pwd2 && pwd2.value) ? pwd2.value : '';
+            var ok = true;
+
+            if(!v1){ if(showPwd1Errors) showError(pwd1, pwd1Err, REQUIRED_MSG); ok = false; }
+            else {
+                var parts = [];
+                var lengthTooShort = v1.length < 8;
+                var missing = [];
+                if(!/[A-Z]/.test(v1)) missing.push('uppercase');
+                if(!/[a-z]/.test(v1)) missing.push('lowercase');
+                if(!/[0-9]/.test(v1)) missing.push('number');
+                // require at least one non-alphanumeric (special) character
+                if(!/[^A-Za-z0-9]/.test(v1)) missing.push('special character');
+                // If there are other missing requirements, don't add a period to the
+                // length message so it can flow into the "and must contain ..." clause.
+                if(lengthTooShort){
+                    if(missing.length) parts.push('Password must be at least 8 characters long');
+                    else parts.push('Password must be at least 8 characters long.');
+                }
+                if(missing.length || parts.length){
+                    // helper to format arrays as natural language lists
+                    var formatList = function(arr){
+                        if(!arr || arr.length === 0) return '';
+                        if(arr.length === 1) return arr[0];
+                        if(arr.length === 2) return arr[0] + ' and ' + arr[1];
+                        return arr.slice(0, -1).join(', ') + ', and ' + arr[arr.length-1];
+                    };
+                    var containPrefix = parts.length ? 'and must contain ' : 'Password must contain ';
+                    var msg = parts.concat(missing.length ? [containPrefix + formatList(missing)] : []).join(' ');
+                    msg = msg.trim();
+                    if(msg.charAt(msg.length-1) !== '.') msg += '.';
+                    if(showPwd1Errors) showError(pwd1, pwd1Err, msg);
+                    ok = false;
+                } else { clearError(pwd1, pwd1Err); }
+            }
+
+            if(!v2){ if(showPwd2Errors) showError(pwd2, pwd2Err, REQUIRED_MSG); ok = false; }
+            else { clearError(pwd2, pwd2Err); }
+
+            if(v1 && v2 && v1 !== v2){ showError(pwd2, pwd2Err, 'Password did not match.'); ok = false; }
+
+            return ok;
+        }
+
+        // touched flags
+        var touched = { first_name:false, last_name:false, username:false, email:false, password1:false, password2:false };
+
+    function setTouchedOnPointer(el, key){ if(!el) return; el.addEventListener('pointerdown', function(){ touched[key]=true; }); el.addEventListener('mousedown', function(){ touched[key]=true; }); el.addEventListener('focus', function(){ touched[key]=true; }); el.addEventListener('keydown', function(){ touched[key]=true; }); }
+
+        function attachFieldHandlers(el, validator, boxId, key){ if(!el) return; var box=document.getElementById(boxId);
+            // validate on input but only show messages after the field is touched; always show on blur
+            el.addEventListener('input', function(){ validator(touched[key]); checkFormValidity(); });
+            el.addEventListener('blur', function(){ validator(true); checkFormValidity(); });
+            setTouchedOnPointer(el, key);
+        }
+
+        attachFieldHandlers(first, function(show){ return validateNameField(first, firstErr, show); }, 'id_first_name-client-error', 'first_name');
+        attachFieldHandlers(last, function(show){ return validateNameField(last, lastErr, show); }, 'id_last_name-client-error', 'last_name');
+        attachFieldHandlers(username, function(show){ return validateUsername(show); }, 'id_username-client-error', 'username');
+        attachFieldHandlers(email, function(show){ return validateEmail(show); }, 'id_email-client-error', 'email');
+
+        // Passwords special handlers
+        function attachPasswordHandlers(pwEl, box, key){
+            if(!pwEl) return;
+            // typing in password1 should not show the 'required' error for confirm (password2)
+            if(key === 'password1'){
+                pwEl.addEventListener('input', function(){ validatePasswords(true, false); checkFormValidity(); });
+            } else if(key === 'password2'){
+                // typing in confirm should show confirm-related errors but avoid prematurely showing password1-specific requirements
+                pwEl.addEventListener('input', function(){ validatePasswords(false, true); checkFormValidity(); });
+            } else {
+                pwEl.addEventListener('input', function(){ validatePasswords(true, true); checkFormValidity(); });
+            }
+            pwEl.addEventListener('blur', function(){ validatePasswords(touched.password1, touched.password2); checkFormValidity(); });
+            setTouchedOnPointer(pwEl, key);
+        }
+        attachPasswordHandlers(pwd1, pwd1Err, 'password1');
+        attachPasswordHandlers(pwd2, pwd2Err, 'password2');
+
+        // Prevent paste into confirm password
+        if(pwd2){ pwd2.addEventListener('paste', function(e){ e.preventDefault(); }); pwd2.addEventListener('drop', function(e){ e.preventDefault(); }); }
+
+        function checkFormValidity(){
+            var requiredIds = [first, last, username, email, pwd1, pwd2];
+            var filled = requiredIds.every(function(el){ return el && el.value && el.value.trim().length>0; });
+            var namesOk = validateNameField(first, firstErr, false) && validateNameField(last, lastErr, false);
+            var pwdOk = validatePasswords(false, false);
+            if(filled && namesOk && pwdOk && validateUsername(false) && validateEmail(false)){
+                if(submitBtn) { submitBtn.disabled = false; submitBtn.removeAttribute('aria-disabled'); }
+            } else { if(submitBtn) { submitBtn.disabled = true; submitBtn.setAttribute('aria-disabled','true'); } }
+        }
+
+        // Initial check
+        checkFormValidity();
+
+        // Put keyboard focus in the first-name field by default.
+        // Use a short timeout so this runs after any browser autofill or focus events.
+        if(first){
+            setTimeout(function(){ try{ first.focus(); }catch(e){} }, 50);
+        }
+
+        // On submit, mark all touched and validate with messages shown
+        var form = card.querySelector('form');
+        if(form){ form.addEventListener('submit', function(e){ for(var k in touched) if(touched.hasOwnProperty(k)) touched[k]=true; var ok=true; ok = validateNameField(first, firstErr, true) && ok; ok = validateNameField(last, lastErr, true) && ok; ok = validateUsername(true) && ok; ok = validateEmail(true) && ok; ok = validatePasswords(true, true) && ok; if(!ok){ e.preventDefault(); checkFormValidity(); } }); }
+    })();
+</script>
 {% endblock %}

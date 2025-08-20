@@ -285,6 +285,20 @@ urlpatterns += [
         ),
         name="add_user",
     ),
+    path(
+        "users/",
+        login_required(
+            staff.user_list
+        ),
+        name="user_list",
+    ),
+    path(
+        "users/<int:user_id>/edit/",
+        login_required(
+            staff.edit_user
+        ),
+        name="edit_user",
+    ),
     # About page
     path("about/", TemplateView.as_view(template_name="helpdesk/about.html"), name="about"),
     # Dedicated pages for user self-service
