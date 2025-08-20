@@ -15,6 +15,7 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.forms import UserCreationForm
 from helpdesk import settings as helpdesk_settings
 from helpdesk.lib import (
     convert_value,
@@ -48,7 +49,36 @@ import logging
 
 
 if helpdesk_settings.HELPDESK_KB_ENABLED:
-    from helpdesk.models import KBItem
+    from helpdesk.models import KBItem, KBCategory
+
+
+if helpdesk_settings.HELPDESK_KB_ENABLED:
+    from django.forms import ModelForm
+
+
+    class KBItemForm(ModelForm):
+        class Meta:
+            model = KBItem
+            fields = ["category", "title", "question", "answer", "enabled"]
+
+    class KBCategoryForm(ModelForm):
+        class Meta:
+            model = KBCategory
+            # Include the `name` field (internal category identifier) and show it first
+            fields = ["name", "title", "slug", "description", "public", "queue"]
+
+        def __init__(self, *args, **kwargs):
+            super(KBCategoryForm, self).__init__(*args, **kwargs)
+            # Use the same required message as the client-side validation
+            req_msg = 'Please fill in the required field.'
+            # Do not apply client/server "required" messaging to description
+            for f in ("name", "title", "slug"):
+                if f in self.fields:
+                    self.fields[f].error_messages = getattr(self.fields[f], 'error_messages', {})
+                    self.fields[f].error_messages['required'] = req_msg
+            # Make description optional at the form level (no client/server required validation)
+            if 'description' in self.fields:
+                self.fields['description'].required = False
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -99,6 +129,60 @@ class CustomSetPasswordForm(SetPasswordForm):
         validate_password_strength(password2)
 
         return password2
+
+
+class AddUserForm(UserCreationForm):
+    """A simple in-app user creation form matching the common admin fields.
+
+    Fields: username, email, first_name, last_name, is_staff, is_active,
+    password1, password2
+    """
+
+    class Meta:
+        model = get_user_model()
+        fields = (
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "is_staff",
+            "is_active",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super(AddUserForm, self).__init__(*args, **kwargs)
+        # Use bootstrap form-control classes where appropriate
+        for fname in ("username", "email", "first_name", "last_name", "password1", "password2"):
+            if fname in self.fields:
+                self.fields[fname].widget.attrs.update({"class": "form-control"})
+
+        # style boolean fields
+        for bool_field in ("is_staff", "is_active"):
+            if bool_field in self.fields:
+                self.fields[bool_field].widget.attrs.update({"class": "form-check-input"})
+
+        # Remove verbose password help if present
+        if "password1" in self.fields:
+            self.fields["password1"].help_text = None
+        # Remove default username help_text (e.g. "Required. 150 characters or fewer...")
+        if "username" in self.fields:
+            self.fields["username"].help_text = None
+        # Set consistent required error message for core fields and make
+        # first/last name required as requested.
+        req_msg = "Please fill in the required field."
+        for f in ("username", "email", "first_name", "last_name", "password1", "password2"):
+            if f in self.fields:
+                # mark model-derived name fields as required at the form level
+                if f in ("first_name", "last_name"):
+                    self.fields[f].required = True
+
+                self.fields[f].error_messages = getattr(self.fields[f], "error_messages", {})
+                self.fields[f].error_messages["required"] = req_msg
+                # ensure the HTML widget has the required attribute for client-side
+                try:
+                    self.fields[f].widget.attrs["required"] = "required"
+                except Exception:
+                    pass
 
 
 class CustomFieldMixin(object):

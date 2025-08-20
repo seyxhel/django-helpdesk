@@ -13,6 +13,11 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.clickjacking import xframe_options_exempt
 from helpdesk import settings as helpdesk_settings, user
 from helpdesk.models import KBCategory, KBItem
+from django.contrib.auth.decorators import user_passes_test
+from django.shortcuts import redirect
+from helpdesk.forms import KBItemForm
+from helpdesk.forms import KBCategoryForm
+from django.utils.text import slugify
 
 
 def index(request):
@@ -88,3 +93,59 @@ def vote(request, item, vote):
                 item.voted_by.remove(request.user.pk)
         item.save()
     return HttpResponseRedirect(item.get_absolute_url())
+
+
+@user_passes_test(lambda u: u.is_authenticated and u.is_staff)
+def add_kb_category(request):
+    """Simple staff-only view to create a KBCategory via a minimal form."""
+    if request.method == "POST":
+        form = KBCategoryForm(request.POST)
+        if form.is_valid():
+            # Ensure slug is present; if user omitted it (we hide it from UI)
+            category = form.save(commit=False)
+            if not category.slug:
+                # Use name if available, otherwise title
+                base = category.name or category.title or "category"
+                category.slug = slugify(base)[:50]
+            category.save()
+            return redirect('helpdesk:kb_category', slug=category.slug)
+    else:
+        form = KBCategoryForm()
+
+    # Provide a lightweight, unsaved KBCategory instance and minimal context
+    # so we can reuse the existing kb_category.html layout to host the add form.
+    category = KBCategory()
+    items = []
+    selected_item = None
+    qparams = ""
+
+    staff = request.user.is_authenticated and request.user.is_staff
+    return render(
+        request,
+        "helpdesk/kb_category.html",
+        {
+            "form": form,
+            "staff": staff,
+            "category": category,
+            "items": items,
+            "selected_item": selected_item,
+            "query_param_string": qparams,
+            "helpdesk_settings": helpdesk_settings,
+            "iframe": False,
+        },
+    )
+
+
+@user_passes_test(lambda u: u.is_authenticated and u.is_staff)
+def add_kb_item(request):
+    """Simple staff-only view to create a KBItem via a minimal form."""
+    if request.method == "POST":
+        form = KBItemForm(request.POST)
+        if form.is_valid():
+            kbitem = form.save()
+            return redirect(kbitem.get_absolute_url())
+    else:
+        form = KBItemForm()
+
+    staff = request.user.is_authenticated and request.user.is_staff
+    return render(request, "helpdesk/kb_item.html", {"form": form, "staff": staff})

@@ -254,6 +254,8 @@ urlpatterns += [
 if helpdesk_settings.HELPDESK_KB_ENABLED:
     urlpatterns += [
         path("kb/", kb.index, name="kb_index"),
+    path("kb/add/", kb.add_kb_item, name="kb_add"),
+    path("kb/category/add/", kb.add_kb_category, name="kb_category_add"),
         re_path(r"^kb/(?P<slug>[A-Za-z0-9_-]+)/$", kb.category, name="kb_category"),
         re_path(r"^kb/(?P<item>\d+)/vote/(?P<vote>up|down)/$", kb.vote, name="kb_vote"),
         re_path(
@@ -275,6 +277,13 @@ urlpatterns += [
             DirectTemplateView.as_view(template_name="helpdesk/system_settings.html")
         ),
         name="system_settings",
+    ),
+    path(
+        "users/add/",
+        login_required(
+            staff.add_user
+        ),
+        name="add_user",
     ),
     # About page
     path("about/", TemplateView.as_view(template_name="helpdesk/about.html"), name="about"),

@@ -1,7 +1,85 @@
-{% extends "helpdesk/public_base.html" %}
+{% extends "helpdesk/base.html" %}
 {% load i18n %}
 
+
 {% block helpdesk_title %}{% blocktrans with category.title as kbcat %}{{ kbcat }}{% endblocktrans %}{% endblock %}
+
+{% block helpdesk_head %}
+    <style>
+          /* Layout the form group so the label, field and errors stack vertically.
+             Reserve padding-bottom so errors can appear without shifting layout. */
+          .form-group { display:block; width:100%; margin-bottom:4px; padding-bottom:28px; position:relative; }
+          .form-group > label { display:block; margin-bottom:4px; }
+
+          /* Inputs themselves don't add extra bottom margin; the group reserves the space. */
+          .form-group input, .form-group select, .form-group textarea { margin-bottom:0 !important; }
+
+          /* Server error wrapper (used for server-rendered errors). Hidden by default, but when present
+             it shows as a boxed highlighted message that sits visually close to the field. */
+          .form-errors { background:#fff4f4; border:1px solid #ffd7d7; color:#7a1212; padding:6px 12px; border-radius:8px; margin:0; }
+          .server-field-error {
+              display:block;
+              min-height:20px;             /* reserve vertical space */
+              visibility:hidden;          /* keep content hidden for assistive tech until present */
+              opacity:0;                  /* hide visually */
+              transform-origin: bottom left;
+              transform: translateY(0);
+              transition: transform .08s ease, opacity .08s ease;
+              padding:0; margin:0; background:transparent; border:0;
+              color:#7a1212;
+          }
+          .server-field-error:not(:empty) {
+              visibility: visible;
+              opacity: 1;
+              /* show the highlighted wrapper below the control */
+              transform: none;
+              margin-top:6px;
+              background:#fff4f4;
+              border:1px solid #ffd7d7;
+              padding:6px 12px;
+              border-radius:8px;
+              color:#7a1212;
+          }
+
+          .field-error {
+              color: #c62828;
+              font-size: 12px;
+              margin:0;
+              display:block;
+              min-height:18px;            /* reserve vertical space */
+              visibility:hidden;
+              opacity:0;
+              transform-origin: bottom left;
+              transform: translateY(0);
+              transition: transform .08s ease, opacity .08s ease;
+              padding-left:0; line-height:1.15;
+          }
+          .field-error:not(:empty) {
+              visibility: visible;
+              opacity: 1;
+              transform: none; /* show text below the control */
+              margin-top:6px;
+          }
+          .field-error::before { content: none; }
+
+          /* Normalize specific server/client error blocks so they behave like kb_item */
+          #id_name-server-error, #id_name-client-error,
+          #id_title-server-error, #id_title-client-error,
+          #id_slug-server-error, #id_slug-client-error {
+              margin: 0 !important;
+              padding: 0 !important;
+              display: block;
+              line-height: 1.15;
+          }
+
+        /* Make invalid controls use a consistent full red border and remove outlines/box-shadows */
+        input.is-invalid, select.is-invalid, textarea.is-invalid {
+            border: 1px solid #c62828 !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+    </style>
+{% endblock %}
 
 {% block helpdesk_breadcrumb %}
 <li class="breadcrumb-item">
@@ -11,7 +89,125 @@
 {% endblock %}
 
 {% block helpdesk_body %}
-{% include 'helpdesk/kb_category_base.html' %}
+{% if form %}
+    <h2>{% trans "Add knowledge base category" %}</h2>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="form-group">
+            {{ form.name.label_tag }}
+            {{ form.name }}
+            {% if form.name.errors %}
+            <div id="id_name-server-error" class="form-errors server-field-error" aria-live="polite">{{ form.name.errors|join:' ' }}</div>
+            {% endif %}
+            <div id="id_name-client-error" class="field-error" aria-live="polite"></div>
+        </div>
+
+        <div class="form-group">
+            {{ form.title.label_tag }}
+            {{ form.title }}
+            {% if form.title.errors %}
+            <div id="id_title-server-error" class="form-errors server-field-error" aria-live="polite">{{ form.title.errors|join:' ' }}</div>
+            {% endif %}
+            <div id="id_title-client-error" class="field-error" aria-live="polite"></div>
+        </div>
+        <div class="form-group">
+            {{ form.description.label_tag }}
+            {{ form.description }}
+            {% if form.description.errors %}
+            <div id="id_description-server-error" class="form-errors server-field-error" aria-live="polite">{{ form.description.errors|join:' ' }}</div>
+            {% endif %}
+        </div>
+        <div class="form-group">
+            {{ form.public.label_tag }} {{ form.public }}
+        </div>
+        <div style="margin-top:12px">
+            <button id="kbcat-submit" type="submit" class="btn btn-primary" disabled aria-disabled="true">{% trans "Create category" %}</button>
+        </div>
+    </form>
+{% else %}
+    {% include 'helpdesk/kb_category_base.html' %}
+{% endif %}
 </div>
 
+{% endblock %}
+
+{% block helpdesk_js %}
+{% if form %}
+<script>
+(function(){
+    var form = document.querySelector('form[method="post"]');
+    if (!form) return;
+    var name = document.getElementById('id_name');
+    var title = document.getElementById('id_title');
+    var slug = document.getElementById('id_slug');
+
+    var errName = document.getElementById('id_name-client-error');
+    var errTitle = document.getElementById('id_title-client-error');
+    var errSlug = document.getElementById('id_slug-client-error');
+
+    var submitBtn = document.getElementById('kbcat-submit');
+
+    var REQUIRED_MSG = 'Please fill in the required field.';
+
+    var touched = {};
+
+    function showError(el, box, msg) {
+        if (!box) return;
+        box.textContent = msg;
+        box.style.visibility = 'visible';
+        if (el) el.classList.add('is-invalid');
+        if (el) el.setAttribute('aria-invalid', 'true');
+        if (el) el.setAttribute('aria-describedby', box.id);
+    }
+
+    function clearError(el, box) {
+        if (!box) return;
+        box.textContent = '';
+        box.style.visibility = 'hidden';
+        if (el) el.classList.remove('is-invalid');
+        if (el) el.removeAttribute('aria-invalid');
+        if (el) el.removeAttribute('aria-describedby');
+    }
+
+    function validateField(el, box, showErrors) {
+        if (!el) return true;
+        var v = el.value ? el.value.trim() : '';
+        if (!v) {
+            if (showErrors) showError(el, box, REQUIRED_MSG);
+            return false;
+        }
+        clearError(el, box);
+        return true;
+    }
+
+    function checkForm() {
+        var ok = true;
+    ok = validateField(name, errName, touched['id_name'] || (name && name.value && name.value.trim() !== '')) && ok;
+    ok = validateField(title, errTitle, touched['id_title'] || (title && title.value && title.value.trim() !== '')) && ok;
+    ok = validateField(slug, errSlug, touched['id_slug'] || (slug && slug.value && slug.value.trim() !== '')) && ok;
+        if (ok) {
+            submitBtn.disabled = false;
+            submitBtn.removeAttribute('aria-disabled');
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-disabled', 'true');
+        }
+        return ok;
+    }
+    [name, title, slug].forEach(function(el){
+        if (!el) return;
+        el.addEventListener('focus', function(){ touched[el.id] = true; });
+        el.addEventListener('input', function(){ checkForm(); });
+        el.addEventListener('blur', function(){
+            var box = document.getElementById(el.id+'-client-error');
+            validateField(el, box, true);
+            checkForm();
+        });
+    });
+
+    checkForm();
+
+})();
+</script>
+{% endif %}
 {% endblock %}

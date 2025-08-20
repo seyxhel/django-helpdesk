@@ -45,6 +45,52 @@
   /* removed visual icon to keep message minimal */
   .field-error::before { content: none; }
     input.is-invalid { border-color: #c62828 !important; box-shadow: none !important; }
+  /* Strong overrides to remove any error icon glyphs inside this card */
+  .register-card .field-error::before,
+  .register-card .form-errors::before,
+  .register-card .server-field-error::before,
+  .register-card .field-error::after,
+  .register-card .form-errors::after,
+  .register-card .server-field-error::after,
+  .register-card [class*="fa-"]::before {
+    content: none !important;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  .register-card .field-error-space i,
+  .register-card .field-error-space svg,
+  .register-card .form-errors i,
+  .register-card .form-errors svg { display: none !important; width: 0 !important; height: 0 !important; }
+
+  /* Hard overrides: prevent any browser/vendor inserted icons on invalid inputs */
+  .register-card input.is-invalid,
+  .register-card textarea.is-invalid,
+  .register-card .form-select.is-invalid {
+    background-image: none !important;
+    background: none !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  .register-card input.is-invalid::before,
+  .register-card input.is-invalid::after,
+  .register-card textarea.is-invalid::before,
+  .register-card textarea.is-invalid::after,
+  .register-card .form-select.is-invalid::before,
+  .register-card .form-select.is-invalid::after {
+    content: none !important;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  .register-card .is-invalid + i,
+  .register-card .is-invalid + svg,
+  .register-card .is-invalid ~ i,
+  .register-card .is-invalid ~ svg { display: none !important; width: 0 !important; height: 0 !important; }
 
   .register-actions { display:flex; gap:12px; align-items:center; justify-content:center; margin-top:8px; width:100%; }
     .btn-primary { 
@@ -255,6 +301,9 @@
           var errEmail = document.getElementById('id_email-client-error');
 
           var REQUIRED_MSG = 'Please fill in the required field.';
+          var INVALID_NAME_MSG = 'Invalid Character';
+          var USERNAME_MIN = 3;
+          var USERNAME_MIN_MSG = 'Username must be at least 3 characters.';
 
           function showError(el, box, msg) {
             if (!box) return;
@@ -334,7 +383,7 @@
 
             if (v2 && v1 !== v2) {
               // Show mismatch instantly regardless of showErrorsForPwd2 flag
-              showError(pwd2, err2, 'Password did not match');
+              showError(pwd2, err2, 'Password did not match.');
               ok = false;
             } else if (v2 && v1 === v2) {
               clearError(pwd2, err2);
@@ -388,7 +437,7 @@
     // Disallow digits and other special characters
     var validNameRe = /^[\p{L} .'\-]+$/u;
     if (!validNameRe.test(v)) {
-    if (showErrors) showError(el, box, 'Invalid Character');
+  if (showErrors) showError(el, box, INVALID_NAME_MSG);
       return false;
     }
     clearError(el, box);
@@ -461,7 +510,7 @@
               el.addEventListener('input', function(){
                 var v = el.value ? el.value.trim() : '';
                 if (v && !nameValidRe.test(v)) {
-                  showError(el, box, 'Invalid Character');
+                  showError(el, box, INVALID_NAME_MSG);
                 } else {
                   // clear any client error while typing if the content is valid or empty
                   clearError(el, box);
@@ -474,6 +523,22 @@
           })();
           attachTouchedHandlers(username, function(show){ return validateUsername(show); }, 'id_username-client-error');
           attachTouchedHandlers(email, function(show){ return validateEmail(show); }, 'id_email-client-error');
+
+          // Immediate username length validation: show message as soon as input is too short
+          (function(){
+            var uname = document.getElementById('id_username');
+            var unameBox = document.getElementById('id_username-client-error');
+            if (!uname || !unameBox) return;
+            uname.addEventListener('input', function(){
+              var v = uname.value ? uname.value.trim() : '';
+              if (v && v.length < USERNAME_MIN) {
+                showError(uname, unameBox, USERNAME_MIN_MSG);
+              } else {
+                clearError(uname, unameBox);
+              }
+              checkFormValidity();
+            });
+          })();
 
           // Passwords: independent touched flags so each field's click+blur shows only its own errors
           function attachPasswordTouchedHandlers(pwEl, boxId, which) {

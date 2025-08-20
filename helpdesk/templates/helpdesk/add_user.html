@@ -1,0 +1,553 @@
+{% extends "helpdesk/base.html" %}{% load i18n %}
+
+{% block helpdesk_title %}{% trans "Add User" %}{% endblock %}
+
+{% block helpdesk_breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'helpdesk:system_settings' %}">{% trans "System Settings" %}</a>
+</li>
+<li class="breadcrumb-item active">{% trans "Add User" %}</li>
+{% endblock %}
+
+{% block helpdesk_body %}
+<h2>{% trans "Add User" %}</h2>
+<p>{% trans "Create a new user for the helpdesk." %}</p>
+
+<style>
+.helpdesk-add-user /* Scoped styles to normalize reduced vertical spacing */
+.helpdesk-add-user .mb-3 { padding-bottom: .35rem; margin-bottom: .35rem; }
+.helpdesk-add-user .form-text { margin-bottom: .18rem; }
+.helpdesk-add-user .client-required-error,
+.helpdesk-add-user .text-danger.small { min-height: .9rem; display: block; }
+.helpdesk-add-user .form-control { margin-bottom: .12rem; }
+.helpdesk-add-user .field-error-space { min-height: .9rem; }
+.helpdesk-add-user .email-block { margin-bottom: 0; padding-bottom: 0; }
+.helpdesk-add-user .name-row { margin-top: 0; }
+/* Remove any pseudo-element icon (exclamation in circle) shown before field errors */
+.helpdesk-add-user .field-error::before { content: none !important; display: none !important; }
+/* Additional overrides: hide any before/after icons for common error containers inside this card */
+.helpdesk-add-user .form-errors::before,
+.helpdesk-add-user .form-errors::after,
+.helpdesk-add-user .server-field-error::before,
+.helpdesk-add-user .server-field-error::after,
+.helpdesk-add-user .text-danger::before,
+.helpdesk-add-user .text-danger::after,
+.helpdesk-add-user [class*="fa-"]::before,
+.helpdesk-add-user [class*="fa-"]::after {
+    content: none !important;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+/* Also hide any <i> or svg icons that might be placed inside error containers */
+.helpdesk-add-user .field-error-space i,
+.helpdesk-add-user .field-error-space svg,
+.helpdesk-add-user .form-errors i,
+.helpdesk-add-user .form-errors svg,
+.helpdesk-add-user .server-field-error i,
+.helpdesk-add-user .server-field-error svg {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+/* Ensure no icon glyph shows by forcing normal font-family and removing generated content */
+.helpdesk-add-user .field-error,
+.helpdesk-add-user .form-errors,
+.helpdesk-add-user .server-field-error {
+    font-family: inherit !important;
+}
+
+/* Additional hard overrides for icons inserted at the input level by vendor CSS or browsers */
+.helpdesk-add-user input.is-invalid,
+.helpdesk-add-user textarea.is-invalid,
+.helpdesk-add-user .form-select.is-invalid {
+    background-image: none !important;
+    background: none !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Remove pseudo-elements that some libraries use to draw an icon near inputs */
+.helpdesk-add-user input.is-invalid::before,
+.helpdesk-add-user input.is-invalid::after,
+.helpdesk-add-user textarea.is-invalid::before,
+.helpdesk-add-user textarea.is-invalid::after,
+.helpdesk-add-user .form-select.is-invalid::before,
+.helpdesk-add-user .form-select.is-invalid::after {
+    content: none !important;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* Hide any <i> or svg icons that are adjacent to an invalid input */
+.helpdesk-add-user .is-invalid + i,
+.helpdesk-add-user .is-invalid + svg,
+.helpdesk-add-user .is-invalid ~ i,
+.helpdesk-add-user .is-invalid ~ svg,
+.helpdesk-add-user .field-error-space i,
+.helpdesk-add-user .field-error-space svg {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+</style>
+
+<form method="post" class="form helpdesk-add-user" novalidate>
+    {% csrf_token %}
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="id_username" class="form-label">{{ form.username.label }}</label>
+            {{ form.username }}
+            {% if form.username.help_text %}<div class="form-text">{{ form.username.help_text }}</div>{% endif %}
+            <div class="field-error-space">
+                {% for err in form.username.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+            </div>
+
+            <!-- email directly below username -->
+            <div class="mb-3">
+                <label for="id_email" class="form-label">{{ form.email.label }}</label>
+                {{ form.email }}
+                {% if form.email.help_text %}<div class="form-text">{{ form.email.help_text }}</div>{% endif %}
+                <div class="field-error-space">
+                    {% for err in form.email.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <!-- intentionally left blank to keep form alignment -->
+        </div>
+    </div>
+
+    <!-- First and Last name row (shorter fields, placed below email) -->
+    <div class="row name-row g-2">
+        <div class="col-md-3 mb-3">
+            <label for="id_first_name" class="form-label">{{ form.first_name.label }}</label>
+            {{ form.first_name }}
+            <div class="field-error-space">{% for err in form.first_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <label for="id_last_name" class="form-label">{{ form.last_name.label }}</label>
+            {{ form.last_name }}
+            <div class="field-error-space">{% for err in form.last_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="id_password1" class="form-label">{{ form.password1.label }}</label>
+            {{ form.password1 }}
+            {% if form.password1.help_text %}<div class="form-text">{{ form.password1.help_text }}</div>{% endif %}
+            <div class="field-error-space">{% for err in form.password1.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+
+            <!-- confirm password below the password field -->
+            <div class="mb-3">
+                <label for="id_password2" class="form-label">{{ form.password2.label }}</label>
+                {{ form.password2 }}
+                <div class="field-error-space">{% for err in form.password2.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <!-- right column intentionally left blank to keep layout symmetric -->
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="form-check form-check-inline me-3">
+                {{ form.is_staff }}
+                <label class="form-check-label" for="id_is_staff">{{ form.is_staff.label }}</label>
+            </div>
+            <div class="form-check form-check-inline">
+                {{ form.is_active }}
+                <label class="form-check-label" for="id_is_active">{{ form.is_active.label }}</label>
+            </div>
+            {% for err in form.is_staff.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+            {% for err in form.is_active.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+        </div>
+    </div>
+
+    {% if form.non_field_errors %}
+        {% for err in form.non_field_errors %}
+            <div class="alert alert-danger">{{ err }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="d-flex">
+        <a class="btn btn-secondary me-2" href="{% url 'helpdesk:system_settings' %}">{% trans "Cancel" %}</a>
+        <button type="submit" class="btn btn-success">{% trans "Create User" %}</button>
+    </div>
+</form>
+<script>
+// Show inline required message on blur for required fields and remove on input
+ (function(){
+    var form = document.querySelector('form.form');
+    if (!form) return;
+    // translated messages from template
+    var reqMsg = "{% trans 'Please fill in the required field.' %}";
+    // message for invalid name characters
+    var INVALID_NAME_MSG = "{% trans 'Invalid character' %}";
+    // confirm/mismatch message
+    var CONFIRM_MISMATCH_MSG = "{% trans 'Password did not match.' %}";
+    // username constraints
+    var USERNAME_MIN = 3;
+    var USERNAME_MIN_MSG = "{% trans 'Username must be at least 3 characters.' %}";
+    // email invalid message
+    var EMAIL_INVALID_MSG = "{% trans 'Please enter a valid email address.' %}";
+
+    function getErrorContainer(el){
+        // try to find a sibling .field-error-space after the field element
+        var parent = el.parentNode;
+        if(!parent) return null;
+        var container = parent.querySelector('.field-error-space');
+        if(container) return container;
+        // fallback: next sibling
+        var next = el.nextElementSibling;
+        while(next){
+            if(next.classList && next.classList.contains('field-error-space')) return next;
+            next = next.nextElementSibling;
+        }
+        return null;
+    }
+
+    function hasClientError(container){
+        if(!container) return false;
+        return Boolean(container.querySelector('.client-required-error'));
+    }
+
+    function addClientError(el){
+        var container = getErrorContainer(el);
+        if(!container) return;
+        if(hasClientError(container)) return;
+        var div = document.createElement('div');
+        div.className = 'text-danger small client-required-error';
+        div.textContent = reqMsg;
+        container.appendChild(div);
+    }
+
+    function removeClientError(el){
+        var container = getErrorContainer(el);
+        if(!container) return;
+        var existing = container.querySelectorAll('.client-required-error');
+        existing.forEach(function(n){ n.parentNode.removeChild(n); });
+    }
+
+    // Password complexity helpers
+    var PWD_MIN = 8;
+    function joinList(arr){
+        if (!arr || !arr.length) return '';
+        if (arr.length === 1) return arr[0];
+        if (arr.length === 2) return arr[0] + ' and ' + arr[1];
+        return arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1];
+    }
+
+    function addPasswordError(el, msg){
+        var container = getErrorContainer(el);
+        if(!container) return;
+        removeClientError(el);
+        var div = document.createElement('div');
+        div.className = 'text-danger small client-required-error';
+        div.textContent = msg;
+        container.appendChild(div);
+        try { el.classList.add('is-invalid'); } catch (e) {}
+    }
+
+    function clearPasswordError(el){
+        removeClientError(el);
+        try { el.classList.remove('is-invalid'); } catch (e) {}
+    }
+
+    // Confirm-password helpers
+    function addConfirmError(el, msg){
+        var container = getErrorContainer(el);
+        if(!container) return;
+        removeClientError(el);
+        var div = document.createElement('div');
+        div.className = 'text-danger small client-required-error';
+        div.textContent = msg;
+        container.appendChild(div);
+        try { el.classList.add('is-invalid'); } catch (e) {}
+    }
+
+    function clearConfirmError(el){
+        removeClientError(el);
+        try { el.classList.remove('is-invalid'); } catch (e) {}
+    }
+
+    // Email helpers
+    function addEmailError(el, msg){
+        var container = getErrorContainer(el);
+        if(!container) return;
+        removeClientError(el);
+        var div = document.createElement('div');
+        div.className = 'text-danger small client-required-error';
+        div.textContent = msg;
+        container.appendChild(div);
+        try { el.classList.add('is-invalid'); } catch (e) {}
+    }
+
+    function clearEmailError(el){
+        removeClientError(el);
+        try { el.classList.remove('is-invalid'); } catch (e) {}
+    }
+
+    function passwordComplexityMessage(value){
+        var v = value || '';
+        var missing = [];
+        if (v.length < PWD_MIN) {
+            // we'll report length separately
+        }
+        if (!/[A-Z]/.test(v)) missing.push('uppercase');
+        if (!/[a-z]/.test(v)) missing.push('lowercase');
+        if (!/[0-9]/.test(v)) missing.push('number');
+        if (!/[^A-Za-z0-9]/.test(v)) missing.push('special character');
+
+        var wantsLen = v.length < PWD_MIN;
+        if (wantsLen && missing.length === 0) {
+            return 'Password must be at least ' + PWD_MIN + ' characters long';
+        }
+        if (!wantsLen && missing.length > 0) {
+            return 'Password must contain ' + joinList(missing);
+        }
+        if (wantsLen && missing.length > 0) {
+            return 'Password must be at least ' + PWD_MIN + ' characters long and must contain ' + joinList(missing);
+        }
+        return '';
+    }
+
+
+    function addNameInvalidError(el){
+        var container = getErrorContainer(el);
+        if(!container) return;
+        // remove existing client errors first
+        removeClientError(el);
+        var div = document.createElement('div');
+        div.className = 'text-danger small client-required-error';
+        div.textContent = INVALID_NAME_MSG;
+        container.appendChild(div);
+        // visual invalid state
+        el.classList.add('is-invalid');
+    }
+
+    function clearNameInvalidState(el){
+        removeClientError(el);
+        try { el.classList.remove('is-invalid'); } catch (e) {}
+    }
+
+    var requiredFields = form.querySelectorAll('[required]');
+    requiredFields.forEach(function(field){
+        field.addEventListener('blur', function(){
+            var v = field.value;
+            if(!v || (typeof v === 'string' && v.trim() === '')){
+                addClientError(field);
+            } else {
+                removeClientError(field);
+            }
+        });
+
+        // remove message when user types
+        field.addEventListener('input', function(){
+            if(field.value && field.value.trim() !== ''){
+                removeClientError(field);
+            }
+        });
+    });
+
+    // Disable submit until all required fields are non-empty
+    var submitBtn = form.querySelector('button[type="submit"]');
+    function areAllRequiredFilled(){
+        for(var i=0;i<requiredFields.length;i++){
+            var f = requiredFields[i];
+            if(!f.value || (typeof f.value === 'string' && f.value.trim() === '')) return false;
+        }
+        return true;
+    }
+
+    function updateSubmitState(){
+        if(!submitBtn) return;
+        var enabled = areAllRequiredFilled();
+        try {
+            var uname = document.getElementById('id_username');
+            if (uname) {
+                var v = (uname.value || '').trim();
+                if (v.length < USERNAME_MIN) enabled = false;
+            }
+        } catch (e) {}
+        submitBtn.disabled = !enabled;
+    }
+
+    // call on input/change/blur
+    requiredFields.forEach(function(f){
+        f.addEventListener('input', updateSubmitState);
+        f.addEventListener('change', updateSubmitState);
+        f.addEventListener('blur', updateSubmitState);
+    });
+
+    // initial state
+    updateSubmitState();
+
+    // Prevent submit if not all required filled and show inline messages
+    form.addEventListener('submit', function(e){
+        if(!areAllRequiredFilled()){
+            e.preventDefault();
+            requiredFields.forEach(function(f){
+                if(!f.value || (typeof f.value === 'string' && f.value.trim() === '')){
+                    addClientError(f);
+                }
+            });
+            if(submitBtn) submitBtn.disabled = true;
+        }
+    });
+    // Immediate invalid-character detection for name fields: show message as soon as a disallowed char is typed
+    (function(){
+        var first = document.getElementById('id_first_name');
+        var last = document.getElementById('id_last_name');
+        if (!first && !last) return;
+        // allowed: Unicode letters, space, dot, apostrophe, hyphen
+        var invalidCharRe = /[^\p{L} .'\-]/u;
+        function onNameInput(e){
+            var el = e.target;
+            var v = el.value || '';
+            if (v && invalidCharRe.test(v)) {
+                addNameInvalidError(el);
+            } else {
+                clearNameInvalidState(el);
+            }
+            updateSubmitState();
+        }
+        if (first) first.addEventListener('input', onNameInput);
+        if (last) last.addEventListener('input', onNameInput);
+    })();
+
+    // Username live validation (min length)
+    (function(){
+        var uname = document.getElementById('id_username');
+        if (!uname) return;
+        function showUsernameMsg(){
+            var v = (uname.value || '').trim();
+            var container = getErrorContainer(uname);
+            if (!container) return;
+            // remove prior client-required errors
+            removeClientError(uname);
+            if (v.length === 0) return; // empty handled by required flow
+            if (v.length < USERNAME_MIN) {
+                var div = document.createElement('div');
+                div.className = 'text-danger small client-required-error';
+                div.textContent = USERNAME_MIN_MSG;
+                container.appendChild(div);
+                try { uname.classList.add('is-invalid'); } catch(e){}
+            } else {
+                try { uname.classList.remove('is-invalid'); } catch(e){}
+            }
+            updateSubmitState();
+        }
+        uname.addEventListener('input', showUsernameMsg);
+        uname.addEventListener('blur', showUsernameMsg);
+    })();
+
+    // Email live validation
+    (function(){
+        var el = document.getElementById('id_email');
+        if (!el) return;
+        var re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+        function validateEmailInput(){
+            var v = el.value ? el.value.trim() : '';
+            if (!v) { clearEmailError(el); updateSubmitState(); return; }
+            if (!re.test(v)) {
+                addEmailError(el, EMAIL_INVALID_MSG);
+            } else {
+                clearEmailError(el);
+            }
+            updateSubmitState();
+        }
+        el.addEventListener('input', validateEmailInput);
+        el.addEventListener('blur', validateEmailInput);
+        // also validate on form submit to block invalid emails
+        form.addEventListener('submit', function(e){
+            var v = el.value ? el.value.trim() : '';
+            if (v && !re.test(v)) {
+                addEmailError(el, EMAIL_INVALID_MSG);
+                e.preventDefault();
+                el.focus();
+            }
+        });
+    })();
+
+    // Password complexity live feedback
+    (function(){
+        var pwd = document.getElementById('id_password1');
+        if (!pwd) return;
+        pwd.addEventListener('input', function(){
+            var msg = passwordComplexityMessage(pwd.value || '');
+            if (msg) addPasswordError(pwd, msg);
+            else clearPasswordError(pwd);
+            updateSubmitState();
+        });
+        pwd.addEventListener('blur', function(){
+            var msg = passwordComplexityMessage(pwd.value || '');
+            if (msg) addPasswordError(pwd, msg);
+            else clearPasswordError(pwd);
+        });
+    })();
+
+    // Confirm password: forbid paste/drop and validate match
+    (function(){
+        var pwd1 = document.getElementById('id_password1');
+        var pwd2 = document.getElementById('id_password2');
+        if (!pwd2) return;
+        function showOrClear(){
+            var v1 = pwd1 ? (pwd1.value || '') : '';
+            var v2 = pwd2.value || '';
+            if (!v2) { clearConfirmError(pwd2); return; }
+            if (v1 !== v2) {
+                addConfirmError(pwd2, CONFIRM_MISMATCH_MSG);
+            } else {
+                clearConfirmError(pwd2);
+            }
+            updateSubmitState();
+        }
+        // block paste/drop
+        pwd2.addEventListener('paste', function(e){ e.preventDefault(); });
+        pwd2.addEventListener('drop', function(e){ e.preventDefault(); });
+        pwd2.addEventListener('beforeinput', function(e){ try { if (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop') e.preventDefault(); } catch(err){} });
+        pwd2.addEventListener('input', showOrClear);
+        pwd2.addEventListener('blur', showOrClear);
+        // also validate when the original password changes
+        if (pwd1) pwd1.addEventListener('input', showOrClear);
+    })();
+  
+        // On load: if server rendered per-field errors exist, mirror them into the
+        // client-side error containers so all validation appears in the same place.
+        function syncServerErrors() {
+            var fields = ['first_name','last_name','username','email','password1','password2'];
+            fields.forEach(function(name){
+                try {
+                    var server = document.getElementById('id_' + name + '-server-error');
+                    var client = document.getElementById('id_' + name + '-client-error');
+                    var fieldEl = document.getElementById('id_' + name);
+                    if (!server || !client || !fieldEl) return;
+                    var text = server.textContent ? server.textContent.trim() : '';
+                    if (text) {
+                        // place the message into the client box and mark the field invalid
+                        client.textContent = text;
+                        client.style.visibility = 'visible';
+                        fieldEl.classList.add('is-invalid');
+                        fieldEl.setAttribute('aria-invalid', 'true');
+                        fieldEl.setAttribute('aria-describedby', client.id);
+                        // clear the server box so it doesn't duplicate visually; CSS will
+                        // hide it because it's empty (keeps reserved space behavior)
+                        server.textContent = '';
+                    }
+                } catch (err) {
+                    // ignore any issues
+                }
+            });
+        }
+})();
+</script>
+{% endblock %}
