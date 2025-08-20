@@ -100,6 +100,20 @@
 
     <div class="row">
         <div class="col-md-6 mb-3">
+            <!-- First and Last name row (shorter fields, placed above username) -->
+            <div class="row name-row g-2">
+                <div class="col-md-6 mb-3">
+                    <label for="id_first_name" class="form-label">{{ form.first_name.label }}</label>
+                    {{ form.first_name }}
+                    <div class="field-error-space">{% for err in form.first_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="id_last_name" class="form-label">{{ form.last_name.label }}</label>
+                    {{ form.last_name }}
+                    <div class="field-error-space">{% for err in form.last_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+                </div>
+            </div>
+
             <label for="id_username" class="form-label">{{ form.username.label }}</label>
             {{ form.username }}
             {% if form.username.help_text %}<div class="form-text">{{ form.username.help_text }}</div>{% endif %}
@@ -123,19 +137,7 @@
         </div>
     </div>
 
-    <!-- First and Last name row (shorter fields, placed below email) -->
-    <div class="row name-row g-2">
-        <div class="col-md-3 mb-3">
-            <label for="id_first_name" class="form-label">{{ form.first_name.label }}</label>
-            {{ form.first_name }}
-            <div class="field-error-space">{% for err in form.first_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <label for="id_last_name" class="form-label">{{ form.last_name.label }}</label>
-            {{ form.last_name }}
-            <div class="field-error-space">{% for err in form.last_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
-        </div>
-    </div>
+    <!-- name-row moved above username to preserve layout while changing visual order -->
 
     <div class="row">
         <div class="col-md-6 mb-3">
@@ -201,12 +203,25 @@
     var EMAIL_INVALID_MSG = "{% trans 'Please enter a valid email address.' %}";
 
     function getErrorContainer(el){
-        // try to find a sibling .field-error-space after the field element
-        var parent = el.parentNode;
-        if(!parent) return null;
-        var container = parent.querySelector('.field-error-space');
-        if(container) return container;
-        // fallback: next sibling
+        // Prefer a direct child `.field-error-space` of the field's parent (or nearest ancestor).
+        // Using a deep querySelector on the parent can accidentally pick a different field's
+        // error container when inputs are nested; check immediate children instead.
+        var node = el && el.parentNode;
+        while(node){
+            try {
+                // check only immediate children of this ancestor
+                for(var i=0;i<node.children.length;i++){
+                    var child = node.children[i];
+                    if(child && child.classList && child.classList.contains('field-error-space')){
+                        return child;
+                    }
+                }
+            } catch(err) {
+                // ignore and continue up the tree
+            }
+            node = node.parentNode;
+        }
+        // fallback: next sibling chain from the element itself
         var next = el.nextElementSibling;
         while(next){
             if(next.classList && next.classList.contains('field-error-space')) return next;
@@ -228,6 +243,16 @@
         div.className = 'text-danger small client-required-error';
         div.textContent = reqMsg;
         container.appendChild(div);
+        // ensure the container has an id for aria-describedby and set it if possible
+        try {
+            if (!container.id && el && el.id) container.id = el.id + '-client-error';
+            // visual invalid state on the input
+            if (el && el.classList) el.classList.add('is-invalid');
+            if (el && el.setAttribute) {
+                el.setAttribute('aria-invalid', 'true');
+                if (container.id) el.setAttribute('aria-describedby', container.id);
+            }
+        } catch (err) {}
     }
 
     function removeClientError(el){
@@ -235,6 +260,17 @@
         if(!container) return;
         var existing = container.querySelectorAll('.client-required-error');
         existing.forEach(function(n){ n.parentNode.removeChild(n); });
+        try {
+            if (el && el.classList) el.classList.remove('is-invalid');
+            if (el && el.removeAttribute) {
+                el.removeAttribute('aria-invalid');
+                // only remove aria-describedby if it points to the client error id we set
+                var desc = el.getAttribute && el.getAttribute('aria-describedby');
+                if (desc && container.id && desc.indexOf(container.id) !== -1) {
+                    el.removeAttribute('aria-describedby');
+                }
+            }
+        } catch(err) {}
     }
 
     // Password complexity helpers
@@ -339,22 +375,72 @@
         try { el.classList.remove('is-invalid'); } catch (e) {}
     }
 
+    // helper: determine if a field currently meets client-side validation rules
+    function isFieldValid(field){
+        if(!field) return false;
+        var id = field.id || '';
+        var v = field.value || '';
+        // required non-empty
+        if(field.hasAttribute('required')){
+            if(!v || (typeof v === 'string' && v.trim() === '')) return false;
+        }
+        // username min length
+        try {
+            if(id === 'id_username'){
+                return (v || '').trim().length >= USERNAME_MIN;
+            }
+        } catch(e) {}
+        // email format
+        if(id === 'id_email'){
+            var reEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+            return reEmail.test((v || '').trim());
+        }
+        // name fields: no invalid characters
+        if(id === 'id_first_name' || id === 'id_last_name'){
+            try {
+                var invalidCharRe_local = null;
+                try {
+                    invalidCharRe_local = new RegExp("[^\\p{L} .'\\-]", 'u');
+                } catch(e) {
+                    invalidCharRe_local = null;
+                }
+                if(!invalidCharRe_local) return true; // can't perform strict unicode check
+                return !invalidCharRe_local.test(v || '');
+            } catch(err){
+                return true;
+            }
+        }
+        // password complexity
+        if(id === 'id_password1'){
+            return passwordComplexityMessage(v || '') === '';
+        }
+        // confirm match
+        if(id === 'id_password2'){
+            var p1 = document.getElementById('id_password1');
+            var v1 = p1 ? (p1.value || '') : '';
+            return (v || '') !== '' && v === v1;
+        }
+        return true;
+    }
+
     var requiredFields = form.querySelectorAll('[required]');
     requiredFields.forEach(function(field){
         field.addEventListener('blur', function(){
-            var v = field.value;
-            if(!v || (typeof v === 'string' && v.trim() === '')){
+            // On blur, only remove the client error if the field currently passes validation.
+            if(!isFieldValid(field)){
                 addClientError(field);
             } else {
                 removeClientError(field);
             }
+            updateSubmitState();
         });
 
-        // remove message when user types
+        // on input: only remove client error if the field currently passes validation
         field.addEventListener('input', function(){
-            if(field.value && field.value.trim() !== ''){
+            if(isFieldValid(field)){
                 removeClientError(field);
             }
+            updateSubmitState();
         });
     });
 
@@ -409,11 +495,16 @@
         var last = document.getElementById('id_last_name');
         if (!first && !last) return;
         // allowed: Unicode letters, space, dot, apostrophe, hyphen
-        var invalidCharRe = /[^\p{L} .'\-]/u;
+        var invalidCharRe = null;
+        try {
+            invalidCharRe = new RegExp("[^\\p{L} .'\\-]", 'u');
+        } catch(err) {
+            invalidCharRe = null;
+        }
         function onNameInput(e){
             var el = e.target;
             var v = el.value || '';
-            if (v && invalidCharRe.test(v)) {
+            if (v && invalidCharRe && invalidCharRe.test(v)) {
                 addNameInvalidError(el);
             } else {
                 clearNameInvalidState(el);
@@ -432,9 +523,18 @@
             var v = (uname.value || '').trim();
             var container = getErrorContainer(uname);
             if (!container) return;
-            // remove prior client-required errors
+            // If empty: show required message (don't clear it) and return.
+            if (v.length === 0) {
+                if (uname.hasAttribute && uname.hasAttribute('required')) {
+                    addClientError(uname);
+                } else {
+                    removeClientError(uname);
+                }
+                updateSubmitState();
+                return;
+            }
+            // remove prior client-required errors for non-empty values
             removeClientError(uname);
-            if (v.length === 0) return; // empty handled by required flow
             if (v.length < USERNAME_MIN) {
                 var div = document.createElement('div');
                 div.className = 'text-danger small client-required-error';
@@ -457,7 +557,17 @@
         var re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
         function validateEmailInput(){
             var v = el.value ? el.value.trim() : '';
-            if (!v) { clearEmailError(el); updateSubmitState(); return; }
+            // If empty and the field is required, show the required message; otherwise clear.
+            if (!v) {
+                if (el.hasAttribute && el.hasAttribute('required')) {
+                    // use generic required message so placement/formatting is consistent
+                    addClientError(el);
+                } else {
+                    clearEmailError(el);
+                }
+                updateSubmitState();
+                return;
+            }
             if (!re.test(v)) {
                 addEmailError(el, EMAIL_INVALID_MSG);
             } else {
@@ -489,7 +599,14 @@
             updateSubmitState();
         });
         pwd.addEventListener('blur', function(){
-            var msg = passwordComplexityMessage(pwd.value || '');
+            var v = pwd.value || '';
+            if (!v) {
+                // If required show generic required message; otherwise clear
+                if (pwd.hasAttribute && pwd.hasAttribute('required')) addClientError(pwd);
+                else clearPasswordError(pwd);
+                return;
+            }
+            var msg = passwordComplexityMessage(v);
             if (msg) addPasswordError(pwd, msg);
             else clearPasswordError(pwd);
         });
@@ -500,25 +617,38 @@
         var pwd1 = document.getElementById('id_password1');
         var pwd2 = document.getElementById('id_password2');
         if (!pwd2) return;
-        function showOrClear(){
+        // check mismatch only when confirm has a value (do NOT show required here)
+        function checkConfirmMismatch(){
             var v1 = pwd1 ? (pwd1.value || '') : '';
             var v2 = pwd2.value || '';
-            if (!v2) { clearConfirmError(pwd2); return; }
-            if (v1 !== v2) {
-                addConfirmError(pwd2, CONFIRM_MISMATCH_MSG);
-            } else {
-                clearConfirmError(pwd2);
-            }
+            if (!v2) return; // do not show required on input
+            if (v1 !== v2) addConfirmError(pwd2, CONFIRM_MISMATCH_MSG);
+            else clearConfirmError(pwd2);
             updateSubmitState();
         }
+
+        function showOrClear(){
+            // on blur: show required if empty, otherwise run mismatch check
+            var v2 = pwd2.value || '';
+            if (!v2) {
+                if (pwd2.hasAttribute && pwd2.hasAttribute('required')) addClientError(pwd2);
+                else clearConfirmError(pwd2);
+                updateSubmitState();
+                return;
+            }
+            // non-empty -> check mismatch
+            checkConfirmMismatch();
+        }
+
         // block paste/drop
         pwd2.addEventListener('paste', function(e){ e.preventDefault(); });
         pwd2.addEventListener('drop', function(e){ e.preventDefault(); });
         pwd2.addEventListener('beforeinput', function(e){ try { if (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop') e.preventDefault(); } catch(err){} });
-        pwd2.addEventListener('input', showOrClear);
+        // on input only perform mismatch checks (do not show required on input)
+        pwd2.addEventListener('input', checkConfirmMismatch);
         pwd2.addEventListener('blur', showOrClear);
-        // also validate when the original password changes
-        if (pwd1) pwd1.addEventListener('input', showOrClear);
+        // when primary password changes, only run mismatch check if confirm has a value
+        if (pwd1) pwd1.addEventListener('input', checkConfirmMismatch);
     })();
   
         // On load: if server rendered per-field errors exist, mirror them into the
