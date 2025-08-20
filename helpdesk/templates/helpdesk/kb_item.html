@@ -1,0 +1,234 @@
+{% extends "helpdesk/base.html" %}{% load i18n %}
+
+
+{% block helpdesk_title %}{% trans "Add knowledgebase item" %}{% endblock %}
+
+{% block helpdesk_head %}
+    <style>
+          /* Layout the form group so the label, field and errors stack vertically.
+             Reserve padding-bottom so errors can appear without shifting layout. */
+          .form-group { display:block; width:100%; margin-bottom:4px; padding-bottom:18px; position:relative; }
+          .form-group > label { display:block; margin-bottom:4px; }
+
+          /* Inputs themselves don't add extra bottom margin; the group reserves the space. */
+          .form-group input, .form-group select, .form-group textarea { margin-bottom:0 !important; }
+
+          /* Server error wrapper (used for server-rendered errors). Hidden by default, but when present
+             it shows as a boxed highlighted message that sits visually close to the field. */
+          .form-errors { background:#fff4f4; border:1px solid #ffd7d7; color:#7a1212; padding:6px 12px; border-radius:8px; margin:0; }
+          .server-field-error {
+              display:block;
+              min-height:20px;             /* reserve vertical space */
+              visibility:hidden;          /* keep content hidden for assistive tech until present */
+              opacity:0;                  /* hide visually */
+              transform-origin: bottom left;
+              transform: translateY(0);
+              transition: transform .08s ease, opacity .08s ease;
+              padding:0; margin:0; background:transparent; border:0;
+              color:#7a1212;
+          }
+          .server-field-error:not(:empty) {
+              visibility: visible;
+              opacity: 1;
+              /* visually bring the server error up and show the highlighted wrapper */
+              transform: translateY(-18px);
+              background:#fff4f4;
+              border:1px solid #ffd7d7;
+              padding:6px 12px;
+              border-radius:8px;
+              color:#7a1212;
+          }
+
+          /* Client-side inline error uses the same reserved-space approach and is pulled up
+             slightly so it appears adjacent to the control while the group's reserved space prevents layout shift. */
+          .field-error {
+              color: #c62828;
+              font-size: 12px;
+              margin:0;
+              display:block;
+              min-height:18px;            /* reserve vertical space */
+              visibility:hidden;
+              opacity:0;
+              transform-origin: bottom left;
+              transform: translateY(0);
+              transition: transform .08s ease, opacity .08s ease;
+              padding-left:0; line-height:1.15;
+          }
+          .field-error:not(:empty) {
+              visibility: visible;
+              opacity: 1;
+              transform: translateY(-18px); /* visually bring text closer to the control */
+          }
+          .field-error::before { content: none; }
+
+          /* Make the category dropdown shorter */
+          #id_category {
+              min-width: 180px;
+              width: 180px;
+              max-width: 100%;
+          }
+
+          /* Normalize category/title error blocks so they behave the same as others */
+          #id_category-server-error, #id_category-client-error,
+          #id_title-server-error, #id_title-client-error {
+              margin: 0 !important;
+              padding: 0 !important;
+              display: block;
+              line-height: 1.15;
+          }
+
+        /* Make invalid controls use a consistent full red border and remove outlines/box-shadows */
+        input.is-invalid, select.is-invalid, textarea.is-invalid {
+            border: 1px solid #c62828 !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+    </style>
+{% endblock %}
+
+{% block helpdesk_breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'helpdesk:kb_index' %}">{% trans "Knowledgebase" %}</a>
+</li>
+<li class="breadcrumb-item active">{% trans "Add item" %}</li>
+{% endblock %}
+
+{% block helpdesk_body %}
+<h2>{% trans "Add knowledge base item" %}</h2>
+<form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="form-group">
+                {{ form.category.label_tag }}
+                {{ form.category }}
+                {% if staff %}
+                <a href="{% url 'helpdesk:kb_category_add' %}" class="btn btn-outline-primary btn-sm ml-2" title="{% trans 'Add KB category' %}">
+                    <i class="fa fa-plus" aria-hidden="true"></i>
+                    <span class="sr-only">{% trans 'Add KB category' %}</span>
+                </a>
+                {% endif %}
+                <div id="id_category-server-error" class="form-errors server-field-error" aria-live="polite">{% if form and form.category.errors %}{{ form.category.errors|join:' ' }}{% endif %}</div>
+                <div id="id_category-client-error" class="field-error" aria-live="polite"></div>
+        </div>
+
+        <div class="form-group">
+                {{ form.title.label_tag }}
+                {{ form.title }}
+                <div id="id_title-server-error" class="form-errors server-field-error" aria-live="polite">{% if form and form.title.errors %}{{ form.title.errors|join:' ' }}{% endif %}</div>
+                <div id="id_title-client-error" class="field-error" aria-live="polite"></div>
+        </div>
+
+        <div class="form-group">
+                {{ form.question.label_tag }}
+                {{ form.question }}
+                <div id="id_question-server-error" class="form-errors server-field-error" aria-live="polite">{% if form and form.question.errors %}{{ form.question.errors|join:' ' }}{% endif %}</div>
+                <div id="id_question-client-error" class="field-error" aria-live="polite"></div>
+        </div>
+
+        <div class="form-group">
+                {{ form.answer.label_tag }}
+                {{ form.answer }}
+                <div id="id_answer-server-error" class="form-errors server-field-error" aria-live="polite">{% if form and form.answer.errors %}{{ form.answer.errors|join:' ' }}{% endif %}</div>
+                <div id="id_answer-client-error" class="field-error" aria-live="polite"></div>
+        </div>
+
+        <div class="form-group">
+                {{ form.enabled.label_tag }} {{ form.enabled }}
+        </div>
+
+        <div class="form-note">{% trans "Fields marked required must be completed." %}</div>
+
+        <div style="margin-top:12px">
+            <button id="kb-submit" type="submit" class="btn btn-primary" disabled aria-disabled="true">{% trans "Create" %}</button>
+        </div>
+</form>
+
+    <script>
+    (function(){
+        var form = document.querySelector('form[method="post"]');
+        if (!form) return;
+        var category = document.getElementById('id_category');
+        var title = document.getElementById('id_title');
+        var question = document.getElementById('id_question');
+        var answer = document.getElementById('id_answer');
+
+        var errCategory = document.getElementById('id_category-client-error');
+        var errTitle = document.getElementById('id_title-client-error');
+        var errQuestion = document.getElementById('id_question-client-error');
+        var errAnswer = document.getElementById('id_answer-client-error');
+
+        var submitBtn = document.getElementById('kb-submit');
+
+        var REQUIRED_MSG = 'Please fill in the required field.';
+
+        // Track whether a field has been focused (clicked into) at least once
+        var touched = {};
+
+        function showError(el, box, msg) {
+            if (!box) return;
+            box.textContent = msg;
+            box.style.visibility = 'visible';
+            if (el) el.classList.add('is-invalid');
+            if (el) el.setAttribute('aria-invalid', 'true');
+            if (el) el.setAttribute('aria-describedby', box.id);
+        }
+
+        function clearError(el, box) {
+            if (!box) return;
+            box.textContent = '';
+            box.style.visibility = 'hidden';
+            if (el) el.classList.remove('is-invalid');
+            if (el) el.removeAttribute('aria-invalid');
+            if (el) el.removeAttribute('aria-describedby');
+        }
+
+        // validateField shows the error only if showErrors is true; otherwise it only
+        // returns boolean (used to compute form validity without flashing errors on load)
+        function validateField(el, box, showErrors) {
+            if (!el) return true;
+            var v = el.value ? el.value.trim() : '';
+            if (!v) {
+                if (showErrors) showError(el, box, REQUIRED_MSG);
+                return false;
+            }
+            clearError(el, box);
+            return true;
+        }
+
+        function checkForm() {
+            // Only display errors for fields that have been touched or contain content.
+            var ok = true;
+            ok = validateField(category, errCategory, touched['id_category'] || (category && category.value && category.value.trim() !== '')) && ok;
+            ok = validateField(title, errTitle, touched['id_title'] || (title && title.value && title.value.trim() !== '')) && ok;
+            ok = validateField(question, errQuestion, touched['id_question'] || (question && question.value && question.value.trim() !== '')) && ok;
+            ok = validateField(answer, errAnswer, touched['id_answer'] || (answer && answer.value && answer.value.trim() !== '')) && ok;
+            if (ok) {
+                submitBtn.disabled = false;
+                submitBtn.removeAttribute('aria-disabled');
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.setAttribute('aria-disabled', 'true');
+            }
+            return ok;
+        }
+
+        [category, title, question, answer].forEach(function(el){
+            if (!el) return;
+            // Mark field as touched when focused (clicked into)
+            el.addEventListener('focus', function(){ touched[el.id] = true; });
+            // On input, re-check and show errors if field was touched
+            el.addEventListener('input', function(){ checkForm(); });
+            // On blur, show the required message if the field was touched (clicked then left)
+            el.addEventListener('blur', function(){
+                var box = document.getElementById(el.id+'-client-error');
+                validateField(el, box, true);
+                checkForm();
+            });
+        });
+
+        // initial check to set button state if browser pre-fills fields; do not show errors on load
+        checkForm();
+
+    })();
+</script>
+{% endblock %}

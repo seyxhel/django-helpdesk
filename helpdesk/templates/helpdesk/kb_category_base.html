@@ -1,7 +1,18 @@
 {% load i18n %}
 {% block header %}
-<h2>{% blocktrans with category.title as kbcat %}{{ kbcat }}{% endblocktrans %}</h2>
-{{ category.description|linebreaks }}
+<div class="d-flex align-items-start justify-content-between">
+    <div>
+        <h2>{% blocktrans with category.title as kbcat %}{{ kbcat }}{% endblocktrans %}</h2>
+        {{ category.description|linebreaks }}
+    </div>
+    {% if staff %}
+    <div class="ml-3">
+        <a href="{% url 'helpdesk:kb_category_add' %}" class="btn btn-outline-primary btn-sm" title="{% trans "Add KB category" %}">
+            <i class="fa fa-plus" aria-hidden="true"></i>
+            <span class="sr-only">{% trans "Add KB category" %}</span>
+        </a>
+    </div>
+    {% endif %}
 {% endblock %}
 
 {% block item_list %}

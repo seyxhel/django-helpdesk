@@ -1,7 +1,21 @@
-{% extends "helpdesk/public_base.html" %}{% load i18n %}
+{% extends "helpdesk/base.html" %}{% load i18n %}
+
+{% block helpdesk_title %}{% trans "My Tickets" %}{% endblock %}
+
+{% block helpdesk_breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'helpdesk:dashboard' %}">{% trans "Dashboard" %}</a></li>
+<li class="breadcrumb-item active">{% trans "My Tickets" %}</li>
+{% endblock %}
 
 {% block helpdesk_body %}
-<h2>{% trans "My Tickets" %}</h2>
+<h2 class="sr-only">{% trans "My Tickets" %}</h2>
+
+<style>
+    /* Ensure the main content sits nicely next to the sidebar when present */
+    @media(min-width: 768px) {
+        #content-wrapper .container-fluid { padding-left: 22px; }
+    }
+</style>
 
 <div class="container mt-4">
     <table class="table table-striped" id="ticketsTable">

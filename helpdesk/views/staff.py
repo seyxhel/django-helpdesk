@@ -55,6 +55,7 @@ from helpdesk.forms import (
     TicketForm,
     TicketResolvesForm,
     UserSettingsForm,
+    AddUserForm,
 )
 from helpdesk.lib import (
     queue_template_context,
@@ -375,6 +376,31 @@ def followup_edit(request, ticket_id, followup_id):
 
 
 followup_edit = staff_member_required(followup_edit)
+
+
+@helpdesk_superuser_required
+def add_user(request):
+    """In-app user creation view. Restricted to superusers."""
+    if request.method == "POST":
+        form = AddUserForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            # set active/staff flags from cleaned_data (UserCreationForm doesn't include them by default)
+            if "is_active" in form.cleaned_data:
+                user.is_active = form.cleaned_data["is_active"]
+            if "is_staff" in form.cleaned_data:
+                user.is_staff = form.cleaned_data["is_staff"]
+            user.save()
+            # set password using the form's save implementation
+            form.save_m2m()
+            return redirect("helpdesk:system_settings")
+    else:
+        form = AddUserForm()
+
+    return render(request, "helpdesk/add_user.html", {"form": form})
+
+
+add_user = helpdesk_superuser_required(add_user)
 
 
 @helpdesk_staff_member_required
