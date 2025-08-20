@@ -100,6 +100,10 @@ def add_kb_category(request):
     """Simple staff-only view to create a KBCategory via a minimal form."""
     if request.method == "POST":
         form = KBCategoryForm(request.POST)
+        # Hide slug and queue from the public add form
+        for f in ("slug", "queue"):
+            if f in form.fields:
+                form.fields.pop(f)
         if form.is_valid():
             # Ensure slug is present; if user omitted it (we hide it from UI)
             category = form.save(commit=False)
@@ -111,6 +115,10 @@ def add_kb_category(request):
             return redirect('helpdesk:kb_category', slug=category.slug)
     else:
         form = KBCategoryForm()
+        # Hide slug and queue from the public add form
+        for f in ("slug", "queue"):
+            if f in form.fields:
+                form.fields.pop(f)
 
     # Provide a lightweight, unsaved KBCategory instance and minimal context
     # so we can reuse the existing kb_category.html layout to host the add form.
@@ -136,16 +144,42 @@ def add_kb_category(request):
     )
 
 
-@user_passes_test(lambda u: u.is_authenticated and u.is_staff)
 def add_kb_item(request):
-    """Simple staff-only view to create a KBItem via a minimal form."""
+    """
+    View to create a KBItem.
+
+    - Staff users can create and publish items directly (full form).
+    - Non-staff (including anonymous) users may submit items but are limited to
+      public categories. Public submissions will be saved with `enabled=False`
+      so staff can review/publish them.
+    """
+    staff = request.user.is_authenticated and request.user.is_staff
+
     if request.method == "POST":
         form = KBItemForm(request.POST)
+
+        # Restrict category choices and strip publish flag for non-staff
+        if not staff and "category" in form.fields:
+            form.fields["category"].queryset = KBCategory.objects.filter(public=True)
+
         if form.is_valid():
-            kbitem = form.save()
+            if staff:
+                kbitem = form.save()
+            else:
+                # Save but keep disabled for moderation
+                kbitem = form.save(commit=False)
+                kbitem.enabled = False
+                kbitem.save()
+
             return redirect(kbitem.get_absolute_url())
     else:
         form = KBItemForm()
+        if not staff:
+            # Limit categories available to public ones for non-staff
+            if "category" in form.fields:
+                form.fields["category"].queryset = KBCategory.objects.filter(public=True)
+            # Hide the enabled/publish field from public-facing form
+            if "enabled" in form.fields:
+                form.fields.pop("enabled")
 
-    staff = request.user.is_authenticated and request.user.is_staff
     return render(request, "helpdesk/kb_item.html", {"form": form, "staff": staff})

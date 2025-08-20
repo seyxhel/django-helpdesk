@@ -114,10 +114,41 @@ if helpdesk_settings.HELPDESK_KB_ENABLED:
         list_display_links = ("title",)
 
     if helpdesk_settings.HELPDESK_KB_ENABLED:
+        # Import the KBCategoryForm so description can be optional in admin
+        try:
+            from helpdesk.forms import KBCategoryForm
+        except Exception:
+            KBCategoryForm = None
 
         @admin.register(KBCategory)
         class KBCategoryAdmin(admin.ModelAdmin):
             list_display = ("name", "title", "slug", "public")
+            form = KBCategoryForm
+
+            def get_fields(self, request, obj=None):
+                """Hide 'slug' and 'queue' when adding a new KBCategory; show them when editing."""
+                if obj is None:
+                    # add form: exclude slug and queue
+                    return ["name", "title", "description", "public"]
+                # edit form: include all fields
+                return ["name", "title", "slug", "description", "public", "queue"]
+
+            def save_model(self, request, obj, form, change):
+                """Auto-generate a unique slug on create when not provided."""
+                from django.utils.text import slugify
+
+                if not change:
+                    # creating new object
+                    if not getattr(obj, "slug", None):
+                        base = slugify(getattr(obj, "name", None) or getattr(obj, "title", ""))
+                        slug = base or "kbcategory"
+                        counter = 1
+                        # ensure uniqueness
+                        while KBCategory.objects.filter(slug=slug).exists():
+                            slug = f"{base}-{counter}"
+                            counter += 1
+                        obj.slug = slug
+                super().save_model(request, obj, form, change)
 
 
 @admin.register(CustomField)
