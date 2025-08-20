@@ -577,6 +577,39 @@
         }
         el.addEventListener('input', validateEmailInput);
         el.addEventListener('blur', validateEmailInput);
+        // instant duplicate-email check on input (debounced) and blur
+        var emailCheckTimer = null;
+        function runEmailExistsCheck(v){
+            try {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', '{% url "helpdesk:ajax_email_exists" %}?email=' + encodeURIComponent(v), true);
+                xhr.onreadystatechange = function(){
+                    if (xhr.readyState === 4 && xhr.status === 200){
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            if (data && data.exists){
+                                addEmailError(el, "Invalid email.");
+                            } else {
+                                if (re.test(v)) clearEmailError(el);
+                            }
+                        } catch(err){}
+                    }
+                };
+                xhr.send();
+            } catch(err){}
+        }
+        el.addEventListener('input', function(){
+            var v = el.value ? el.value.trim() : '';
+            if (!v || !re.test(v)) return;
+            if (emailCheckTimer) clearTimeout(emailCheckTimer);
+            emailCheckTimer = setTimeout(function(){ runEmailExistsCheck(v); }, 300);
+        });
+        el.addEventListener('blur', function(){
+            var v = el.value ? el.value.trim() : '';
+            if (!v || !re.test(v)) return;
+            if (emailCheckTimer) { clearTimeout(emailCheckTimer); emailCheckTimer = null; }
+            runEmailExistsCheck(v);
+        });
         // also validate on form submit to block invalid emails
         form.addEventListener('submit', function(e){
             var v = el.value ? el.value.trim() : '';

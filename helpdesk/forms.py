@@ -190,6 +190,13 @@ class AddUserForm(UserCreationForm):
                 except Exception:
                     pass
 
+    def clean_email(self):
+        """Ensure the provided email isn't already used by another user."""
+        email = self.cleaned_data.get("email")
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise ValidationError(_("A user with that email address already exists."))
+        return email
+
 
 class EditUserForm(forms.ModelForm):
     """Minimal form to edit existing users without changing password."""

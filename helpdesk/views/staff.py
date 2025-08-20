@@ -88,6 +88,7 @@ from helpdesk.update_ticket import (
     subscribe_to_ticket_updates,
     return_ticketccstring_and_show_subscribe,
 )
+from django.http import JsonResponse
 import helpdesk.views.abstract_views as abstract_views
 from helpdesk.views.permissions import MustBeStaffMixin
 import json
@@ -136,6 +137,16 @@ def _get_queue_choices(queues):
 def get_user_queues(user) -> dict[str, str]:
     queues = HelpdeskUser(user).get_queues()
     return _get_queue_choices(queues)
+
+
+@helpdesk_staff_member_required
+def ajax_email_exists(request):
+    """Return JSON {exists: true/false} for the given email (GET param 'email')."""
+    email = request.GET.get('email', '').strip()
+    exists = False
+    if email:
+        exists = User.objects.filter(email__iexact=email).exists()
+    return JsonResponse({'exists': exists})
 
 
 def get_form_extra_kwargs(user) -> dict[str, object]:

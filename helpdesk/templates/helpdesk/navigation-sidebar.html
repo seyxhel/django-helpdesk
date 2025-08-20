@@ -63,7 +63,7 @@
         <li class="nav-item{% if 'users' in request.path %} active{% endif %}">
           <a class="nav-link" href="{% url 'helpdesk:user_list' %}">
             <i class="fas fa-fw fa-users"></i>
-            <span>{% trans "Manage Users" %}</span>
+            <span>{% trans "Users" %}</span>
           </a>
         </li>
         {% if helpdesk_settings.HELPDESK_KB_ENABLED %}

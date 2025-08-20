@@ -56,6 +56,7 @@ base64_pattern = r"(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)
 
 urlpatterns = [
     path("dashboard/", staff.dashboard, name="dashboard"),
+    path("ajax/email_exists/", staff.ajax_email_exists, name="ajax_email_exists"),
     path("tickets/", staff.ticket_list, name="list"),
     path("tickets/update/", staff.mass_update, name="mass_update"),
     path("tickets/merge", staff.merge_tickets, name="merge_tickets"),
