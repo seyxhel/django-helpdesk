@@ -7,6 +7,31 @@ from the environment and attempts to authenticate. Prints detailed errors.
 import os
 import smtplib
 
+# Simple .env loader so demo/.env can be used instead of exporting env vars manually.
+def load_dotenv_file(path):
+    try:
+        if not os.path.exists(path):
+            return
+        with open(path, 'r', encoding='utf-8') as fh:
+            for raw in fh:
+                line = raw.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if '=' not in line:
+                    continue
+                k, v = line.split('=', 1)
+                k = k.strip()
+                v = v.strip().strip('"').strip("'")
+                if k and k not in os.environ:
+                    os.environ[k] = v
+    except Exception:
+        pass
+
+# load demo/.env (two directories up from this script path in the repo layout)
+HERE = os.path.abspath(os.path.dirname(__file__))
+PROJ_ROOT = os.path.abspath(os.path.join(HERE, '..'))
+load_dotenv_file(os.path.join(PROJ_ROOT, '.env'))
+
 HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 PORT = int(os.environ.get('EMAIL_PORT', '587'))
 USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('1', 'true', 'yes')

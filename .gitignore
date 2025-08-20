@@ -31,3 +31,5 @@ demo/demodesk/media/helpdesk/attachments/DH-3/4/*
 .devbox 
 devbox.lock
 devbox.json
+# Local environment files
+demo/.env

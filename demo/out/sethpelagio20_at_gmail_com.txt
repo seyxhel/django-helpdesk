@@ -1,0 +1,15 @@
+
+Hi Seth,
+
+We received a request to reset your password. You can create a new one using the link below:
+
+http://127.0.0.1:8000/password-reset/confirm/Mg/cuuclw-c2a639af60cb290da89bb943069d4071/
+
+If you didn’t request a password reset, please ignore this message or contact us if you have any concerns.
+
+If you need further assistance, reach out to us at: mapactivephsmartsupport@gmail.com
+
+Best regards,
+MAP Active PH SmartSupport
+
+
