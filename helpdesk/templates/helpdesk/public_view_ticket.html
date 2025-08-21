@@ -15,8 +15,10 @@
     </tr>
 </thead>
 <tbody>
-    <tr><th>{% blocktrans with ticket.queue as queue_name %}Queue</th>
-    <td>{{ queue_name }}{% endblocktrans %}</td></tr>
+    <tr>
+        <th>{% trans "Queue" %}</th>
+        <td>{{ ticket.queue }}</td>
+    </tr>
 <tr>
     <th>{% trans "Submitted On" %}</th>
     <td>{{ ticket.created|date:"DATETIME_FORMAT" }} ({{ ticket.created|naturaltime }})</td>

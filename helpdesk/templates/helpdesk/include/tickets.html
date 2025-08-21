@@ -129,7 +129,11 @@
   </div>
 
   <div class="card-footer small text-muted">
-    {% blocktrans count count=ticket_list|length %}Listing {{ count }} ticket(s).{% endblocktrans %}
+    {% blocktrans count count=ticket_list|length %}
+      Listing {{ count }} ticket.
+    {% plural %}
+      Listing {{ count }} tickets.
+    {% endblocktrans %}
   </div>
 </div>
 
