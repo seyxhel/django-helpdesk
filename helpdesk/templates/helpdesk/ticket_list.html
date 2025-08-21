@@ -32,6 +32,314 @@
 
 
 {% block helpdesk_body %}
+<!-- Corporate UI: clean, neutral palette, clear hierarchy -->
+<style>
+  /* Aesthetic minimal / balanced filter row */
+  :root{
+    --bg: #ffffff;
+    --muted: #6c7783;
+    --ink: #0f2b44;
+    --accent: #0b57d0;
+    --soft: #f5f8fb;
+    --border: #e6eef6;
+    --radius: 8px;
+    --height: 44px;
+    --gap: 14px;
+  }
+
+  /* container */
+  .card.mb-3 { border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(180deg,#fff,#fbfeff); box-shadow:0 6px 20px rgba(15,23,42,0.04); }
+
+  /* Filters bar: equal horizontal rhythm */
+  .filters-bar {
+    display: flex;
+    gap: var(--gap);
+    align-items: center;
+    width: 100%;
+    padding: 12px;
+    box-sizing: border-box;
+    background: transparent;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+
+  /* equal-aligned layout:
+     - search is slightly larger
+     - every other control shares same visual width rhythm
+  */
+  .filters-bar > * { box-sizing: border-box; flex: 1 1 0; min-width: 120px; }
+  .filters-bar .f-search { flex: 2 1 360px; min-width: 240px; }
+  .filters-bar .f-control { flex: 1 1 160px; min-width: 140px; }
+  .filters-bar .f-actions { flex: 1 1 160px; min-width: 140px; display: flex; gap: 10px; justify-content: flex-start; align-items: center; }
+  .filters-bar .add-filter { flex: 0 0 140px; min-width: 120px; display: flex; justify-content: flex-end; align-items: center; }
+
+  /* Overrides: filters font 12px, top/bottom padding 10px, center-aligned text */
+  .filters-bar {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  /* Ensure all children share the same small font and vertical centering */
+  .filters-bar,
+  .filters-bar > * {
+    font-size: 12px;
+    align-items: center;
+    text-align: left; /* left-align text for all filter controls */
+  }
+
+  /* Controls: 10px vertical padding, left-aligned text, flexible height */
+  .form-control,
+  .custom-select {
+    font-size: 12px;
+    padding: 10px 12px;        /* top/bottom = 10px, left/right = 12px */
+    height: auto;              /* allow padding to control height */
+    line-height: 1;            /* prevent extra line-height spacing */
+    text-align: left;         /* left align text */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: var(--radius);
+  }
+  /* Force selects to left-align the selected option in most browsers */
+  .custom-select { text-align-last: left; }
+
+  /* Buttons match control sizing and left-align their labels */
+  .filters-bar .btn,
+  .filters-bar .btn.btn-primary,
+  .filters-bar .btn-outline-secondary {
+    font-size: 12px;
+    padding: 7px 14px;
+    height: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    border-radius: var(--radius); /* make buttons match inputs/cards */
+    cursor: pointer;
+  }
+  
+  /* Add-filter: compact, icon-like select */
+  .add-filter select.custom-select {
+    background: linear-gradient(180deg,#fff,#fbfdff);
+    padding-right: 28px;
+    text-align-last: center;
+  }
+  /* Add small chevron using pseudo element on container (works for modern browsers) */
+  .add-filter { position: relative; }
+  .add-filter::after {
+    content: '▾';
+    position: absolute;
+    right: 12px;
+    font-size: 14px;
+    color: var(--muted);
+    pointer-events: none;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* Advanced filter cards: minimal */
+  .filter-grid .filter-card {
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: #fff;
+    padding: 10px 12px;
+    box-shadow: none;
+  }
+  /* hide by default, reveal when filterBoxShow applied */
+  .filterBox { display: none; opacity: 0; transition: opacity .18s ease; }
+  .filterBox.filterBoxShow { display: block; opacity: 1; }
+
+  /* Sorting box micro-style */
+  #filterBoxSort { display: flex; gap: 12px; align-items: center; }
+  #filterBoxSort .sort-label { min-width: 82px; color: var(--ink); font-weight: 600; }
+  #filterBoxSort .btn-delete {
+    background: transparent;
+    border: 1px solid rgba(15,43,68,0.06);
+    color: #d44;
+    width: 36px; height: 36px;
+    border-radius: var(--radius);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* Responsiveness: keep single-row until narrow */
+  @media (max-width: 900px) {
+    .filters-bar { flex-wrap: wrap; gap: 10px; }
+    .filters-bar > * { flex: 1 1 100%; min-width: 140px; }
+    .filters-bar .f-search { order: -1; }
+    .add-filter { justify-content: flex-start; }
+  }
+</style>
+
+    {# --- Query selection & filters: placed before the table for better UX --- #}
+    <div class="card mb-3">
+        <div class="card-header">
+            <i class="fas fa-filter"></i>
+            {% trans "Filters" %}
+        </div>
+        <div class="card-body">
+            {# kept design centralized in the top styles; no duplicate rules here to avoid conflicts #}
+
+            <form method="get" class="filters-bar" aria-label="{% trans 'Ticket filters' %}">
+                <div class="f-search">
+                    <label class="sr-only" for="q">{% trans "Search" %}</label>
+                    <input id="q" name="q" type="search" class="form-control form-control-sm" placeholder="{% trans 'Search by ID, title or ticket ID' %}" value="{{ request.GET.q|default:'' }}">
+                </div>
+
+                <div class="f-control">
+                    <label class="sr-only" for="status">{% trans "Status" %}</label>
+                    <select id="status" name="status" class="custom-select custom-select-sm">
+                        <option value="">{% trans "All statuses" %}</option>
+                        <option value="open" {% if request.GET.status == 'open' %}selected{% endif %}>{% trans "Open" %}</option>
+                        <option value="closed" {% if request.GET.status == 'closed' %}selected{% endif %}>{% trans "Closed" %}</option>
+                    </select>
+                </div>
+
+                <div class="f-control">
+                    <label class="sr-only" for="priority">{% trans "Priority" %}</label>
+                    <select id="priority" name="priority" class="custom-select custom-select-sm">
+                        <option value="">{% trans "All priorities" %}</option>
+                        <option value="low" {% if request.GET.priority == 'low' %}selected{% endif %}>{% trans "Low" %}</option>
+                        <option value="medium" {% if request.GET.priority == 'medium' %}selected{% endif %}>{% trans "Medium" %}</option>
+                        <option value="high" {% if request.GET.priority == 'high' %}selected{% endif %}>{% trans "High" %}</option>
+                    </select>
+                </div>
+
+                <div class="f-control">
+                    <label class="sr-only" for="queue">{% trans "Queue" %}</label>
+                    <select id="queue" name="queue" class="custom-select custom-select-sm">
+                        <option value="">{% trans "All queues" %}</option>
+                        {% if queues %}
+                            {% for q in queues %}
+                                <option value="{{ q.slug }}" {% if request.GET.queue == q.slug %}selected{% endif %}>{{ q.title }}</option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="f-actions">
+                    <button type="submit" class="btn btn-primary btn-sm" title="{% trans 'Apply filters' %}">{% trans "Apply" %}</button>
+                    <a href="{% url 'helpdesk:list' %}" class="btn btn-outline-secondary btn-sm" title="{% trans 'Reset filters' %}">{% trans "Reset" %}</a>
+                </div>
+
+                <div class="add-filter">
+                    <label class="sr-only" for="filterBuilderSelect">{% trans "Add filter" %}</label>
+                    {# use IDs so the helper can reveal the right advanced control #}
+                    <select class="custom-select custom-select-sm" name="select" id="filterBuilderSelect" onChange="onFilterChange(this.value)">
+                        <option value="">{% trans "Add filter" %}</option>
+                        <option value="filterBoxSort" {% if query_params.sorting %} disabled{% endif %}>{% trans "Sorting" %}</option>
+                        <option value="filterBoxPriority" {% if query_params.filtering.priority__in %} disabled{% endif %}>{% trans "Priority" %}</option>
+                        <option value="filterBoxOwner" {% if query_params.filtering.assigned_to__id__in or query_params.filtering_null.assigned_to__id__isnull %} disabled{% endif %}>{% trans "Owner" %}</option>
+                        <option value="filterBoxQueue" {% if query_params.filtering.queue__id__in or query_params.filtering_null.queue__id__isnull %} disabled{% endif %}>{% trans "Queue" %}</option>
+                        <option value="filterBoxStatus" {% if query_params.filtering.status__in %} disabled{% endif %}>{% trans "Status" %}</option>
+                        <option value="filterBoxKeywords" {% if query_params.search_string %} disabled{% endif %}>{% trans "Keywords" %}</option>
+                        <option value="filterBoxDates" {% if query_params.filtering.created__gte or query_params.filtering.created__lte %} disabled{% endif %}>{% trans "Date Range" %}</option>
+                        <option value="filterBoxKBItems" {% if query_params.filtering.kbitem__in or query_params.filtering_null.kbitem__isnull %} disabled{% endif %}>{% trans "KB items" %}</option>
+                    </select>
+                </div>
+            </form>
+
+            <script>
+              // small helper to reveal advanced filter cards by id
+              function onFilterChange(value){
+                if(!value) return;
+                // mapping for legacy values if ever used
+                const map = {
+                  'Sort':'filterBoxSort','Priority':'filterBoxPriority','Owner':'filterBoxOwner',
+                  'Queue':'filterBoxQueue','Status':'filterBoxStatus','Keywords':'filterBoxKeywords',
+                  'Dates':'filterBoxDates','KBItems':'filterBoxKBItems'
+                };
+                const id = map[value] || value;
+                const el = document.getElementById(id);
+                if(!el) { document.getElementById('filterBuilderSelect').value=''; return; }
+                el.classList.add('filterBoxShow');
+                setTimeout(()=> el.scrollIntoView({behavior:'smooth', block:'center'}),100);
+                document.getElementById('filterBuilderSelect').value='';
+              }
+            </script>
+
+            {% comment %} include expanded filter boxes if user adds advanced filters (keeps existing includes) {% endcomment %}
+            <div class="mt-3">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="filter-grid row">
+                            {% comment %} keep advanced filter cards hidden/shown by JS (existing includes) {% endcomment %}
+                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.sorting %} filterBoxShow{% endif %}" id="filterBoxSort">
+                                {% include 'helpdesk/filters/sorting.html' %}
+                            </div>
+                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.priority__in %} filterBoxShow{% endif %}" id="filterBoxPriority">
+                                {% include 'helpdesk/filters/priority.html' %}
+                            </div>
+                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.assigned_to__id__in or query_params.filtering_null.assigned_to__id__isnull %} filterBoxShow{% endif %}" id="filterBoxOwner">
+                                {% include 'helpdesk/filters/owner.html' %}
+                            </div>
+                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.queue__id__in or query_params.filtering_null.queue__id__isnull %} filterBoxShow{% endif %}" id="filterBoxQueue">
+                                {% include 'helpdesk/filters/queue.html' %}
+                            </div>
+                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.status__in %} filterBoxShow{% endif %}" id="filterBoxStatus">
+                                {% include 'helpdesk/filters/status.html' %}
+                            </div>
+                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.created__gte or query_params.filtering.created__lte %} filterBoxShow{% endif %}" id="filterBoxDates">
+                                {% include 'helpdesk/filters/date.html' %}
+                            </div>
+                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.search_string %} filterBoxShow{% endif %}" id="filterBoxKeywords">
+                                {% include 'helpdesk/filters/keywords.html' %}
+                            </div>
+                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.kbitem__in or query_params.filtering_null.kbitem__isnull %} filterBoxShow{% endif %}" id="filterBoxKBItems">
+                                {% include 'helpdesk/filters/kbitems.html' %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- end top card -->
+
+    {# --- Move mass-action & top controls here (below query selection, above the table) --- #}
+    <form method='post' action='{% url 'helpdesk:mass_update' %}' id="ticket_mass_update">
+        {% csrf_token %}
+        <div id="topTableControls" class="d-flex justify-content-between align-items-center mb-3">
+            <div class="dt-buttons-placeholder">
+                {# DataTables will move its buttons (Column visibility etc.) here on init via JS. #}
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <label class="mb-0 mr-2 small text-muted">{% trans "Select:" %}</label>
+                <div class="btn-group btn-group-sm mr-2" role="group" aria-label="{% trans 'Select controls' %}">
+                    <button id="select_all_btn" type="button" class="btn btn-outline-primary btn-sm">{% trans "All" %}</button>
+                    <button id="select_none_btn" type="button" class="btn btn-outline-primary btn-sm">{% trans "None" %}</button>
+                    <button id="select_inverse_btn" type="button" class="btn btn-outline-primary btn-sm">{% trans "Invert" %}</button>
+                </div>
+
+                <label for='id_mass_action' class="mb-0 small mr-2">{% trans "With Selected Tickets:" %}</label>
+                <select name='action' id='id_mass_action' class="form-control form-control-sm">
+                    <option value='take'>{% trans "Take (Assign to me)" %}</option>
+                    <option value='delete'>{% trans "Delete" %}</option>
+                    <option value='merge'>{% trans "Merge" %}</option>
+                    <optgroup label='{% trans "Close" %}'>
+                        <option value='close'>{% trans "Close (Don't Send E-Mail)" %}</option>
+                        <option value='close_public'>{% trans "Close (Send E-Mail)" %}</option>
+                    </optgroup>
+                    <optgroup label='{% trans "Assign To" %}'>
+                        <option value='unassign'>{% trans "Nobody (Unassign)" %}</option>
+                        {% for u in assignable_users %}
+                            <option value='assign_{{ u.id }}'>{{ u.get_username }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    <optgroup label='{% trans "Set KB Item" %}'>
+                        <option value='kbitem_none'>{% trans "No KB Item" %}</option>
+                        {% for kbi in kb_items %}
+                            <option value='kbitem_{{ kbi.id }}'>{{ kbi.category.title }}: {{ kbi.title }}</option>
+                        {% endfor %}
+                    </optgroup>
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm ml-2">
+                    <i class="fas fa-arrow-circle-right"></i> {% trans "Go" %}
+                </button>
+            </div>
+        </div>
+    {# form remains open and will wrap the table card below #}
+
+    {# --- Table card: now after the filters --- #}
     <div class="card">
         {% if helpdesk_settings.HELPDESK_TICKETS_TIMELINE_ENABLED %}
         <div class="card-header">
@@ -61,8 +369,6 @@
             <div class="tab-content" id="myTabContent">
                 <div class="tab-pane fade show active" id="datatabletabcontents" role="tabpanel"
                      aria-labelledby="datatabletabcontents-tab">
-                    <form method='post' action='{% url 'helpdesk:mass_update' %}' id="ticket_mass_update">
-                        {% csrf_token %}
                         <table class="table table-sm table-striped table-bordered table-hover"
                                id="ticketTable" data-page-length='{{ default_tickets_per_page }}'>
                             <thead class="thead-light">
@@ -82,50 +388,6 @@
                             </tr>
                             </thead>
                         </table>
-
-                        <p>
-                            <label>{% trans "Select:" %}</label>
-
-                            <button id="select_all_btn" type="button" class="btn btn-primary btn-sm">
-                                <i class="fas fa-check-circle"></i> {% trans "All" %}
-                            </button>
-
-                            <button id='select_none_btn' type="button" class="btn btn-primary btn-sm">
-                                <i class="fas fa-times-circle"></i> {% trans "None" %}
-                            </button>
-
-                            <button id='select_inverse_btn' type="button" class="btn btn-primary btn-sm">
-                                <i class="fas fa-expand-arrows-alt"></i> {% trans "Invert" %}
-                            </button>
-                        </p>
-
-                        <p>
-                            <label for='id_mass_action'>{% trans "With Selected Tickets:" %}</label>
-                            <select name='action' id='id_mass_action'>
-                                <option value='take'>{% trans "Take (Assign to me)" %}</option>
-                                <option value='delete'>{% trans "Delete" %}</option>
-                                <option value='merge'>{% trans "Merge" %}</option>
-                                <optgroup label='{% trans "Close" %}'>
-                                    <option value='close'>{% trans "Close (Don't Send E-Mail)" %}</option>
-                                    <option value='close_public'>{% trans "Close (Send E-Mail)" %}</option>
-                                </optgroup>
-                                <optgroup label='{% trans "Assign To" %}'>
-                                    <option value='unassign'>{% trans "Nobody (Unassign)" %}</option>
-                                    {% for u in assignable_users %}
-                                        <option value='assign_{{ u.id }}'>{{ u.get_username }}</option>
-                                    {% endfor %}
-                                </optgroup>
-                                <optgroup label='{% trans "Set KB Item" %}'>
-                                    <option value='kbitem_none'>{% trans "No KB Item" %}</option>
-                                    {% for kbi in kb_items %}
-                                        <option value='kbitem_{{ kbi.id }}'>{{ kbi.category.title }}: {{ kbi.title }}</option>
-                                    {% endfor %}
-                                </optgroup>
-                            </select>
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="fas fa-arrow-circle-right"></i> {% trans "Go" %}
-                            </button>
-                        </p>
                     </form>
                 </div>
                 {% if helpdesk_settings.HELPDESK_TICKETS_TIMELINE_ENABLED %}
@@ -138,184 +400,6 @@
         <!-- /.panel-body -->
     </div>
     <!-- /.panel -->
-
-    <div class="card mb-3">
-        <div class="card-header">
-            <i class="fas fa-hand-pointer"></i>
-            {% trans "Query Selection" %}
-        </div>
-        <div class="card-body">
-            <!-- start accordion -->
-            <div class="accordion" id="queryAccordion">
-                <div class="card">
-                    <div class="card-header" id="headingOne">
-                        <h5 class="mb-0">
-                            <button class="btn btn-link btn-sm" type="button" data-toggle="collapse"
-                                    data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                                <i class="fas fa-filter"></i>
-                                {% trans "Filters" %}
-                            </button>
-                        </h5>
-                    </div>
-
-                    <div id="collapseOne" class="collapse show" aria-labelledby="headingOne"
-                         data-parent="#queryAccordion">
-                        <div class="card-body">
-                            <form method="get">
-                                <div class="form-group float-right">
-                                    <label for="filterBuilderSelect">{% trans "Add filter" %}:</label>
-                                    <select class="custom-select custom-select-sm mb-0"
-                                            aria-describedby="select-description" name="select" id="filterBuilderSelect"
-                                            onChange="onFilterChange(this.value)">
-                                        <option value="">--</option>
-                                        <option id="filterBuilderSelect-Sort" value="Sort"{% if query_params.sorting %} disabled{% endif %}>
-                                            {% trans "Sorting" %}
-                                        </option>
-                                        <option id="filterBuilderSelect-Priority" value="Priority"{% if query_params.filtering.priority__in %} disabled{% endif %}>
-                                            {% trans "Priority" %}
-                                        </option>
-                                        <option id="filterBuilderSelect-Owner" value="Owner"{% if query_params.filtering.assigned_to__id__in or query_params.filtering_null.assigned_to__id__isnull %} disabled{% endif %}>
-                                            {% trans "Owner" %}
-                                        </option>
-                                        <option id="filterBuilderSelect-Queue" value="Queue"{% if query_params.filtering.queue__id__in or query_params.filtering_null.queue__id__isnull %} disabled{% endif %}>
-                                            {% trans "Queue" %}
-                                        </option>
-                                        <option id="filterBuilderSelect-Status" value="Status"{% if query_params.filtering.status__in %} disabled{% endif %}>
-                                            {% trans "Status" %}
-                                        </option>
-                                        <option id="filterBuilderSelect-Keywords" value="Keywords"{% if query_params.search_string %} disabled{% endif %}>
-                                            {% trans "Keywords" %}
-                                        </option>
-                                        <option id="filterBuilderSelect-Dates" value="Dates"{% if query_params.filtering.created__gte or query_params.filtering.created__lte %} disabled{% endif %}>
-                                            {% trans "Date Range" %}
-                                        </option>
-                                        <option id="filterBuilderSelect-KBItems" value="KBItems"{% if query_params.filtering.kbitem__in or query_params.filtering_null.kbitem__isnull %} disabled{% endif %}>
-                                            {% trans "Knowledge base items" %}
-                                        </option>
-                                    </select>
-                                </div>
-                            </form>
-                        </div>
-
-                        <form method="get" class="corporate-filter-form">
-                            <div class="filter-grid row">
-                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.sorting %} filterBoxShow{% endif %}" id="filterBoxSort">
-                                    {% include 'helpdesk/filters/sorting.html' %}
-                                </div>
-                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.priority__in %} filterBoxShow{% endif %}" id="filterBoxPriority">
-                                    {% include 'helpdesk/filters/priority.html' %}
-                                </div>
-
-                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.assigned_to__id__in or query_params.filtering_null.assigned_to__id__isnull %} filterBoxShow{% endif %}" id="filterBoxOwner">
-                                    {% include 'helpdesk/filters/owner.html' %}
-                                </div>
-                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.queue__id__in or query_params.filtering_null.queue__id__isnull %} filterBoxShow{% endif %}" id="filterBoxQueue">
-                                    {% include 'helpdesk/filters/queue.html' %}
-                                </div>
-
-                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.status__in %} filterBoxShow{% endif %}" id="filterBoxStatus">
-                                    {% include 'helpdesk/filters/status.html' %}
-                                </div>
-                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.created__gte or query_params.filtering.created__lte %} filterBoxShow{% endif %}" id="filterBoxDates">
-                                    {% include 'helpdesk/filters/date.html' %}
-                                </div>
-
-                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.search_string %} filterBoxShow{% endif %}" id="filterBoxKeywords">
-                                    {% include 'helpdesk/filters/keywords.html' %}
-                                </div>
-                                <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.kbitem__in or query_params.filtering_null.kbitem__isnull %} filterBoxShow{% endif %}" id="filterBoxKBItems">
-                                    {% include 'helpdesk/filters/kbitems.html' %}
-                                </div>
-
-                                <div class="col-12 d-flex gap-2 align-items-center filter-actions">
-                                    <button class="btn btn-primary btn-sm" type="submit">{% trans "Apply Filters" %}</button>
-                                    <a href="{% url 'helpdesk:list' %}" class="btn btn-outline-secondary btn-sm">{% trans "Clear Filters" %}</a>
-                                    {% if from_saved_query and saved_query.user == user %}
-                                        <div class="ml-auto small text-muted">{% blocktrans with saved_query.title as query_name %}Viewing saved query <strong>"{{ query_name }}"</strong>.{% endblocktrans %} <a href='{% url 'helpdesk:delete_query' saved_query.id %}'> {% trans "Delete" %}</a></div>
-                                    {% endif %}
-                                </div>
-
-                                {% if from_saved_query %}
-                                    <div class="col-12 small text-muted mt-2">{% blocktrans with saved_query.id as query_id %}<a href='../reports/?saved_query={{ query_id }}'>Run a report</a> on this query to see stats and charts for the data listed below.{% endblocktrans %}</div>
-                                {% endif %}
-                            </div>
-                        </form>
-                    </div>
-                </div> <!-- end card -->
-
-                <div class="card">
-                    <div class="card-header" id="headingTwo">
-                        <h5 class="mb-0">
-                            <button class="btn btn-link collapsed btn-sm" type="button" data-toggle="collapse"
-                                    data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-                                <i class="fas fa-save"></i>
-                                {% trans "Save Query" %}
-                            </button>
-                        </h5>
-                    </div>
-                    <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#queryAccordion">
-                        <div class="card-body">
-                            <form method='post' action='{% url 'helpdesk:savequery' %}'>
-                                {% csrf_token %}
-                                <input type='hidden' name='query_encoded' value='{{ urlsafe_query }}'/>
-                                <dl>
-                                    <dt><label for='id_title'>{% trans "Query Name" %}</label></dt>
-                                    <dd><input type='text' name='title' id='id_title'/></dd>
-                                    <dd class='form_help_text'>{% trans "This name appears in the drop-down list of saved queries. If you share your query, other users will see this name, so choose something clear and descriptive!" %}</dd>
-
-                                    <dt><label for='id_shared'>{% trans "Shared?" %}</label></dt>
-                                    <dd><input type='checkbox' name='shared'
-                                               id='id_shared'/> {% trans "Yes, share this query with other users." %}
-                                    </dd>
-                                    <dd class='form_help_text'>{% trans "If you share this query, it will be visible by <em>all</em> other logged-in users." %}</dd>
-
-                                </dl>
-                                <div class='buttons'>
-                                    <input class="btn btn-primary" type='submit' value='{% trans "Save Query" %}'>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div> <!-- end card -->
-
-                {% if user_saved_queries %}
-                    <div class="card">
-                        <div class="card-header" id="headingThree">
-                            <h5 class="mb-0">
-                                <button class="btn btn-link collapsed btn-sm" type="button" data-toggle="collapse"
-                                        data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                                    <i class="fas fa-clipboard-check"></i>
-                                    {% trans "Use Saved Query" %}
-                                </button>
-                            </h5>
-                        </div>
-                        <div id="collapseThree" class="collapse" aria-labelledby="headingThree"
-                             data-parent="#queryAccordion">
-                            <div class="card-body">
-                                <form action='{% url 'helpdesk:list' %}'>
-                                    <p>
-                                        <label for='id_query_selector'>{% trans "Query" %}</label>
-                                        <select name='saved_query' id='id_query_selector'>
-                                        {% for q in user_saved_queries %}
-                                            <option value='{{ q.id }}'>
-                                                {{ q.title }}{% if q.shared %}
-                                                    (Shared{% if user != q.user %} by {{ q.user.get_username }}{% endif %})
-                                                {% endif %}
-                                            </option>
-                                        {% endfor %}
-                                    </select></p>
-                                    <input class="btn btn-primary" type='submit' value='{% trans "Run Query" %}'>
-                                </form>
-                            </div>
-                        </div>
-                    </div> <!-- end card -->
-                {% endif %}
-            </div>
-            <!-- end accordion -->
-        </div>
-        <!-- end card-body -->
-    </div>
-    <!-- end top card -->
 
     <!-- Entries controls (DataTables length & pagination) will be moved here on init -->
     <div id="entriesControls" class="d-flex justify-content-between align-items-center mt-3"></div>
@@ -348,9 +432,9 @@
         
         $(document).ready(function () {
             // Ticket DataTable Initialization
-	    $.fn.dataTable.ext.errMode = function(settings, helpPage, message) {
-		alert("{% trans 'Error fetching tickets occured, please contact the system administrators of this server providing the message below:\n    ' %}" + message)
-	    };
+        $.fn.dataTable.ext.errMode = function(settings, helpPage, message) {
+        alert("{% trans 'Error fetching tickets occured, please contact the system administrators of this server providing the message below:\n    ' %}" + message)
+        };
             $('#ticketTable').DataTable({
                 language: {
                     "emptyTable": "{% trans 'No Tickets Match Your Selection' %}"
@@ -475,6 +559,8 @@
                         $('.dataTables_length').appendTo(left);
                         $('.dataTables_info').appendTo(left).addClass('ml-2 text-muted small');
                         $('.dataTables_paginate').appendTo(right);
+                        // move DataTables buttons (colvis) into the top placeholder (below filters)
+                        $('.dt-buttons').appendTo($('.dt-buttons-placeholder'));
                     } catch (e) {
                         console.warn('Could not relocate DataTables controls', e);
                     }
@@ -488,6 +574,8 @@
                     $('.dataTables_length').appendTo(left);
                     $('.dataTables_info').appendTo(left);
                     $('.dataTables_paginate').appendTo(right);
+                    // ensure buttons stay in the top placeholder after redraws
+                    $('.dt-buttons').appendTo($('.dt-buttons-placeholder'));
                 },
                 order: []
             });

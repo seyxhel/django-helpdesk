@@ -1,71 +1,136 @@
 {% load i18n humanize %}
 
-<!-- DataTables Example -->
+<!-- Professional tickets table with clear filtering UI -->
 <div class="card mb-3">
-    <div class="card-header">
-        <i class="fas fa-table"></i>
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>
+      <i class="fas fa-table"></i>
+      <strong>
         {% if ticket_list_caption %}{{ ticket_list_caption }}{% else %}{% trans "Your Tickets" %}{% endif %}
+      </strong>
+      <div class="small text-muted">{% trans "Use the controls to narrow results. Filters are applied when you submit." %}</div>
     </div>
-    <div class="card-body">
-        <div class="table-responsive">
-        <table class="table table-bordered table-sm table-striped" id="dataTable" width="100%" cellspacing="0">
-            <thead class="thead-light">
-                <tr>
-                    <th>{% trans "Ticket" %}</th>
-                    <th>{% trans "Priority" %}</th>
-                    <th>{% trans "Queue" %}</th>
-                    <th>{% trans "Status" %}</th>
-                    <th>{% trans "Last Update" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ticket in ticket_list %}
-                <tr class="{{ ticket.get_priority_css_class }}">
-                    <td class="tickettitle"><a href="{{ ticket.get_absolute_url }}">{{ ticket.id }}. {{ ticket.title }}</a></td>
-                    <td>{{ ticket.priority }}</td>
-                    <td>{{ ticket.queue }}</td>
-                    <td>{{ ticket.get_status }}</td>
-                    <td><span title='{{ ticket.modified|date:"DATETIME_FORMAT" }}'>{{ ticket.modified|naturaltime }}</span></td>
-                </tr>
-                {% empty %}
-                <tr>{% if ticket_list_empty_message %}<td colspan='6'>{{ ticket_list_empty_message }}</td>{% else %}<td colspan='6'>{% trans "You do not have any pending tickets." %}</td>{% endif %}</tr>
-                {% endfor %}
-            </tbody>
-        </table>
+  </div>
+ 
+   <div class="card-body">
+    <!-- Consolidated filter bar: appears before the table for clarity -->
+    <div class="tickets-filters mb-3">
+      <form class="d-flex flex-wrap align-items-center gap-2" method="get" aria-label="{% trans 'Ticket filters' %}">
+        <div class="form-group mb-0">
+          <label class="sr-only" for="q">{% trans "Search" %}</label>
+          <input id="q" name="q" type="search" class="form-control form-control-sm" placeholder="{% trans 'Search by ID, title or ticket ID' %}" value="{{ request.GET.q|default:'' }}">
         </div>
-        <!-- /.table-responsive -->
-        {% if ticket_list.has_other_pages %}
-            <ul class="pagination">
-            <!-- if we aren't on page one, go back to start and go back one controls -->
-            {% if ticket_list.has_previous %}
-                <li><a href="?{{ page_var }}=1">&laquo;&laquo;</a></li>
-                <li><a href="?{{ page_var }}={{ ticket_list.previous_page_number }}">&laquo;</a></li>
-            {% else %}
-                <li class="disabled"><span>&laquo;&laquo;</span></li>
-                <li class="disabled"><span>&laquo;</span></li>
+
+        <div class="form-group mb-0">
+          <label class="sr-only" for="status">{% trans "Status" %}</label>
+          <select id="status" name="status" class="form-control form-control-sm">
+            <option value="">{% trans "All statuses" %}</option>
+            <option value="open" {% if request.GET.status == 'open' %}selected{% endif %}>{% trans "Open" %}</option>
+            <option value="closed" {% if request.GET.status == 'closed' %}selected{% endif %}>{% trans "Closed" %}</option>
+          </select>
+        </div>
+
+        <div class="form-group mb-0">
+          <label class="sr-only" for="priority">{% trans "Priority" %}</label>
+          <select id="priority" name="priority" class="form-control form-control-sm">
+            <option value="">{% trans "All priorities" %}</option>
+            <option value="low" {% if request.GET.priority == 'low' %}selected{% endif %}>{% trans "Low" %}</option>
+            <option value="medium" {% if request.GET.priority == 'medium' %}selected{% endif %}>{% trans "Medium" %}</option>
+            <option value="high" {% if request.GET.priority == 'high' %}selected{% endif %}>{% trans "High" %}</option>
+          </select>
+        </div>
+
+        <div class="form-group mb-0">
+          <label class="sr-only" for="queue">{% trans "Queue" %}</label>
+          <select id="queue" name="queue" class="form-control form-control-sm">
+            <option value="">{% trans "All queues" %}</option>
+            {% if queues %}
+              {% for q in queues %}
+                <option value="{{ q.slug }}" {% if request.GET.queue == q.slug %}selected{% endif %}>{{ q.title }}</option>
+              {% endfor %}
             {% endif %}
-            <!-- other pages, set thresh to the number to show before and after active -->
-            {% with 5 as thresh %}
-            {% for i in ticket_list.paginator.page_range %}
-            {% if ticket_list.number == i %}
-                <li class="active"><span>{{ i }} <span class="sr-only">(current)</span></span></li>
-            {% elif i <= ticket_list.number|add:5 and i >= ticket_list.number|add:-5 %}
-                <li><a href="?{{ page_var }}={{ i }}">{{ i }}</a></li>
-            {% endif %}
-            {% endfor %}
-            {% endwith %}
-            <!-- if we aren't on the last page, go forward one and go to end controls -->
-            {% if ticket_list.has_next %}
-                <li><a href="?{{ page_var }}={{ ticket_list.next_page_number }}">&raquo;</a></li>
-                <li><a href="?{{ page_var }}={{ ticket_list.paginator.num_pages }}">&raquo;&raquo;</a></li>
-            {% else %}
-                <li class="disabled"><span>&raquo;</span></li>
-                <li class="disabled"><span>&raquo;&raquo;</span></li>
-            {% endif %}
-            </ul>
-        {% endif %}
+          </select>
+        </div>
+
+        <div class="form-group mb-0 d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm" title="{% trans 'Apply filters' %}">{% trans "Apply" %}</button>
+          <a href="?" class="btn btn-link btn-sm" title="{% trans 'Reset filters' %}">{% trans "Reset" %}</a>
+        </div>
+      </form>
     </div>
-    <div class="card-footer small text-muted">Listing {{ ticket_list|length }} ticket(s).</div>
+ 
+     <div class="table-responsive-professional">
+       <table class="professional-table table-sm table-striped" id="dataTable" width="100%" cellspacing="0" role="table" aria-label="{% trans 'Tickets table' %}">
+         <thead>
+           <tr>
+             <th>{% trans "Ticket" %}</th>
+             <th>{% trans "Priority" %}</th>
+             <th>{% trans "Queue" %}</th>
+             <th>{% trans "Status" %}</th>
+             <th>{% trans "Last Update" %}</th>
+           </tr>
+         </thead>
+         <tbody>
+           {% for ticket in ticket_list %}
+           <tr class="{{ ticket.get_priority_css_class }}">
+             <td class="tickettitle">
+               <a href="{{ ticket.get_absolute_url }}">{{ ticket.id }}. {{ ticket.title }}</a>
+             </td>
+             <td>{{ ticket.priority }}</td>
+             <td>{{ ticket.queue }}</td>
+             <td>{{ ticket.get_status }}</td>
+             <td>
+               <span title="{{ ticket.modified|date:'DATETIME_FORMAT' }}">{{ ticket.modified|naturaltime }}</span>
+             </td>
+           </tr>
+           {% empty %}
+           <tr>
+             <td colspan="5" class="text-muted small">
+               {% if ticket_list_empty_message %}{{ ticket_list_empty_message }}{% else %}{% trans "No tickets found for the selected filters." %}{% endif %}
+             </td>
+           </tr>
+           {% endfor %}
+         </tbody>
+       </table>
+     </div>
+
+    <!-- /.table-responsive -->
+    {% if ticket_list.has_other_pages %}
+      <nav aria-label="{% trans 'Ticket pagination' %}" class="mt-3">
+        <ul class="pagination">
+          {% if ticket_list.has_previous %}
+            <li class="page-item"><a class="page-link" href="?{{ page_var }}=1">&laquo;&laquo;</a></li>
+            <li class="page-item"><a class="page-link" href="?{{ page_var }}={{ ticket_list.previous_page_number }}">&laquo;</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo;&laquo;</span></li>
+            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+          {% endif %}
+
+          {% with 5 as thresh %}
+          {% for i in ticket_list.paginator.page_range %}
+            {% if ticket_list.number == i %}
+              <li class="page-item active" aria-current="page"><span class="page-link">{{ i }}</span></li>
+            {% elif i <= ticket_list.number|add:5 and i >= ticket_list.number|add:-5 %}
+              <li class="page-item"><a class="page-link" href="?{{ page_var }}={{ i }}">{{ i }}</a></li>
+            {% endif %}
+          {% endfor %}
+          {% endwith %}
+
+          {% if ticket_list.has_next %}
+            <li class="page-item"><a class="page-link" href="?{{ page_var }}={{ ticket_list.next_page_number }}">&raquo;</a></li>
+            <li class="page-item"><a class="page-link" href="?{{ page_var }}={{ ticket_list.paginator.num_pages }}">&raquo;&raquo;</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+            <li class="page-item disabled"><span class="page-link">&raquo;&raquo;</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+  </div>
+
+  <div class="card-footer small text-muted">
+    {% blocktrans count count=ticket_list|length %}Listing {{ count }} ticket(s).{% endblocktrans %}
+  </div>
 </div>
 
 
