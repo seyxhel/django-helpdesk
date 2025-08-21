@@ -449,4 +449,71 @@
 })();
 </script>
 
+  <script>
+  // --- Dynamic stats update: fetch counts from server and update cards ---
+  (function(){
+    var ticketCard = document.querySelector('.stats-card.tickets');
+    var userCard = document.querySelector('.stats-card.users');
+    var kbLikesCard = document.querySelector('.stats-card.kb-likes');
+    var kbDislikesCard = document.querySelector('.stats-card.kb-dislikes');
+
+    function updateCount(card, n){
+      if(!card) return;
+      var el = card.querySelector('.stats-count');
+      if(el) el.textContent = (typeof n === 'number') ? n : n || 0;
+    }
+
+    function fetchJSON(url, cb){
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.setRequestHeader('X-Requested-With','XMLHttpRequest');
+      xhr.onload = function(){
+        try{ var data = JSON.parse(xhr.responseText); cb(null, data); }catch(e){ cb(e); }
+      };
+      xhr.onerror = function(){ cb(new Error('network')); };
+      xhr.send();
+    }
+
+    // wire up ticket dropdown
+    var ticketDropdown = document.querySelector('.stats-card.tickets .dropdown');
+    if(ticketDropdown){
+      ticketDropdown.addEventListener('click', function(e){
+        var a = e.target.closest('a[data-value]');
+        if(!a) return;
+        var val = a.getAttribute('data-value');
+        fetchJSON('{% url "helpdesk:ajax_ticket_count" %}?status=' + encodeURIComponent(val), function(err, data){ if(!err && data && data.count!=null) updateCount(ticketCard, data.count); });
+      });
+    }
+
+    // wire up users dropdown
+    var userDropdown = document.querySelector('.stats-card.users .dropdown');
+    if(userDropdown){
+      userDropdown.addEventListener('click', function(e){
+        var a = e.target.closest('a[data-value]');
+        if(!a) return;
+        var val = a.getAttribute('data-value');
+        fetchJSON('{% url "helpdesk:ajax_user_count" %}?filter=' + encodeURIComponent(val), function(err, data){ if(!err && data && data.count!=null) updateCount(userCard, data.count); });
+      });
+    }
+
+    // KB cards: simple refresh on view-link click
+    var kbViewLinks = document.querySelectorAll('.kb-view-link');
+    kbViewLinks.forEach(function(link){
+      link.addEventListener('click', function(e){
+        e.preventDefault();
+        // fetch both likes and dislikes
+        fetchJSON('{% url "helpdesk:ajax_kb_likes" %}', function(err, data){ if(!err && data && data.count!=null) updateCount(kbLikesCard, data.count); });
+        fetchJSON('{% url "helpdesk:ajax_kb_dislikes" %}', function(err, data){ if(!err && data && data.count!=null) updateCount(kbDislikesCard, data.count); });
+      });
+    });
+
+    // initial population: fetch defaults
+    fetchJSON('{% url "helpdesk:ajax_ticket_count" %}?status=all', function(err,data){ if(!err && data && data.count!=null) updateCount(ticketCard,data.count); });
+    fetchJSON('{% url "helpdesk:ajax_user_count" %}?filter=all', function(err,data){ if(!err && data && data.count!=null) updateCount(userCard,data.count); });
+    fetchJSON('{% url "helpdesk:ajax_kb_likes" %}', function(err,data){ if(!err && data && data.count!=null) updateCount(kbLikesCard,data.count); });
+    fetchJSON('{% url "helpdesk:ajax_kb_dislikes" %}', function(err,data){ if(!err && data && data.count!=null) updateCount(kbDislikesCard,data.count); });
+
+  })();
+  </script>
+
 

@@ -57,6 +57,14 @@ base64_pattern = r"(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)
 urlpatterns = [
     path("dashboard/", staff.dashboard, name="dashboard"),
     path("ajax/email_exists/", staff.ajax_email_exists, name="ajax_email_exists"),
+    # Dashboard dynamic stats
+    path("ajax/dashboard/ticket_count/", staff.ajax_ticket_count, name="ajax_ticket_count"),
+    path("ajax/dashboard/user_count/", staff.ajax_user_count, name="ajax_user_count"),
+]
+
+urlpatterns += [
+    path("ajax/dashboard/kb_likes/", staff.ajax_kb_likes, name="ajax_kb_likes"),
+    path("ajax/dashboard/kb_dislikes/", staff.ajax_kb_dislikes, name="ajax_kb_dislikes"),
     path("tickets/", staff.ticket_list, name="list"),
     path("tickets/update/", staff.mass_update, name="mass_update"),
     path("tickets/merge", staff.merge_tickets, name="merge_tickets"),

@@ -149,6 +149,63 @@ def ajax_email_exists(request):
     return JsonResponse({'exists': exists})
 
 
+@helpdesk_staff_member_required
+def ajax_ticket_count(request):
+    """Return JSON {'count': n} for tickets. Optional GET param 'status' can be 'all','open','closed'."""
+    status = request.GET.get('status', 'all')
+    huser = HelpdeskUser(request.user)
+    queues = huser.get_queues()
+    qs = Ticket.objects.filter(queue__in=queues)
+    if status == 'open':
+        qs = qs.exclude(status__in=[Ticket.CLOSED_STATUS, Ticket.RESOLVED_STATUS, Ticket.DUPLICATE_STATUS])
+    elif status == 'closed':
+        qs = qs.filter(status__in=[Ticket.CLOSED_STATUS, Ticket.RESOLVED_STATUS, Ticket.DUPLICATE_STATUS])
+    count = qs.count()
+    return JsonResponse({'count': count})
+
+
+@helpdesk_staff_member_required
+def ajax_user_count(request):
+    """Return JSON {'count': n} for users. Optional GET param 'filter' can be 'all','staff','active'."""
+    filt = request.GET.get('filter', 'all')
+    qs = User.objects.all()
+    if filt == 'staff':
+        qs = qs.filter(is_staff=True)
+    elif filt == 'active':
+        qs = qs.filter(is_active=True)
+    count = qs.count()
+    return JsonResponse({'count': count})
+
+
+if helpdesk_settings.HELPDESK_KB_ENABLED:
+    @helpdesk_staff_member_required
+    def ajax_kb_likes(request):
+        """Return JSON {'count': n} for KB likes. Optional 'queue' or 'author' ignored for now."""
+        # KBItem model has a 'likes' integer field in some forks; fallback to counting Vote objects if present
+        try:
+            # prefer simple aggregate if 'likes' field exists
+            count = KBItem.objects.aggregate(total=__import__('django').db.models.Sum('likes'))['total'] or 0
+        except Exception:
+            # fallback: count KBItem objects that have positive rating or an explicit 'likes' related model
+            try:
+                count = KBItem.objects.filter(likes__gt=0).count()
+            except Exception:
+                count = 0
+        return JsonResponse({'count': count})
+
+    @helpdesk_staff_member_required
+    def ajax_kb_dislikes(request):
+        """Return JSON {'count': n} for KB dislikes."""
+        try:
+            count = KBItem.objects.aggregate(total=__import__('django').db.models.Sum('dislikes'))['total'] or 0
+        except Exception:
+            try:
+                count = KBItem.objects.filter(dislikes__gt=0).count()
+            except Exception:
+                count = 0
+        return JsonResponse({'count': count})
+
+
 def get_form_extra_kwargs(user) -> dict[str, object]:
     return {
         "assignable_users": get_assignable_users(
