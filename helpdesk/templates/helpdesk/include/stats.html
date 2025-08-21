@@ -1,30 +1,452 @@
 {% load i18n %}
 
+<!-- hide the small icon/decoration on all stat cards -->
+<style>
+/* Load fonts: Roboto for UI, Poppins for numeric counts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Roboto:wght@300;400;500;700&display=swap');
+
+  :root{
+    --pd-blue: #000C7D;
+    --pd-light: #DAE3FF;    /* light primeDesk color for borders */
+    --card-bg: #FBFBFC;      /* off-white card background */
+    --text-dark: #22282a;    /* dark gray for main content */
+    --text-muted: #9aa0a6;   /* readable light gray for small text */
+    --pd-green: #16a34a;
+    --pd-red:   #ef4444;
+  }
+
+  /* Typography: Roboto for general text, Poppins for numbers */
+  .stats-wrapper,
+  .stats-card,
+  .stats-card .stats-label,
+  .card-actions .dropdown-label,
+  .card-actions .dropdown-menu a,
+  .card-actions .view-link {
+    font-family: "Roboto", Arial, sans-serif;
+  }
+
+  .stats-count {
+    font-family: "Poppins", "Roboto", Arial, sans-serif;
+    font-weight: 700; /* ensure Poppins is bold for emphasis */
+  }
+   
+  /* Per-card colors keyed by card role/title - all different and high-contrast */
+  /* Tickets: blue */
+  .stats-card.tickets {
+    background: #eaf3ff !important;
+    border-color: #bcd7ff !important;
+  }
+  .stats-card.tickets .stats-count { color: #0b57d0 !important; }
+  .stats-card.tickets .stats-label,
+  .stats-card.tickets .card-footer,
+  .stats-card.tickets .dropdown-label { color: #102a44 !important; }
+
+  /* Users: purple (different from tickets) */
+  .stats-card.users {
+    background: #f5f0ff !important;
+    border-color: #eadcff !important;
+  }
+  .stats-card.users .stats-count { color: #7c3aed !important; } /* purple */
+  .stats-card.users .stats-label,
+  .stats-card.users .card-footer,
+  .stats-card.users .dropdown-label { color: #351a61 !important; }
+
+  /* KB Likes: green */
+  .stats-card.kb-likes {
+    background: #f0fff8 !important;
+    border-color: #c9fbe6 !important;
+  }
+  .stats-card.kb-likes .stats-count { color: #16a34a !important; }
+  .stats-card.kb-likes .stats-label,
+  .stats-card.kb-likes .card-footer,
+  .stats-card.kb-likes .dropdown-label { color: #133827 !important; }
+
+  /* KB Dislikes: red */
+  .stats-card.kb-dislikes {
+    background: #fff4f4 !important;
+    border-color: #ffd1d1 !important;
+  }
+  .stats-card.kb-dislikes .stats-count { color: #ef4444 !important; }
+  .stats-card.kb-dislikes .stats-label,
+  .stats-card.kb-dislikes .card-footer,
+  .stats-card.kb-dislikes .dropdown-label { color: #421313 !important; }
+ 
+  /* hide decorations */
+  .stats-wrapper .card .card-body-icon { display: none !important; }
+  .stats-wrapper .card .footer-right { display: none !important; } /* hide chevron/right glyph if desired */
+
+  /* --- ADD: card action (dropdown) styles --- */
+  .card-actions {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    z-index: 30;
+  }
+  .card-actions .dropdown { position: relative; display: inline-block; }
+
+  /* dropdown trigger (clean, no shadow) */
+  .card-actions .dropdown-toggle {
+    background: transparent;
+    border: 0;
+    padding: 6px 8px;
+    line-height: 1;
+    color: var(--text-dark);
+    cursor: pointer;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: none !important;
+  }
+  .card-actions .dropdown-label { font-size:13px; color:var(--text-dark); }
+
+  /* view link style for KB cards (upper-right) */
+  .card-actions .view-link {
+    color: var(--text-dark);
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    text-decoration: none;
+    border-radius: 0;
+    display: inline;
+    margin-right: 6px;
+    margin-top: 2px;
+  }
+  .card-actions .view-link:hover {
+    background: none;
+    text-decoration: underline;
+  }
+  .card-actions .view-link:focus { outline: none; box-shadow: none !important; }
+  
+  /* remove focus shadow on trigger */
+  .card-actions .dropdown-toggle:focus { outline: none; box-shadow: none !important; }
+
+  /* dropdown panel: no shadow, subtle border color, black text */
+  .card-actions .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 160px;
+    background: #fff;
+    border: 1px solid #929292ff;    /* requested border color */
+    box-shadow: none !important;    /* remove box shadow */
+    border-radius: 8px;
+    display: none;
+    overflow: hidden;
+    z-index: 40;
+  }
+  .card-actions .dropdown-menu.show { display: block; }
+  .card-actions .dropdown-menu a {
+    display: block;
+    padding: 8px 12px;
+    color: #000 !important;         /* requested black font */
+    text-decoration: none;
+    font-size: 13px;
+  }
+  .card-actions .dropdown-menu a:hover { background: var(--pd-light); color: #000 !important; }
+  /* --- end added styles --- */
+
+  /* Ensure stats wrapper uses full available width and small side padding by default */
+  .stats-wrapper {
+    width: 100%;
+    max-width: none;
+    padding-left: 0.5px;
+    padding-right: 0.5px;
+    box-sizing: border-box;
+  }
+
+  /* Responsive grid for stat cards */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .stats-grid-item { display: block; }
+
+  /* Card look: off-white with light primedesk border, rounded corners */
+  .stats-card {
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
+    border: 1px solid var(--pd-light) !important;
+    border-radius: 20px !important;
+    box-shadow: none !important;
+    display: flex;
+    flex-direction: column;
+    min-height: 120px;
+    overflow: visible;
+  }
+
+  .stats-card .card-body {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    padding: 18px;
+  }
+
+  /* Primary number styling */
+  .stats-count {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--pd-blue);
+    line-height: 1;
+  }
+
+  /* Secondary label styling */
+  .stats-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  /* card footer: subtle, light text */
+  .stats-card .card-footer {
+    background: transparent;
+    border-top: none;
+    padding: 10px 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  /* ensure any inherited .text-white/bg-* classes don't override our colors */
+  .stats-card.text-white,
+  .stats-card.bg-primary,
+  .stats-card.bg-success,
+  .stats-card.bg-warning,
+  .stats-card.bg-danger {
+    background: var(--card-bg) !important;
+    color: var(--text-dark) !important;
+  }
+
+  /* Force all visible text inside stat cards to use the light-gray (readable) color
+     instead of white. Keep the numeric count in PrimeDesk blue. */
+  .stats-wrapper .stats-card,
+  .stats-wrapper .stats-card * {
+    color: var(--text-muted) !important;
+  }
+
+  /* Keep the big number prominent in PrimeDesk blue */
+  .stats-card .stats-count {
+    color: var(--pd-blue) !important;
+  }
+
+  /* Label and footer remain muted but readable */
+  .stats-card .stats-label,
+  .stats-card .card-footer {
+    color: var(--text-muted) !important;
+  }
+
+  /* When the sidebar/hamburger toggles, remove extra side padding so cards expand edge-to-edge */
+  body.sidebar-open .stats-wrapper,
+  body.sidebar-expanded .stats-wrapper,
+  body.sidebar-collapsed .stats-wrapper,
+  .sidebar-open .stats-wrapper {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* Small adjustments for very small screens */
+  @media (max-width: 480px) {
+    .stats-grid { gap: 8px; grid-template-columns: 1fr; }
+    .stats-wrapper { padding-left: 6px; padding-right: 6px; }
+    .stats-count { font-size: 22px; }
+  }
+</style>
+
 <!-- Icon Cards: full width -->
-          <div class="container stats-wrapper">
-            <div class="stats-grid">
-            {% for entry in basic_ticket_stats.open_ticket_stats %}
-              <div class="stats-grid-item">
-                <div class="card text-white bg-{{ entry.2 }} o-hidden h-100 stats-card">
-                  <div class="card-body d-flex align-items-center">
-                    <div class="card-body-icon mr-3" aria-hidden="true">
-                      <i class="fas fa-fw fa-list"></i>
-                    </div>
-                    <div class="w-100">
-                      <div class="stats-count">{{ entry.1 }}</div>
-                      <div class="stats-label">{{ entry.0 }}</div>
-                    </div>
-                  </div>
-                  <a class="card-footer text-white clearfix small z-1" role="button" aria-label="{% trans 'View tickets for' %} {{ entry.0 }}" href="{% if entry.1 > 0 %}{% url 'helpdesk:list' %}?{{ entry.3 }}{% else %}#{% endif %}"{% if entry.1 == 0 %} aria-disabled="true" tabindex="-1"{% endif %}>
-                    <span class="footer-left">{% if entry.1 > 0 %}{% trans "View Tickets" %}{% else %}{% trans "No tickets in this range" %}{% endif %}</span>
-                    <span class="footer-right">
-                      <i class="fas fa-angle-right"></i>
-                    </span>
-                  </a>
-                </div>
+<div class="container-fluid stats-wrapper mb-4">
+  <div class="stats-grid">
+
+    {% with stats=basic_ticket_stats.open_ticket_stats %}
+      <!-- FIRST CARD: Tickets (aggregate / fallback to first stat) -->
+      <div class="stats-grid-item">
+        <div class="card stats-card tickets" style="position:relative;">
+          <div class="card-actions">
+            <div class="dropdown" data-dropdown data-default="{% trans 'All tickets' %}">
+              <button type="button" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false" title="{% trans 'Actions' %}">
+                <span class="dropdown-label">{% trans "All tickets" %}</span>
+              </button>
+              <div class="dropdown-menu" role="menu" aria-hidden="true">
+                <a href="#" data-value="all" role="menuitem">{% trans "All tickets" %}</a>
+                <a href="#" data-value="open" role="menuitem">{% trans "Open tickets" %}</a>
+                <a href="#" data-value="closed" role="menuitem">{% trans "Closed tickets" %}</a>
               </div>
-            {% endfor %}
             </div>
           </div>
+
+          <div class="card-body d-flex align-items-center">
+            <div class="w-100">
+              <div class="stats-count">
+                {% if basic_ticket_stats.total_open %}
+                  {{ basic_ticket_stats.total_open }}
+                {% elif basic_ticket_stats.total %}
+                  {{ basic_ticket_stats.total }}
+                {% elif stats|length > 0 %}
+                  {{ stats.0.1 }}
+                {% else %}
+                  0
+                {% endif %}
+              </div>
+              <div class="stats-label">{% trans "Tickets" %}</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SECOND CARD: Users (uses user_count if provided, fallback to 0) -->
+      <div class="stats-grid-item">
+        <div class="card stats-card users" style="position:relative;">
+          <div class="card-actions">
+            <div class="dropdown" data-dropdown data-default="{% trans 'All users' %}">
+              <button type="button" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false" title="{% trans 'Actions' %}">
+                <span class="dropdown-label">{% trans "All users" %}</span>
+              </button>
+              <div class="dropdown-menu" role="menu" aria-hidden="true">
+                <a href="#" data-value="all" role="menuitem">{% trans "All users" %}</a>
+                <a href="#" data-value="staff" role="menuitem">{% trans "Staff users" %}</a>
+                <a href="#" data-value="active" role="menuitem">{% trans "Active users" %}</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body d-flex align-items-center">
+            <div class="w-100">
+              <div class="stats-count">
+                {% if user_count is not None %}
+                  {{ user_count }}
+                {% elif users_total %}
+                  {{ users_total }}
+                {% else %}
+                  0
+                {% endif %}
+              </div>
+              <div class="stats-label">{% trans "Users" %}</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- THIRD CARD: Knowledgebase Likes -->
+      <div class="stats-grid-item">
+        <div class="card stats-card kb-likes" style="position:relative;">
+          <div class="card-actions">
+            <a href="#" class="kb-view-link view-link">{% trans "View Articles" %}</a>
+          </div>
+          <div class="card-body d-flex align-items-center">
+            <div class="w-100">
+              <div class="stats-count">
+                {% if kb_likes is not None %}
+                  {{ kb_likes }}
+                {% else %}
+                  0
+                {% endif %}
+              </div>
+              <div class="stats-label">{% trans "KB Likes" %}</div>
+            </div>
+
+            {# like icon removed #}
+          </div>
+        </div>
+      </div>
+ 
+      <!-- FOURTH CARD: Knowledgebase Dislikes -->
+      <div class="stats-grid-item">
+        <div class="card stats-card kb-dislikes" style="position:relative;">
+          <div class="card-actions">
+            <a href="#" class="kb-view-link view-link">{% trans "View Articles" %}</a>
+          </div>
+          <div class="card-body d-flex align-items-center">
+            <div class="w-100">
+              <div class="stats-count">
+                {% if kb_dislikes is not None %}
+                  {{ kb_dislikes }}
+                {% else %}
+                  0
+                {% endif %}
+              </div>
+              <div class="stats-label">{% trans "KB Dislikes" %}</div>
+            </div>
+
+            {# dislike icon removed #}
+          </div>
+        </div>
+      </div>
+    {% endwith %}
+ 
+  </div>
+</div>
+ 
+<script>
+// improved dropdown behaviour: update visible label, close menu, optionally navigate if data-url present
++(function(){
+  var dropdowns = document.querySelectorAll('[data-dropdown]');
+
+  function closeAll(){
+    dropdowns.forEach(function(d){
+      var menu = d.querySelector('.dropdown-menu');
+      var btn = d.querySelector('.dropdown-toggle');
+      if(menu) menu.classList.remove('show');
+      if(btn) btn.setAttribute('aria-expanded','false');
+    });
+  }
+
+  dropdowns.forEach(function(d){
+    var btn = d.querySelector('.dropdown-toggle');
+    var menu = d.querySelector('.dropdown-menu');
+    var label = d.querySelector('.dropdown-label');
+    var defaultText = d.getAttribute('data-default') || (label && label.textContent) || '';
+
+    // initialize label to default
+    if(label) label.textContent = defaultText;
+
+    if(!btn || !menu) return;
+
+    // toggle menu on button click
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var open = menu.classList.contains('show');
+      closeAll();
+      if(!open){
+        menu.classList.add('show');
+        btn.setAttribute('aria-expanded','true');
+      }
+    });
+
+    // handle clicks on menu items
+    var items = menu.querySelectorAll('a[role="menuitem"]');
+    items.forEach(function(a){
+      a.addEventListener('click', function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+
+        var text = a.textContent.trim();
+        var url = a.getAttribute('data-url') || a.getAttribute('href') || null;
+
+        // update label if present
+        if(label) label.textContent = text;
+
+        // close the menu
+        menu.classList.remove('show');
+        btn.setAttribute('aria-expanded','false');
+
+        // navigate if a real URL provided (ignore plain '#')
+        if(url && url !== '#' && url.trim() !== ''){
+          window.location.href = url;
+        }
+      });
+    });
+  });
+
+  // close when clicking outside or pressing Escape
+  document.addEventListener('click', closeAll);
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeAll(); });
+})();
+</script>
 
 

@@ -1,9 +1,90 @@
 {% load i18n humanize %}
 
+<style>
+  /* Large rounded card corners for this partial */
+  .card.mb-3 {
+    border-radius: 25px !important;
+    overflow: hidden;
+  }
+  /* Ensure header/footer respect rounding */
+  .card.mb-3 .card-header { border-top-left-radius: 25px; border-top-right-radius: 25px; }
+  .card.mb-3 .card-footer { border-bottom-left-radius: 25px; border-bottom-right-radius: 25px; }
+  /* Prevent inner tables from overflowing the rounded corners */
+  .card.mb-3 .table-responsive { border-radius: inherit; overflow: hidden; }
+
+  /* Themed table styling to match the dashboard (professional, readable) */
+  .card.mb-3 .table {
+    border: 1px solid #e6eefc;
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    background: transparent;
+  }
+  /* Header */
+  .card.mb-3 .table thead th {
+    background: #f4f8ff;
+    color: #102a44;
+    font-weight: 600;
+    /* vertical padding set to 3px, horizontal padding preserved */
+    padding: 7px 14px;
+    border-bottom: 1px solid #e6eefc;
+  }
+  /* Round the top corners of the table inside the card */
+  .card.mb-3 .table thead th:first-child { border-top-left-radius: 12px; }
+  .card.mb-3 .table thead th:last-child  { border-top-right-radius: 12px; }
+
+  /* Body cells */
+  /* Body cells — reduced vertical padding (top/bottom = 2px), horizontal padding unchanged */
+  .card.mb-3 .table tbody td {
+    padding: 5px 14px;
+    border-top: 1px solid #f1f5fb;
+    background: #ffffff;
+    color: #22282a;
+    vertical-align: middle;
+  }
+  /* Subtle striped rows */
+  .card.mb-3 .table.table-striped tbody tr:nth-of-type(odd) td {
+    background: #fbfdff;
+  }
+  /* Hover state */
+  .card.mb-3 .table tbody tr:hover td {
+    background: #f1f6ff;
+  }
+
+  /* Round bottom corners of the last row */
+  .card.mb-3 .table tbody tr:last-child td:first-child  { border-bottom-left-radius: 12px; }
+  .card.mb-3 .table tbody tr:last-child td:last-child   { border-bottom-right-radius: 12px; }
+
+  /* Links and ticket titles */
+  .card.mb-3 .tickettitle a {
+    color: #0b57d0;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .card.mb-3 .tickettitle a:hover { text-decoration: underline; }
+
+  /* Buttons inside cards follow the theme */
+  .card.mb-3 .btn-primary {
+    background-color: #0b57d0;
+    border-color: #0847b0;
+    color: #fff;
+  }
+  .card.mb-3 .btn-primary:hover { background-color: #0847b0; border-color: #053a8a; }
+  .card.mb-3 .btn-danger {
+    background-color: #ef4444;
+    border-color: #d13b3b;
+    color: #fff;
+  }
+  .card.mb-3 .btn-danger:hover { background-color: #d83636; border-color: #c02f2f; }
+
+  /* Small text / footer */
+  .card.mb-3 .card-footer { background: transparent; color: #6b7280; }
+</style>
+
 <div class="card mb-3">
     <div class="card-header">
         <i class="fas fa-table"></i>
-        {% trans "Unassigned Tickets" %} {% trans "(pick up a ticket if you start to work on it)" %}
+        {% trans "Unassigned Tickets" %}
     </div>
     <div class="card-body">
         <div class="table-responsive">
