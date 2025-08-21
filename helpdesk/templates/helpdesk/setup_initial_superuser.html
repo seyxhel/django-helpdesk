@@ -318,11 +318,11 @@ p.lead, .text-muted, .card .text-muted {
 
             <form method="post" novalidate>
                 {% csrf_token %}
-                {% if form.non_field_errors %}
-                        {% for err in form.non_field_errors %}
-                                <div class="alert alert-danger">{{ err }}</div>
-                        {% endfor %}
-                {% endif %}
+        {% if form.non_field_errors %}
+            {% for err in form.non_field_errors %}
+                <div class="alert alert-danger">{% if err == "A user with that email address already exists." %}Invalid Email.{% else %}{{ err }}{% endif %}</div>
+            {% endfor %}
+        {% endif %}
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -349,7 +349,9 @@ p.lead, .text-muted, .card .text-muted {
                     <div class="col-12 mb-3">
                         <label for="id_email" class="form-label">{{ form.email.label }}</label>
                         {{ form.email }}
-                        {% for err in form.email.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+                        {% for err in form.email.errors %}
+                            <div class="text-danger small">{% if err == "A user with that email address already exists." %}Invalid Email.{% else %}{{ err }}{% endif %}</div>
+                        {% endfor %}
                         <div id="id_email-client-error" class="text-danger small" aria-live="polite"></div>
                     </div>
 
