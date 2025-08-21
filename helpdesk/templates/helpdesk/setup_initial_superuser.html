@@ -223,8 +223,54 @@ p.lead, .text-muted, .card .text-muted {
     padding-right: 16px;
 }
 
-/* remove any earlier rules that force an extra right padding */
-.card .card-body { padding-right: 24px !important; } /* keep equal padding */
+        /* remove any earlier rules that force an extra right padding */
+        .card .card-body { padding-right: 24px !important; } /* keep equal padding */
+
+        /* Make inputs match the register form visuals: compact padding, subtle border and focus ring */
+        .card .form-control {
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #d9d9d9;
+            background: #fff;
+            box-sizing: border-box;
+        }
+        .card .form-control:focus {
+            outline: none;
+            border-color: #9bb0ff;
+            box-shadow: 0 0 0 3px rgba(16,87,255,0.06);
+        }
+
+    /* toggle-eye visuals (match login page)
+       Anchor the toggle to the input element itself using an inner wrapper
+       so label/errors changing the field height won't move the icon. */
+        .input-with-toggle { position: relative; display: block; }
+        .input-with-toggle .form-control { padding-right: 44px; /* room for the eye */ }
+        .toggle-eye {
+            position: absolute;
+            right: 12px; /* inside the input */
+            top: 50%;    /* vertically centered relative to the input */
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            padding: 4px;
+            color: #4b5563;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            z-index: 2; /* ensure it sits above the input */
+        }
+        /* remove focus highlight when clicked */
+        .toggle-eye:focus, .toggle-eye:focus-visible, .toggle-eye:active {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        .toggle-eye svg { display: block; width: 18px; height: 18px; }
+        .eye-open { opacity: 0; transition: opacity 120ms ease; }
+        .eye-closed { opacity: 1; transition: opacity 120ms ease; }
+        .toggle-eye[aria-pressed="true"] .eye-open { opacity: 1; }
+        .toggle-eye[aria-pressed="true"] .eye-closed { opacity: 0; }
 
         /*
          * Append a visual asterisk to most visible text elements inside the card body.
@@ -307,16 +353,42 @@ p.lead, .text-muted, .card .text-muted {
                         <div id="id_email-client-error" class="text-danger small" aria-live="polite"></div>
                     </div>
 
-                    <div class="col-12 mb-3">
+                    <div class="col-12 mb-3 password-field">
                         <label for="id_password1" class="form-label">{{ form.password1.label }}</label>
-                        {{ form.password1 }}
+                        <div class="input-with-toggle">
+                            {{ form.password1 }}
+                            <button type="button" class="toggle-eye no-asterisk" aria-label="Toggle password visibility" data-target="id_password1" aria-pressed="false">
+                                <svg class="eye-svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                                    <g class="eye-open" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1.5 12s4-6.5 10.5-6.5S22.5 12 22.5 12s-4 6.5-10.5 6.5S1.5 12 1.5 12z" />
+                                        <circle class="iris" cx="12" cy="12" r="3" fill="currentColor" />
+                                    </g>
+                                    <g class="eye-closed" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 12c3.5-3 7-3 9-3s5.5 0 9 3" />
+                                    </g>
+                                </svg>
+                            </button>
+                        </div>
                         {% for err in form.password1.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
                         <div id="id_password1-client-error" class="text-danger small" aria-live="polite"></div>
                     </div>
 
-                    <div class="col-12 mb-3">
+                    <div class="col-12 mb-3 password-field">
                         <label for="id_password2" class="form-label">{{ form.password2.label }}</label>
-                        {{ form.password2 }}
+                        <div class="input-with-toggle">
+                            {{ form.password2 }}
+                            <button type="button" class="toggle-eye no-asterisk" aria-label="Toggle password visibility" data-target="id_password2" aria-pressed="false">
+                                <svg class="eye-svg" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                                    <g class="eye-open" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1.5 12s4-6.5 10.5-6.5S22.5 12 22.5 12s-4 6.5-10.5 6.5S1.5 12 1.5 12z" />
+                                        <circle class="iris" cx="12" cy="12" r="3" fill="currentColor" />
+                                    </g>
+                                    <g class="eye-closed" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 12c3.5-3 7-3 9-3s5.5 0 9 3" />
+                                    </g>
+                                </svg>
+                            </button>
+                        </div>
                         {% for err in form.password2.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
                         <div id="id_password2-client-error" class="text-danger small" aria-live="polite"></div>
                     </div>
@@ -522,6 +594,23 @@ p.lead, .text-muted, .card .text-muted {
         // On submit, mark all touched and validate with messages shown
         var form = card.querySelector('form');
         if(form){ form.addEventListener('submit', function(e){ for(var k in touched) if(touched.hasOwnProperty(k)) touched[k]=true; var ok=true; ok = validateNameField(first, firstErr, true) && ok; ok = validateNameField(last, lastErr, true) && ok; ok = validateUsername(true) && ok; ok = validateEmail(true) && ok; ok = validatePasswords(true, true) && ok; if(!ok){ e.preventDefault(); checkFormValidity(); } }); }
+
+        // Toggle-eye behavior (show/hide password) matching login page
+        document.querySelectorAll('.toggle-eye').forEach(function(btn){
+            btn.addEventListener('click', function(){
+                var targetId = btn.getAttribute('data-target');
+                var input = document.getElementById(targetId);
+                if(!input) return;
+                var isPressed = btn.getAttribute('aria-pressed') === 'true';
+                if(isPressed){
+                    input.type = 'password';
+                    btn.setAttribute('aria-pressed','false');
+                } else {
+                    input.type = 'text';
+                    btn.setAttribute('aria-pressed','true');
+                }
+            });
+        });
     })();
 </script>
 {% endblock %}
