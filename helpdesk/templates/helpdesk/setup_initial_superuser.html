@@ -3,11 +3,19 @@
 {% block helpdesk_title %}{% trans "Initial setup" %}{% endblock %}
 
 {% block header %}
-<nav class="navbar navbar-expand static-top" style="background-color: #000C7D;">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="#" style="color: white; text-decoration: none; font-size: 16px; font-weight: 700; font-family: 'Montserrat', sans-serif; user-select: none;">{% trans 'PrimeDesk Technologies' %}</a>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Poppins:wght@500;600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+
+<nav class="pd-header" aria-label="Primary" style="background:#071a6b;">
+  <div class="pd-header-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;">
+    <div class="pd-left" style="display:flex;align-items:center;">
+      <a class="pd-brand no-asterisk" href="/" style="margin-top:5px;margin-bottom:5px;color:#fff;text-decoration:none;font-weight:700;font-size:16px;line-height:1;user-select:none;font-family:'Montserrat',system-ui,-apple-system,Segoe UI,Roboto,Arial;">
+        PrimeDesk Technologies
+      </a>
     </div>
-    </nav>
+  </div>
+</nav>
+
     <style>
         /* Hide the regular sidebar and hamburger for the initial setup page */
         #helpdesk-sidebar { display: none !important; }
@@ -26,7 +34,6 @@
                when container padding changes */
             width: min(80%, 320px);
             max-width: 320px;
-            box-sizing: border-box;
         }
 
         /* Single-row fields (col-12) should be slightly narrower and centered */
@@ -35,7 +42,7 @@
             .card .col-12 textarea,
             .card .col-12 .form-control {
                 /* single-row fields stay bounded to avoid growing when padding changes */
-                max-width: 580px; /* slightly shorter single-row fields */
+                max-width: 500px; /* slightly shorter single-row fields */
                 width: min(90%, 580px);
                 margin: 0; /* align to left */
                 box-sizing: border-box;
@@ -44,7 +51,7 @@
 
               /* Reduce inner right padding of the card body so the form's right gap is smaller
                   without changing input widths or field styles. Restore on very small screens. */
-              .card .card-body { padding-right: 0px; }
+              .card .card-body { padding-right: 20px; }
 
         /* On very small screens, allow inputs to use full width */
         @media (max-width: 576px) {
@@ -57,17 +64,214 @@
             /* avoid squeezing inputs on very small screens */
             .card .card-body { padding-right: initial; }
         }
+
+        /* Add this inside your <style> block */
+.btn.btn-lg.btn-primary.login-submit {
+    font-size: 1.25rem;         /* Large text */
+    padding: 0.5rem 2rem;       /* More vertical and horizontal padding */
+    border-radius: 15px;        /* Rounded corners */
+    background-color: #000C7D;  /* PrimeDesk blue */
+    color: #fff;                /* White text */
+    border: none;               /* No border */
+    font-weight: 600;           /* Semi-bold */
+    box-shadow: 0 2px 8px rgba(0,12,125,0.08); /* Subtle shadow */
+    transition: background 0.2s, box-shadow 0.2s;
+}
+.btn.btn-lg.btn-primary.login-submit:hover,
+.btn.btn-lg.btn-primary.login-submit:focus {
+    background-color: #0015c2;  /* Slightly lighter blue on hover/focus */
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0,12,125,0.15);
+}
+
+/* ====== FONT ASSIGNMENTS (requested) ======
+   - Heading 1: Montserrat
+   - Buttons: Poppins
+   - Subtitle / secondary text: Roboto
+*/
+h1, .register-card h1 {
+    font-family: 'Montserrat', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+}
+
+/* Card header title (h5) should also use Montserrat for visual consistency */
+.card-header h5 {
+    font-family: 'Montserrat', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-weight: 700;
+}
+
+/* Buttons use Poppins */
+.btn, .btn-primary, .btn-secondary, .pd-login-btn, .pd-hamburger, .pd-header .pd-login-btn, button[type="submit"] {
+    font-family: 'Poppins', "Helvetica Neue", Arial, sans-serif;
+    font-weight: 600;
+}
+
+/* Override: make the primary/create button not bold */
+.btn.btn-primary.login-submit {
+    font-weight: 400 !important;
+}
+
+/* Subtitle / lead / muted text use Roboto */
+p.lead, .text-muted, .card .text-muted {
+    font-family: 'Roboto', system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    font-weight: 400;
+    color: #6b7280;
+}
+
+/* Ensure smaller headings that should read as subtitles also inherit Roboto */
+.small-subtitle, .form-note {
+    font-family: 'Roboto', system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+}
+
+/* minor: ensure inputs keep system fallback for legibility */
+.form-control, input, textarea, select {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* Button: match provided rounded dark "Create account" style */
+.card .btn.btn-primary.login-submit,
+.btn.btn-primary.login-submit {
+  display: inline-block;
+  min-width: 160px;
+  padding: 10px 28px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #2f3438 0%, #111315 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.06);
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  text-align: center;
+  box-shadow: 0 6px 14px rgba(2,6,23,0.25), inset 0 -2px 0 rgba(255,255,255,0.03);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.card .btn.btn-primary.login-submit:hover,
+.card .btn.btn-primary.login-submit:focus {
+  background: linear-gradient(180deg, #3a3f43 0%, #0b0d0e 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(2,6,23,0.28), inset 0 -2px 0 rgba(255,255,255,0.03);
+  outline: none;
+}
+
+.card .btn.btn-primary.login-submit:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 8px rgba(2,6,23,0.22), inset 0 -1px 0 rgba(0,0,0,0.35);
+}
+
+.card .btn.btn-primary.login-submit[disabled],
+.card .btn.btn-primary.login-submit[aria-disabled="true"] {
+  background: #4a4a4a;
+  border-color: #3b3b3b;
+  opacity: 0.9;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ensure consistent box sizing so widths include padding/border */
+.card, .card * { box-sizing: border-box; }
+
+/* remove any outer padding on card and keep a single equal padding inside */
+.card { padding: 0; margin: 0 auto; max-width: 550px; width: 100%; }
+.card .card-body {
+    padding: 24px !important; /* equal padding on all sides */
+    box-sizing: border-box;
+}
+
+/* Make all inputs fill their column exactly so there's no right whitespace */
+.card .col-md-6 input,
+.card .col-md-6 select,
+.card .col-md-6 textarea,
+.card .col-md-6 .form-control,
+.card .col-12 input,
+.card .col-12 select,
+.card .col-12 textarea,
+.card .col-12 .form-control {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0;
+}
+
+/* Ensure two-column name-row uses the full width without leaving gaps */
+.name-row { display: block; }
+@media (min-width: 576px) {
+    .name-row { display: flex; gap: 10px; }
+    .name-row > .col-md-6 { flex: 1 1 0; max-width: none; }
+    .name-row .form-control { width: 100%; }
+}
+
+/* Align the action button to the right end of its column */
+.form-actions {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+/* On narrow screens, stack actions and allow full-width buttons */
+@media (max-width: 576px) {
+    .form-actions { justify-content: center; flex-direction: column-reverse; gap: 10px; }
+    .form-actions .btn { width: 100% !important; min-width: 0; }
+}
+
+/* small-screen safety: ensure wrapper padding doesn't cause horizontal overflow */
+.d-flex.justify-content-center.align-items-center {
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+/* remove any earlier rules that force an extra right padding */
+.card .card-body { padding-right: 24px !important; } /* keep equal padding */
+
+        /*
+         * Append a visual asterisk to most visible text elements inside the card body.
+         * Exceptions are marked with the .no-asterisk class (PrimeDesk brand, the h6
+         * heading and subtitle are marked below).
+         *
+         * We explicitly avoid adding stars to error messages and form controls.
+         */
+        .card .card-body label:not(.no-asterisk):not(.text-danger):not(.form-errors)::after,
+        .card .card-body .form-label:not(.no-asterisk):not(.text-danger):not(.form-errors)::after,
+        .card .card-body p:not(.no-asterisk):not(.text-danger):not(.form-errors):not(.server-field-error)::after,
+        .card .card-body .lead:not(.no-asterisk):not(.text-danger):not(.form-errors)::after,
+        .card .card-body h1:not(.no-asterisk):not(.text-danger):not(.form-errors)::after,
+        .card .card-body h2:not(.no-asterisk):not(.text-danger):not(.form-errors)::after,
+        .card .card-body h3:not(.no-asterisk):not(.text-danger):not(.form-errors)::after,
+        .card .card-body h4:not(.no-asterisk):not(.text-danger):not(.form-errors)::after,
+        .card .card-body h5:not(.no-asterisk):not(.text-danger):not(.form-errors)::after,
+        .card .card-body a:not(.no-asterisk):not(.text-danger):not(.form-errors)::after,
+        .card .card-body button:not(.no-asterisk):not(.text-danger):not(.form-errors)::after,
+        .card .card-body .btn:not(.no-asterisk):not(.text-danger):not(.form-errors)::after {
+            content: " *";
+            color: rgba(0,0,0,0.65);
+            font-weight: 600;
+            margin-left: 4px;
+            display: inline-block;
+            line-height: 1;
+        }
+
+        /* explicitly do not append for these classes (safety) */
+        .card .card-body .field-error::after,
+        .card .card-body .server-field-error::after,
+        .card .card-body .form-errors::after {
+            content: none !important;
+        }
+
     </style>
 {% endblock %}
 
 {% block helpdesk_body %}
-<div class="d-flex justify-content-center align-items-center" style="padding:48px 8px 48px 15px; min-height: calc(100vh - 72px);">
-    <div class="card" style="max-width:600px; width:100%; box-shadow: 0 6px 18px rgba(2,6,23,0.12); border-radius:12px;">
-        <div class="card-header text-white" style="background-color: #000C7D; border-top-left-radius:12px; border-top-right-radius:12px;">
-            <h5 class="mb-0" style="font-weight:700;">{% trans "Initial setup - create the first superuser" %}</h5>
-        </div>
-    <div class="card-body">
-            <p class="text-muted">{% trans "Create the first admin account for this helpdesk installation. This is only required once." %}</p>
+<div class="d-flex justify-content-center align-items-center" style="padding:48px; min-height: calc(100vh - 72px);">
+    <div class="card" style="max-width:550px; width:100%; box-shadow: 0 6px 18px rgba(2,6,23,0.12); border-radius:12px;">
+        <div class="card-body">
+                    <h6 class="mb-0 no-asterisk">{% trans "Create the first superuser account" %}</h6>
+                    <p class="text-muted no-asterisk" style="margin-top: 8px">{% trans "Create the first admin account for this helpdesk installation. This is only required once." %}</p>
 
             <form method="post" novalidate>
                 {% csrf_token %}
@@ -120,14 +324,12 @@
                         <div id="id_password2-client-error" class="text-danger small" aria-live="polite"></div>
                     </div>
                 </div>
-
                 
 
                 <div class="row">
-                    <div class="col-md-6"></div>
-                    <div class="col-md-6">
-                        <div class="form-actions" style="width:80%; max-width:none; margin:0; display:flex; justify-content:flex-end;">
-                            <button type="submit" class="btn btn-primary">{% trans "Create superuser" %}</button>
+                    <div class="col-12">
+                        <div class="form-actions" style="width:100%; margin:0; display:flex; justify-content:flex-end;">
+                            <button type="submit" class="btn btn-primary login-submit no-asterisk">{% trans "Create superuser" %}</button>
                         </div>
                     </div>
                 </div>
@@ -177,7 +379,7 @@
             box.style.visibility = 'visible';
             if(el) el.classList.add('is-invalid');
             if(el) el.setAttribute('aria-invalid','true');
-            if(el && box.id) el.setAttribute('aria-describedby', box.id);
+            if(el) el.setAttribute('aria-describedby', box.id);
         }
         function clearError(el, box){
             if(!box) return;
