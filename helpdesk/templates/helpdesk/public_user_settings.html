@@ -1,0 +1,77 @@
+{% extends "helpdesk/public_base.html" %}
+
+{% block title %}User settings{% endblock %}
+
+{% block helpdesk_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Poppins:wght@400;600&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+    /* Reset-card layout (match password-change look) */
+    :root { --input-padding-x: 0.75rem; --input-padding-y: 0.75rem; }
+    .reset-wrapper { padding: 40px 20px; display:flex; align-items:center; justify-content:center; }
+    .reset-card { width: 540px; max-width:94%; padding: 28px; border-radius: 12px; background: #fff; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border: 1px solid #e0e0e0; }
+    .reset-card h1 { margin: 0 0 6px 0; font-size: 20px; font-family: 'Montserrat', sans-serif; }
+    .reset-card p { margin: 0 0 16px 0; color: #444; font-family: 'Roboto', sans-serif; font-size:13px; }
+
+    .form-control { width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #ccc; font-size:13px; line-height:1.4; }
+    .form-label { display:block; margin-bottom:8px; font-size:13px; color:#333; font-family: 'Roboto', sans-serif; }
+
+    .reset-actions { display:flex; flex-direction:row; gap:12px; margin-top: 14px; align-items:center; justify-content:center; width:100%; }
+    .btn-primary { min-width: 160px; padding: 8px 12px; border-radius: 12px; background-color: #000C7D; color: #ffffff; border: 1px solid #000C7D; font-weight: 500; text-align: center; cursor: pointer; font-family: 'Poppins', sans-serif; font-size: 14px; }
+    .btn-primary:hover { background-color: #08104f; border-color: #08104f; }
+    .btn-secondary { min-width: 140px; padding: 8px 12px; border-radius: 12px; background: #ffffff; border: 1px solid #9c9c9c; color: #333; text-align: center; display: inline-block; font-family: 'Poppins', sans-serif; font-size: 14px; }
+    .helper-note { font-size: 13px; color: #666; margin-top: 10px; font-family: 'Roboto', sans-serif; }
+    .field-error { color: #c62828; font-size: 12px; margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; }
+    .field-error::before { content: "\26A0"; font-size: 13px; line-height: 1; color: #c62828; }
+    input.is-invalid, textarea.is-invalid { border-color: #c62828 !important; box-shadow: none !important; }
+
+    body, .reset-card, .form-group, .form-text { font-family: 'Roboto', sans-serif; font-size: 13px; }
+    .btn { font-family: 'Poppins', sans-serif; }
+    @media (max-width: 480px) { .reset-actions { flex-direction: column; } .btn-primary, .btn-secondary { width: 90% !important; display: block; } }
+</style>
+{% endblock %}
+
+{% block helpdesk_body %}
+<div class="reset-wrapper">
+  <div class="reset-card">
+    <h1>User settings</h1>
+    <p>Update your profile information below.</p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+
+      <div class="form-group mb-3">
+        <label class="form-label" for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+        {{ form.first_name }}
+        {{ form.first_name.errors }}
+      </div>
+
+      <div class="form-group mb-3">
+        <label class="form-label" for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+        {{ form.last_name }}
+        {{ form.last_name.errors }}
+      </div>
+
+      <div class="form-group mb-3">
+        <label class="form-label" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+        {{ form.username }}
+        {{ form.username.errors }}
+      </div>
+
+      <div class="form-group mb-3">
+        <label class="form-label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+        {{ form.email }}
+        {{ form.email.errors }}
+      </div>
+
+      <div class="reset-actions">
+        <a href="{% url 'helpdesk:home' %}" class="btn-secondary">Back to homepage</a>
+        <button type="submit" class="btn-primary">Save changes</button>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

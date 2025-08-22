@@ -91,8 +91,8 @@ def validate_password_strength(password):
     """
     if not password:
         raise ValidationError(_("Please confirm your password."))
-    if len(password) < 8:
-        raise ValidationError(_("Password must be at least 8 characters."))
+        if len(password) < 8:
+            raise ValidationError(_("Password must be at least 8 characters"))
     if not any(c.isdigit() for c in password) or not any(c.isalpha() for c in password):
         raise ValidationError(_("Password must include both letters and numbers."))
     # optional: require uppercase/lowercase and special
@@ -742,6 +742,28 @@ class PublicTicketForm(AbstractTicketForm):
                 (q.id, q.title) for q in public_queues
             ]
 
+        # Ensure common fields provide an autocomplete attribute so browsers
+        # can correctly autofill them and accessibility tools notice the
+        # attribute presence. Use appropriate values where available.
+        try:
+            if "submitter_email" in self.fields:
+                self.fields["submitter_email"].widget.attrs.setdefault("autocomplete", "email")
+            if "title" in self.fields:
+                # No standard autocomplete token for a subject line; opt out
+                # of aggressive autofill by providing an explicit attribute.
+                self.fields["title"].widget.attrs.setdefault("autocomplete", "off")
+            if "body" in self.fields:
+                self.fields["body"].widget.attrs.setdefault("autocomplete", "off")
+            if "priority" in self.fields:
+                self.fields["priority"].widget.attrs.setdefault("autocomplete", "off")
+            if "due_date" in self.fields:
+                self.fields["due_date"].widget.attrs.setdefault("autocomplete", "off")
+            if "queue" in self.fields:
+                self.fields["queue"].widget.attrs.setdefault("autocomplete", "off")
+        except Exception:
+            # Be defensive: if widgets are non-dict-like, skip silently.
+            pass
+
     def _get_queue(self):
         if getattr(settings, "HELPDESK_PUBLIC_TICKET_QUEUE", None) is not None:
             # force queue to be the pre-defined one
@@ -996,3 +1018,29 @@ class RegistrationForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+class PublicUserProfileForm(forms.ModelForm):
+    """Simple form for public users to edit their username and email."""
+
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name", "username", "email")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add basic bootstrap classes
+        for name, field in self.fields.items():
+            field.widget.attrs.setdefault("class", "form-control")
+        # Friendly required messages
+        req_msg = "Please fill in the required field."
+        for f in ("username", "email"):
+            if f in self.fields:
+                self.fields[f].error_messages = getattr(self.fields[f], "error_messages", {})
+                self.fields[f].error_messages["required"] = req_msg
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if email and User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
+            raise ValidationError("A user with that email address already exists.")
+        return email

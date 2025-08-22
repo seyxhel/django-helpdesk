@@ -1,6 +1,50 @@
 #!/usr/bin/env python
 import os
 import sys
+import warnings
+import site
+
+# If we haven't already re-execed with warnings suppressed, do so now.
+# This ensures early-imported libraries that emit deprecation warnings
+# (pkg_resources) won't print them before our filters run. We set a guard
+# env var to avoid infinite re-exec loops.
+if os.environ.get("DJANGO_HELPDESK_WARNINGS_SUPPRESSED") != "1":
+    os.environ["DJANGO_HELPDESK_WARNINGS_SUPPRESSED"] = "1"
+    # Prefer an explicit PYTHONWARNINGS setting so the interpreter suppresses
+    # UserWarnings from the start. Only set if not already configured.
+    os.environ.setdefault("PYTHONWARNINGS", "ignore")
+    # Do NOT re-exec the process on Windows: re-execing can cause accidental
+    # argument splitting for paths that contain spaces (e.g. user profile
+    # paths). We rely on `demo/sitecustomize.py` and the warnings filter
+    # below to suppress the deprecation message instead.
+
+# Suppress the upcoming pkg_resources deprecation warning emitted by
+# some third-party packages (for example pinax-invitations). This avoids
+# noisy startup warnings while you upgrade or pin Setuptools.
+# Alternatives:
+# - Pin setuptools to a safe version: e.g. add `setuptools<81` to your
+#   project's requirements/dev environment.
+# - Upgrade or replace the package using pkg_resources (e.g. newer pinax
+#   releases) to use importlib.metadata instead.
+# - Export PYTHONWARNINGS='ignore' or set the env var in your shell for
+#   the dev server.
+# Prevent Python from adding the per-user site-packages directory to sys.path.
+# This ensures the active virtualenv's site-packages take precedence and avoids
+# accidentally importing packages from the global/user site which may be newer
+# and trigger deprecation warnings.
+try:
+    site.ENABLE_USER_SITE = False
+except Exception:
+    pass
+
+# Suppress the upcoming pkg_resources deprecation warning emitted by
+# some third-party packages (for example pinax-invitations). This avoids
+# noisy startup warnings while you upgrade or pin Setuptools.
+warnings.filterwarnings(
+    "ignore",
+    message=r"pkg_resources is deprecated as an API.*",
+    category=UserWarning,
+)
 
 
 # Simple .env loader (demo/.env). Does not overwrite existing env vars.

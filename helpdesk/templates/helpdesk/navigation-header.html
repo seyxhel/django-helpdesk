@@ -5,9 +5,11 @@
   <nav class="navbar navbar-expand static-top" style="background-color: #000C7D;">
 
   <div class="d-flex align-items-center">
+      {% if user|is_helpdesk_staff %}
       <button class="btn btn-link btn-sm text-white order-1 order-sm-0 sidebar-toggle-btn" id="sidebarToggle" href="#" aria-controls="helpdesk-sidebar" aria-expanded="false" aria-label="Toggle sidebar">
         <i class="fas fa-bars" aria-hidden="true"></i>
       </button>
+      {% endif %}
   <a class="navbar-brand" href="{% url 'helpdesk:dashboard' %}" style="color: white; text-decoration: none; font-size: 16px; font-weight: 700; font-family: 'Montserrat', sans-serif; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; pointer-events: none; margin-left: 5px;">{% trans 'PrimeDesk Technologies' %}</a>
   </div>
   <div class="ml-auto d-flex align-items-center">
@@ -40,9 +42,9 @@
       {% endif %}
 
       
-      <!-- Navbar -->
-      <ul class="navbar-nav mr-md-0">
-      {% if helpdesk_settings.HELPDESK_NAVIGATION_ENABLED and user.is_authenticated or user|is_helpdesk_staff %}
+  <!-- Navbar -->
+  <ul class="navbar-nav mr-md-0">
+  {% if user.is_authenticated %}
         {% if user_saved_queries_ %}
         <li class="nav-item dropdown no-arrow mx-1">
           <!-- Toggle for saved queries dropdown (was missing, making the menu non-interactive) -->
@@ -78,7 +80,9 @@
             </div>
             <div class="dropdown-divider"></div>
             <a class="dropdown-item" href="{% url 'helpdesk:user_settings' %}"><i class="fas fa-fw fa-user-cog"></i> {% trans "User Settings" %}</a>
+            {% if user|is_helpdesk_staff %}
             <a class="dropdown-item" href='{% url 'helpdesk:rss_index' %}'><i class="fas fa-fw fa-rss-square"></i> {% trans "RSS Feeds" %}</a>
+            {% endif %}
             {% if helpdesk_settings.HELPDESK_SHOW_CHANGE_PASSWORD and user.has_usable_password %}
             <a class="dropdown-item" href="{% url 'helpdesk:password_change' %}"><i class="fas fa-fw fa-user-secret"></i> {% trans "Change password" %}</a>
             {% endif %}
@@ -94,15 +98,15 @@
             </form>
           </div>
         </li>
-      {% else %}
+  {% else %}
         {% if helpdesk_settings.HELPDESK_ALLOW_NON_STAFF_TICKET_UPDATE %}
             <li class="nav-item dropdown no-arrow">
-                <a class="nav-link dropdown-toggle" href="{% url 'helpdesk:dashboard' %}" id="userDropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                <a class="nav-link dropdown-toggle" href="{% url 'helpdesk:dashboard' %}" role="button" aria-haspopup="true" aria-expanded="false">
                     <i class="fas fa-user-circle fa-fw"></i> {% trans "Dashboard" %}
                 </a>
             </li>
             <li class="nav-item dropdown no-arrow">
-                <a class="nav-link dropdown-toggle" href="{% url 'helpdesk:submit' %}" id="userDropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                <a class="nav-link dropdown-toggle" href="{% url 'helpdesk:submit' %}" role="button" aria-haspopup="true" aria-expanded="false">
                     <i class="fas fa-user-circle fa-fw"></i> {% trans "Submit a Ticket" %}
                 </a>
             </li>
@@ -152,43 +156,64 @@
     </script>
       <script>
         (function(){
-          // Lightweight dropdown polyfill for the user menu (works without relying on Bootstrap JS)
-          var toggle = document.getElementById('userDropdown');
+          // Robust user dropdown handler: prefer finding the toggle by the
+          // visible username element (works when IDs are not unique) and
+          // fall back to the old id-based lookup.
+          var usernameSpan = document.querySelector('.nav-username');
+          var toggle = null;
+          if(usernameSpan){
+            // the toggle is the closest anchor containing the username span
+            toggle = usernameSpan.closest('a.nav-link.dropdown-toggle');
+          }
+          if(!toggle){
+            toggle = document.getElementById('userDropdown');
+          }
           if(!toggle) return;
+
           var parent = toggle.closest('.nav-item.dropdown');
           var menu = parent && parent.querySelector('.dropdown-menu');
           if(!menu) return;
 
-          function open(){
+          function openMenu(){
+            try{ console.debug && console.debug('opening user menu'); }catch(e){}
             parent.classList.add('show');
             menu.classList.add('show');
+            // Force visible in case CSS clips it or a framework doesn't apply styles
+            menu.style.display = 'block';
+            menu.style.zIndex = '2050';
             toggle.setAttribute('aria-expanded','true');
-            // focus first actionable item in the menu
-            var first = menu.querySelector('a, button, [tabindex]');
-            if(first) first.focus();
+            // Do not autofocus the first item; allow hover to highlight items
           }
-          function close(){
+          function closeMenu(){
+            try{ console.debug && console.debug('closing user menu'); }catch(e){}
             parent.classList.remove('show');
             menu.classList.remove('show');
+            // Clear forced styles
+            menu.style.display = '';
+            menu.style.zIndex = '';
             toggle.setAttribute('aria-expanded','false');
             toggle.focus();
           }
 
+          // Toggle on click
           toggle.addEventListener('click', function(e){
             e.preventDefault();
-            if(parent.classList.contains('show')) close(); else open();
+            if(parent.classList.contains('show')) closeMenu(); else openMenu();
+            try{ toggle.blur(); } catch(e){}
           });
 
-          // Close when clicking outside
+          // Close when clicking outside the menu
           document.addEventListener('click', function(e){
-            if(!parent.contains(e.target)){
-              if(parent.classList.contains('show')) close();
+            if(!parent.contains(e.target) && parent.classList.contains('show')){
+              closeMenu();
             }
           });
 
           // Close on Escape
           document.addEventListener('keydown', function(e){
-            if(e.key === 'Escape' && parent.classList.contains('show')) close();
+            if((e.key === 'Escape' || e.key === 'Esc') && parent.classList.contains('show')){
+              closeMenu();
+            }
           });
         })();
       </script>
