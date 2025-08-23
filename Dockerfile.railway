@@ -20,5 +20,10 @@ RUN pip install -e .
 ENV DJANGO_HELPDESK_SECRET_KEY=placeholder-secret
 RUN DJANGO_HELPDESK_SECRET_KEY=placeholder-secret python standalone/manage.py collectstatic --noinput
 
+# Ensure entrypoint is executable and use it as the container entrypoint so
+# migrations/collectstatic/wait-for-db logic run on start.
+RUN chmod +x standalone/entrypoint.sh
+ENTRYPOINT ["/bin/sh", "-c", "./standalone/entrypoint.sh"]
+
 EXPOSE 8000
 CMD ["gunicorn", "standalone.config.wsgi:application", "-b", "0.0.0.0:8000", "--workers", "3"]
