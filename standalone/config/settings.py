@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
+import urllib.parse
 from django.core.exceptions import ImproperlyConfigured
 
 
@@ -138,17 +139,40 @@ LOGIN_URL = "helpdesk:login"
 LOGIN_REDIRECT_URL = "helpdesk:home"
 
 
-DATABASES = {
-    # Setup postgress db with postgres as host and db name and read password from env var
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_DB", "postgres"),
-        "USER": os.environ.get("POSTGRES_USER", "postgres"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "postgres"),
-        "HOST": os.environ.get("POSTGRES_HOST", "postgres"),
-        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+DATABASES = {}
+
+# Prefer a single DATABASE_URL when provided (Railway/Postgres). Falls back to
+# POSTGRES_* env vars for backwards compatibility.
+db_url = os.environ.get("DATABASE_URL")
+if db_url:
+    # Parse DATABASE_URL (e.g. postgres://user:pass@host:port/dbname)
+    parsed = urllib.parse.urlparse(db_url)
+    if parsed.scheme.startswith("postgres"):
+        db_name = parsed.path.lstrip('/') or os.environ.get('POSTGRES_DB', 'postgres')
+        db_user = urllib.parse.unquote(parsed.username) if parsed.username else os.environ.get('POSTGRES_USER', 'postgres')
+        db_pass = urllib.parse.unquote(parsed.password) if parsed.password else os.environ.get('POSTGRES_PASSWORD', 'postgres')
+        db_host = parsed.hostname or os.environ.get('POSTGRES_HOST', 'postgres')
+        db_port = str(parsed.port) if parsed.port else os.environ.get('POSTGRES_PORT', '5432')
+        DATABASES['default'] = {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_pass,
+            'HOST': db_host,
+            'PORT': db_port,
+        }
+    else:
+        raise ImproperlyConfigured('Unsupported DATABASE_URL scheme: %s' % parsed.scheme)
+else:
+    # Setup postgress db with POSTGRES_* env vars
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('POSTGRES_DB', 'postgres'),
+        'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'postgres'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
-}
 
 
 # Sites

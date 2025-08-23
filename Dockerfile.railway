@@ -1,0 +1,24 @@
+FROM python:3.11-slim-bullseye
+WORKDIR /app
+
+# Install system deps needed for PostgreSQL client and collectstatic
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    cron \
+    git && rm -rf /var/lib/apt/lists/*
+
+# Copy project
+COPY . /app
+
+# Install Python deps
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
+RUN pip install -r standalone/requirements.txt
+
+# Install package in editable mode and collect static files
+RUN pip install -e .
+ENV DJANGO_HELPDESK_SECRET_KEY=placeholder-secret
+RUN DJANGO_HELPDESK_SECRET_KEY=placeholder-secret python standalone/manage.py collectstatic --noinput
+
+EXPOSE 8000
+CMD ["gunicorn", "standalone.config.wsgi:application", "-b", "0.0.0.0:8000", "--workers", "3"]

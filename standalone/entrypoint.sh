@@ -5,9 +5,16 @@ if [ -f /opt/extra-dependencies.txt ]; then
 fi
 
 cd /opt/django-helpdesk/standalone/
-if python manage.py showmigrations | grep '\[ \]\|^[a-z]' | grep '[  ]' -B 1; then
-    python manage.py migrate --noinput                # Apply database migrations
+# Always attempt migrations (migrate is idempotent).
+python manage.py migrate --noinput
+
+# Ensure media directory exists (MEDIA_ROOT may be a mounted volume in production)
+if [ -n "$MEDIA_ROOT" ]; then
+	mkdir -p "$MEDIA_ROOT"
 fi
+
+# Collect static files (safe to run multiple times)
+python manage.py collectstatic --noinput || true
 
 # Starting cron to check emails
 printenv > /etc/env
