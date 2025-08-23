@@ -143,7 +143,10 @@ DATABASES = {}
 
 # Prefer a single DATABASE_URL when provided (Railway/Postgres). Falls back to
 # POSTGRES_* env vars for backwards compatibility.
-db_url = os.environ.get("DATABASE_URL")
+# Railway sometimes exposes two DB URLs: a public endpoint and an internal one.
+# Prefer DATABASE_PUBLIC_URL (public-facing) if present, otherwise fall back to
+# the internal DATABASE_URL or POSTGRES_* env vars for backwards compatibility.
+db_url = os.environ.get("DATABASE_PUBLIC_URL") or os.environ.get("DATABASE_URL")
 if db_url:
     # Parse DATABASE_URL (e.g. postgres://user:pass@host:port/dbname)
     parsed = urllib.parse.urlparse(db_url)
