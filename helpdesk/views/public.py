@@ -264,17 +264,6 @@ class Homepage(CreateTicketView):
             context['customer_tickets'] = Ticket.objects.none()
         return context
 
-    def get_success_url(self):
-        """When the homepage form creates a ticket, stay on the homepage and
-        show a success toast so the user can remain on the same page. We
-        append a query param so the template can detect and display the
-        success overlay without requiring a separate endpoint.
-        """
-        try:
-            return reverse("helpdesk:home") + "?ticket_created=1"
-        except Exception:
-            return super().get_success_url()
-
 
 class PublicUserSettingsView(LoginRequiredMixin, FormView):
     """Allow non-staff public users to edit their basic profile (username/email).

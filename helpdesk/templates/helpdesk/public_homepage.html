@@ -94,48 +94,4 @@
 
 {% block helpdesk_js %}
     {{ form.media.js }}
-    <div id="ticket-success-overlay" aria-hidden="true" style="display:none; position:fixed; inset:0; z-index:1200; align-items:center; justify-content:center;">
-        <div id="ticket-success-backdrop" style="background: rgba(0,0,0,0.35); position:absolute; inset:0;"></div>
-        <div style="position:relative; z-index:1201; display:flex; align-items:center; justify-content:center;">
-            <div id="ticket-success-card" role="status" aria-live="polite" style="width:440px; max-width:94vw; background:#fff; border-radius:12px; padding:22px; box-shadow:0 10px 30px rgba(0,0,0,0.18); text-align:center;">
-                <svg width="72" height="72" viewBox="0 0 120 120" style="display:block;margin:0 auto 12px auto;"><circle cx="60" cy="60" r="48" stroke="#0f9d58" stroke-width="6" fill="none" stroke-dasharray="302" stroke-dashoffset="302"><animate attributeName="stroke-dashoffset" from="302" to="0" dur="0.45s" fill="freeze" /></circle><path d="M40 62 L54 76 L82 46" stroke="#0f9d58" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0"><animate attributeName="opacity" from="0" to="1" begin="0.35s" dur="0.15s" fill="freeze" /></path></svg>
-                <h3 style="margin:0 0 8px 0; font-size:18px;">{% trans "Success" %}</h3>
-                <p id="ticket-success-text" style="margin:0; color:#333;">{% trans "Ticket created. Please check your email for updates." %}</p>
-            </div>
-        </div>
-    </div>
-
-    <script>
-    (function(){
-        function showTicketSuccessAndRefresh(){
-            var overlay = document.getElementById('ticket-success-overlay');
-            var card = document.getElementById('ticket-success-card');
-            if(!overlay || !card) return;
-            overlay.style.display = 'flex';
-            overlay.setAttribute('aria-hidden','false');
-            // small entrance animation
-            card.style.transform = 'translateY(-6px)'; card.style.opacity = '1';
-            // remove the query param so overlay doesn't reappear on immediate reload
-            try { var url = new URL(window.location.href); url.searchParams.delete('ticket_created'); window.history.replaceState({}, document.title, url.pathname + url.search + url.hash); } catch(e) {}
-            // after 2.2s, hide and then reload to show new ticket
-            setTimeout(function(){
-                try { card.style.transform = 'translateY(0)'; card.style.opacity = '0'; overlay.setAttribute('aria-hidden','true'); } catch(e){}
-                setTimeout(function(){ overlay.style.display = 'none'; try{ window.location.reload(); }catch(e){} }, 260);
-            }, 2200);
-        }
-
-        document.addEventListener('DOMContentLoaded', function(){
-            try{
-                var params = new URLSearchParams(window.location.search);
-                if (params.get('ticket_created') === '1') {
-                    showTicketSuccessAndRefresh();
-                }
-            } catch(e){
-                if (window.location.search && window.location.search.indexOf('ticket_created=1') !== -1) {
-                    showTicketSuccessAndRefresh();
-                }
-            }
-        });
-    })();
-    </script>
 {% endblock %}
