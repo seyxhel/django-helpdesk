@@ -66,7 +66,23 @@ def login(request):
                         candidate_used = True
             if user is not None:
                 auth_login(request, user)
-                response = redirect('helpdesk:home')
+                # Determine redirect destination.
+                # 1. If a 'next' param was provided, respect it.
+                # 2. Otherwise, if the user has a usersettings preference to view ticket list on login,
+                #    redirect to the ticket list page.
+                # 3. Otherwise fall back to the configured LOGIN_REDIRECT_URL or home.
+                next_url = request.POST.get('next') or request.GET.get('next')
+                if next_url:
+                    response = redirect(next_url)
+                else:
+                    try:
+                        if hasattr(user, 'usersettings_helpdesk') and user.usersettings_helpdesk.login_view_ticketlist:
+                            response = redirect('helpdesk:my-tickets')
+                        else:
+                            # Use configured LOGIN_REDIRECT_URL if available
+                            response = redirect(resolve_url(getattr(settings, 'LOGIN_REDIRECT_URL', 'helpdesk:home')))
+                    except Exception:
+                        response = redirect('helpdesk:home')
                 if form.cleaned_data.get('remember_me'):
                     request.session.set_expiry(60 * 60 * 24 * 30)  # 30 days
                     # create token and store hash

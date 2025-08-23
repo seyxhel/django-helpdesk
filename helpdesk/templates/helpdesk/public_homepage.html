@@ -38,7 +38,7 @@
                 <div class="panel panel-default">
                     <div class="panel-body">
                         <h2>{% trans "Submit a Ticket" %}</h2>
-                        {% include 'helpdesk/public_create_ticket_base.html' %}
+                        {% include 'helpdesk/public_create_ticket_form.html' %}
                     </div>
                 </div>
             </div>
@@ -47,35 +47,112 @@
                 <h2>{% trans "Please use button at upper right to login first." %}</h2>
             {% endif %}
 
-            {% if helpdesk_settings.HELPDESK_VIEW_A_TICKET_PUBLIC %}
                 <div class="col-sm">
                     <div class="panel panel-default">
                         <div class="panel-body">
-                            <h2>{% trans "View a Ticket" %}</h2>
-                            <form method='get' action="{% url 'helpdesk:public_view' %}">
-                                <fieldset>
-                                    <div class="form-group {% if field.errors %}has-error{% endif %}">
-                                        <label for='id_ticket'>{% trans "Ticket" %}</label>
-                                        <div class="input-group">
-                                            <input type='text' name='ticket' class='form-control'/>
-                                        </div>
-                                    </div>
-                                    <div class="form-group {% if field.errors %}has-error{% endif %}">
-                                        <label for='id_email'>{% trans "Your E-mail Address" %}</label>
-                                        <div class="input-group">
-                                            <input type='text' name='email' class='form-control'/>
-                                        </div>
-                                    </div>
-                                    <div class='buttons form-group'>
-                                        <input type='submit' class="btn btn-primary" value='{% trans "View Ticket" %}'/>
-                                    </div>
-                                </fieldset>
-                            </form>
+                            <h2>{% trans "Your tickets" %}</h2>
+                            <div class="table-responsive" style="margin-top:8px;">
+                                <table class="table table-striped table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>{% trans "Ticket" %}</th>
+                                            <th>{% trans "Title" %}</th>
+                                            <th>{% trans "Queue" %}</th>
+                                            <th>{% trans "Status" %}</th>
+                                            <th>{% trans "Created" %}</th>
+                                            <th>{% trans "Last updated" %}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if customer_tickets and customer_tickets.exists %}
+                                            {% for t in customer_tickets %}
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ t.queue.slug }}</strong>
+                                                    </td>
+                                                    <td>{{ t.title }}</td>
+                                                    <td>{{ t.queue.title }}</td>
+                                                    <td>{{ t.get_status_display }}</td>
+                                                    <td>{{ t.created|date:"SHORT_DATETIME_FORMAT" }}</td>
+                                                    <td>{% if t.modified %}{{ t.modified|date:"SHORT_DATETIME_FORMAT" }}{% else %}&mdash;{% endif %}</td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="6" class="text-muted">{% trans "No tickets found for your account." %}</td>
+                                            </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
-            {% endif %}
         </div>
+
+    <!-- Success overlay (hidden by default). Shown when URL ?created=1 -->
+    <div id="ticket-success-overlay" aria-hidden="true" style="display:none; position:fixed; inset:0; z-index:1200; align-items:center; justify-content:center;">
+        <div id="ticket-success-backdrop" style="background: rgba(0,0,0,0.4); position:absolute; inset:0;"></div>
+        <div style="position:relative; z-index:1201; display:flex; align-items:center; justify-content:center;">
+            <div id="ticket-success-card" role="status" aria-live="polite" style="width:420px; max-width:94vw; background:#fff; border-radius:12px; padding:28px; box-shadow:0 10px 40px rgba(0,0,0,0.2); text-align:center; transition: transform 250ms ease, opacity 250ms ease;">
+                <!-- animated check circle -->
+                <svg width="84" height="84" viewBox="0 0 120 120" style="display:block;margin:0 auto 12px auto;">
+                    <circle cx="60" cy="60" r="48" stroke="#0f9d58" stroke-width="6" fill="none" stroke-dasharray="302" stroke-dashoffset="302">
+                        <animate attributeName="stroke-dashoffset" from="302" to="0" dur="0.45s" fill="freeze" />
+                    </circle>
+                    <path d="M40 62 L54 76 L82 46" stroke="#0f9d58" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0">
+                        <animate attributeName="opacity" from="0" to="1" begin="0.4s" dur="0.15s" fill="freeze" />
+                    </path>
+                </svg>
+                <h2 style="margin:0 0 8px 0; font-size:20px;">Success!</h2>
+                <p id="ticket-success-text" style="margin:0; color:#444;">Ticket created. Please check your email.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Show the same centered success overlay used on the password-change page when
+    // the page loads with ?created=1. After showing it briefly, remove the query
+    // param and reload so the newly created ticket appears in the ticket list.
+    (function(){
+        function showTicketSuccess() {
+            var overlay = document.getElementById('ticket-success-overlay');
+            var card = document.getElementById('ticket-success-card');
+            if(!overlay || !card) return;
+            overlay.style.display = 'flex';
+            overlay.setAttribute('aria-hidden','false');
+            // animate in
+            card.style.transform = 'translateY(-6px)';
+            card.style.opacity = '1';
+            // after short delay, remove the query param and reload to reflect new ticket
+            setTimeout(function(){
+                try {
+                    var url = new URL(window.location.href);
+                    url.searchParams.delete('created');
+                    window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+                } catch (e) {
+                    // ignore
+                }
+                // reload to fetch updated ticket list
+                window.location.reload();
+            }, 1400);
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){
+            try {
+                var params = new URLSearchParams(window.location.search);
+                if (params.get('created') === '1') {
+                    showTicketSuccess();
+                }
+            } catch (e) {
+                // fallback naive check for older browsers
+                if (window.location.search && window.location.search.indexOf('created=1') !== -1) {
+                    showTicketSuccess();
+                }
+            }
+        });
+    })();
+    </script>
     </div>
 {% endblock %}
 

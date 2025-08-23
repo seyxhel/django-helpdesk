@@ -22,6 +22,8 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import TemplateView
 from django.views.generic.edit import FormView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import PasswordChangeView
 from helpdesk import settings as helpdesk_settings
 from helpdesk.decorators import is_helpdesk_staff, protect_view
 from helpdesk.lib import text_is_spam
@@ -54,6 +56,35 @@ def create_ticket(request, *args, **kwargs):
 
 
 class BaseCreateTicketView(abstract_views.AbstractCreateTicketMixin, FormView):
+    # Provide a sensible default redirect for non-iframe public submissions so
+    # FormView.post() can resolve a success URL and avoid ImproperlyConfigured
+    # when no explicit redirect is returned by form_valid().
+    success_url = reverse_lazy("helpdesk:home")
+
+    def form_valid(self, form):
+        """
+        Persist the ticket using the form's save() method. The public form
+        returns the created Ticket instance. Store it on the view so
+        get_success_url() can return the ticket's public URL.
+        """
+        # Pass the authenticated user if present so assigned-to logic can run
+        user = self.request.user if self.request.user.is_authenticated else None
+        try:
+            self.ticket = form.save(user=user)
+        except TypeError:
+            # Some custom form classes might not accept a user argument;
+            # fall back to calling save() without arguments.
+            self.ticket = form.save()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        """Prefer redirecting to the ticket's public URL when available."""
+        if getattr(self, "ticket", None):
+            try:
+                return self.ticket.ticket_url
+            except Exception:
+                pass
+        return super().get_success_url()
     def get_form_class(self):
         try:
             the_module, the_form_class = (
@@ -198,6 +229,18 @@ class CreateTicketView(BaseCreateTicketView):
         form.error_css_class = "text-danger"
         return form
 
+    def get_success_url(self):
+        """Redirect back to the homepage with a flag so we can show an inline toast.
+
+        We prefer to show the ticket list on the home page rather than navigating
+        immediately to the ticket public view so users get immediate confirmation
+        and can see their newly created ticket there.
+        """
+        try:
+            return reverse("helpdesk:home") + "?created=1"
+        except Exception:
+            return super().get_success_url()
+
 
 class CreateTicketIframeView(BaseCreateTicketView):
     template_name = "helpdesk/public_create_ticket_iframe.html"
@@ -220,7 +263,86 @@ class Homepage(CreateTicketView):
         context["kb_categories"] = huser_from_request(
             self.request
         ).get_allowed_kb_categories()
+        # Provide the logged-in user's tickets so the public homepage can
+        # render a pre-populated table of their existing tickets.
+        try:
+            user = self.request.user
+            if user.is_authenticated and getattr(user, 'email', None):
+                tickets = Ticket.objects.filter(submitter_email__iexact=user.email).order_by('-created')
+            else:
+                tickets = Ticket.objects.none()
+            context['customer_tickets'] = tickets
+        except Exception:
+            context['customer_tickets'] = Ticket.objects.none()
         return context
+
+
+class PublicUserSettingsView(LoginRequiredMixin, FormView):
+    """Allow non-staff public users to edit their basic profile (username/email).
+
+    Staff users are redirected to the staff EditUserSettingsView.
+    """
+
+    template_name = "helpdesk/public_user_settings.html"
+    form_class = None
+    success_url = reverse_lazy("helpdesk:home")
+
+    def dispatch(self, request, *args, **kwargs):
+        # Staff should continue to use the staff settings view
+        if request.user.is_staff:
+            return staff.EditUserSettingsView.as_view()(request, *args, **kwargs)
+
+        # Lazy import to avoid circular imports at module load
+        # Use the top-level helpdesk.forms module (not helpdesk.views.forms)
+        from helpdesk.forms import PublicUserProfileForm
+
+        self.form_class = PublicUserProfileForm
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        return {
+            "username": self.request.user.username,
+            "email": self.request.user.email,
+            "first_name": self.request.user.first_name,
+            "last_name": self.request.user.last_name,
+        }
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"instance": self.request.user})
+        return kwargs
+
+    def form_valid(self, form):
+        form.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class AdaptivePasswordChangeView(LoginRequiredMixin, PasswordChangeView):
+    """PasswordChangeView that uses `public_base.html` for non-staff users so
+    the sidebar is not shown for customers.
+    """
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        # Choose base template: staff keep the normal admin base; public users get public_base
+        if self.request.user.is_staff:
+            ctx["base_template"] = "helpdesk/base.html"
+        else:
+            ctx["base_template"] = "helpdesk/public_base.html"
+        # Provide a page-scoped modified help_text for new_password1 so templates
+        # can alter wording without using unsupported template filters.
+        try:
+            form = ctx.get('form', None)
+            if form and hasattr(form, 'fields') and 'new_password1' in form.fields:
+                original = form.fields['new_password1'].help_text
+                if original:
+                    # Replace only the English prefix; this is page-local and
+                    # avoids touching translations globally.
+                    ctx['new_password1_help_text'] = original.replace('Your password', 'Password')
+        except Exception:
+            # Silently ignore any unexpected issues when computing help text
+            pass
+        return ctx
 
 
 class SearchForTicketView(TemplateView):

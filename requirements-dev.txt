@@ -3,3 +3,6 @@ ruff
 pycodestyle
 isort
 freezegun
+# Pin setuptools to avoid pkg_resources deprecation (used by some third-party packages)
+# setuptools 81+ removes pkg_resources API which some deps still import; pin until deps updated.
+setuptools<81

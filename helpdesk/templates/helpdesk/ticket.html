@@ -282,9 +282,14 @@
 
 
 {% block helpdesk_js %}
+<div id="checklist-alert" style="display:none">{% trans "If you want to update state of checklist tasks, please do a Follow-Up response and click on Update checklists" %}</div>
 <script type='text/javascript' language='javascript'>
 $( function() {
-        $( "#id_due_date" ).datepicker({dateFormat: 'yy-mm-dd'});
+        try {
+            if (!window.HELPDESK_DISABLE_LEGACY_DATEPICKER) {
+                $( "#id_due_date" ).datepicker({dateFormat: 'yy-mm-dd'});
+            }
+        } catch (e) { /* ignore */ }
 } );
 </script>
 
@@ -316,9 +321,11 @@ $( function() {
           }
       })
 
-      $('.disabledTask').on('click', () => {
-          alert('{% trans 'If you want to update state of checklist tasks, please do a Follow-Up response and click on "Update checklists"' %}')
-      })
+      $('.disabledTask').on('click', function() {
+          var el = document.getElementById('checklist-alert');
+          var msg = (el && el.textContent) ? el.textContent.trim() : 'If you want to update state of checklist tasks, please do a Follow-Up response and click on Update checklists';
+          alert(msg);
+      });
 
       $("[data-toggle=tooltip]").tooltip();
 

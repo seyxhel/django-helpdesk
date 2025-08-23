@@ -1,0 +1,89 @@
+{% extends "admin/change_form.html" %}
+{% load i18n static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+  .email-panel { border: 1px solid #eee; padding: 12px; margin: 8px 0; border-radius:6px; background:#fafafa; }
+  .advanced { display:none; }
+  .test-result { margin-top:8px; font-weight:600; }
+</style>
+<script>
+(function(){
+  function qs(s){return document.querySelector(s)}
+  function qsa(s){return Array.prototype.slice.call(document.querySelectorAll(s))}
+
+  function setPortDefaults(){
+    var type = qs('#id_email_box_type').value;
+    var ssl = qs('#id_email_box_ssl').checked;
+    var port = '';
+    if(type === 'imap'){
+      port = ssl ? '993' : '143';
+    } else if(type === 'pop3'){
+      port = ssl ? '995' : '110';
+    }
+    if(port && qs('#id_email_box_port').value.trim() === ''){
+      qs('#id_email_box_port').value = port;
+    }
+  }
+
+  function toggleEmailPanel(){
+    var allow = qs('#id_allow_email_submission').checked;
+    var panel = qs('#email-panel');
+    if(panel){ panel.style.display = allow ? 'block' : 'none'; }
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    // initial state
+    try{ setPortDefaults(); }catch(e){}
+    try{ toggleEmailPanel(); }catch(e){}
+
+    var emailToggle = qs('#id_allow_email_submission');
+    if(emailToggle) emailToggle.addEventListener('change', toggleEmailPanel);
+
+    var typeSel = qs('#id_email_box_type');
+    var sslChk = qs('#id_email_box_ssl');
+    if(typeSel) typeSel.addEventListener('change', setPortDefaults);
+    if(sslChk) sslChk.addEventListener('change', setPortDefaults);
+
+    // Test mailbox button
+    var testBtn = qs('#test-mailbox-btn');
+    if(testBtn){
+      testBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        var url = '{% url "admin:helpdesk_queue_test_mailbox" %}';
+        var params = new URLSearchParams();
+        ['email_box_type','email_box_host','email_box_port','email_box_ssl','email_box_user','email_box_pass','email_box_imap_folder','email_box_local_dir'].forEach(function(id){
+          var el = qs('#id_'+id);
+          if(!el) return;
+          if(el.type === 'checkbox') params.append(id, el.checked ? '1' : '0');
+          else params.append(id, el.value);
+        });
+        testBtn.disabled = true;
+        var resultEl = qs('#test-result');
+        resultEl.textContent = 'Testing...';
+        fetch(url, {method:'POST', body: params, headers: {'X-Requested-With':'XMLHttpRequest', 'X-CSRFToken': (qs('input[name=csrfmiddlewaretoken]')||{value:''}).value}})
+          .then(function(r){ return r.json(); })
+          .then(function(data){
+            if(data && data.ok){ resultEl.textContent = data.message; resultEl.style.color = 'green'; }
+            else { resultEl.textContent = data.message || 'Failed'; resultEl.style.color = 'red'; }
+          }).catch(function(err){ resultEl.textContent = String(err); resultEl.style.color = 'red'; })
+          .finally(function(){ testBtn.disabled = false; });
+      });
+    }
+  });
+})();
+</script>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+<div id="email-panel" class="email-panel">
+  <h3>{% trans "Email settings (visible when Allow E-Mail Submission is checked)" %}</h3>
+  <p class="help">{% trans "Use the Test button to validate mailbox connection settings." %}</p>
+  <p>
+    <button id="test-mailbox-btn" class="default">{% trans "Test mailbox" %}</button>
+    <span id="test-result" class="test-result"></span>
+  </p>
+</div>
+{% endblock %}

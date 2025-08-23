@@ -133,7 +133,9 @@ urlpatterns += [
     path("saved-searches/", staff.saved_searches_list, name="saved_searches_list"),
     path("save_query/", staff.save_query, name="savequery"),
     path("delete_query/<int:pk>/", staff.delete_saved_query, name="delete_query"),
-    path("settings/", staff.EditUserSettingsView.as_view(), name="user_settings"),
+    # User settings: staff continue to use the staff EditUserSettingsView; public users
+    # are handled by PublicUserSettingsView which lives in public.py.
+    path("settings/", public.PublicUserSettingsView.as_view(), name="user_settings"),
     path("ignore/", staff.email_ignore, name="email_ignore"),
     path("ignore/add/", staff.email_ignore_add, name="email_ignore_add"),
     path("ignore/delete/<int:id>/", staff.email_ignore_del, name="email_ignore_del"),
@@ -245,18 +247,12 @@ urlpatterns += [
     path("remember_credentials/", login.remember_credentials, name="remember_credentials"),
     path(
         "password_change/",
-        auth_views.PasswordChangeView.as_view(
+        public.AdaptivePasswordChangeView.as_view(
             template_name="helpdesk/registration/change_password.html",
-            success_url="/password_change/done",
+            # redirect back to the same page with a flag so we can show an inline toast
+            success_url="/password_change/?changed=1",
         ),
         name="password_change",
-    ),
-    path(
-        "password_change/done",
-        auth_views.PasswordChangeDoneView.as_view(
-            template_name="helpdesk/registration/change_password_done.html",
-        ),
-        name="password_change_done",
     ),
 ]
 

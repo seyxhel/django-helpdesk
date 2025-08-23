@@ -14,14 +14,7 @@
 <body id="bg-dark">
 
 {% block header %}
-    <!-- Slim header for public/auth pages -->
-    <div class="container-fluid px-0" style="background-color: #0b1333;">
-        <div class="row align-items-center" style="min-height: 50px;">
-            <div class="col-12" style="display:flex; align-items:center; justify-content:center;">
-                <a href="/" style="color:#fff; text-decoration:none; font-weight:600;">PrimeDesk</a>
-            </div>
-        </div>
-    </div>
+    {% include 'helpdesk/navigation-header.html' %}
 {% endblock %}
 
         <div id="wrapper">

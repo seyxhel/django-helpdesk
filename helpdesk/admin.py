@@ -27,6 +27,115 @@ if helpdesk_settings.HELPDESK_KB_ENABLED:
 class QueueAdmin(admin.ModelAdmin):
     list_display = ("title", "slug", "email_address", "locale", "time_spent")
     prepopulated_fields = {"slug": ("title",)}
+    change_form_template = "admin/helpdesk/queue/change_form.html"
+
+    fieldsets = (
+        (None, {"fields": ("title", "slug", "default_owner", "allow_public_submission", "email_address", "escalate_days")} ),
+        ("Advanced options", {
+            "classes": ("collapse",),
+            "fields": (
+                "locale",
+                "allow_email_submission",
+                "new_ticket_cc",
+                "updated_ticket_cc",
+                "enable_notifications_on_email_events",
+                "email_box_type",
+                "email_box_host",
+                "email_box_port",
+                "email_box_ssl",
+                "email_box_user",
+                "email_box_pass",
+                "email_box_imap_folder",
+                "email_box_local_dir",
+                "email_box_interval",
+                "socks_proxy_type",
+                "socks_proxy_host",
+                "socks_proxy_port",
+                "logging_type",
+                "logging_dir",
+                "dedicated_time",
+            ),
+        }),
+    )
+
+    def get_urls(self):
+        from django.urls import path
+
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "test-mailbox/",
+                self.admin_site.admin_view(self.test_mailbox_view),
+                name="helpdesk_queue_test_mailbox",
+            ),
+        ]
+        return custom_urls + urls
+
+    def test_mailbox_view(self, request):
+        """AJAX endpoint to validate mailbox settings provided in the form."""
+        from django.http import JsonResponse
+
+        # read params from POST or GET
+        data = request.POST or request.GET
+        box_type = data.get("email_box_type")
+        host = data.get("email_box_host")
+        port = data.get("email_box_port")
+        ssl_flag = data.get("email_box_ssl") in ("True", "true", "1", "on")
+        user = data.get("email_box_user")
+        pwd = data.get("email_box_pass")
+        imap_folder = data.get("email_box_imap_folder")
+        local_dir = data.get("email_box_local_dir")
+
+        # Basic validation
+        if not box_type:
+            return JsonResponse({"ok": False, "message": "Missing email box type"})
+
+        try:
+            if box_type == "imap" or box_type == "oauth":
+                import imaplib
+
+                if ssl_flag:
+                    M = imaplib.IMAP4_SSL(host, int(port) if port else None)
+                else:
+                    M = imaplib.IMAP4(host, int(port) if port else None)
+                if user:
+                    M.login(user, pwd or "")
+                if imap_folder:
+                    typ, data = M.select(imap_folder)
+                    if typ != "OK":
+                        M.logout()
+                        return JsonResponse({"ok": False, "message": f"Failed to select folder '{imap_folder}'"})
+                M.logout()
+                return JsonResponse({"ok": True, "message": "IMAP connection successful"})
+
+            elif box_type == "pop3":
+                import poplib
+
+                if ssl_flag:
+                    p = poplib.POP3_SSL(host, int(port) if port else None)
+                else:
+                    p = poplib.POP3(host, int(port) if port else None)
+                if user:
+                    p.user(user)
+                    p.pass_(pwd or "")
+                p.quit()
+                return JsonResponse({"ok": True, "message": "POP3 connection successful"})
+
+            elif box_type == "local":
+                import os
+
+                if not local_dir:
+                    return JsonResponse({"ok": False, "message": "Local directory not specified"})
+                if not os.path.isdir(local_dir):
+                    return JsonResponse({"ok": False, "message": "Local directory does not exist"})
+                if not os.access(local_dir, os.R_OK):
+                    return JsonResponse({"ok": False, "message": "Local directory is not readable"})
+                return JsonResponse({"ok": True, "message": "Local directory is accessible"})
+
+            else:
+                return JsonResponse({"ok": False, "message": "Unknown mailbox type"})
+        except Exception as e:
+            return JsonResponse({"ok": False, "message": str(e)})
 
     def time_spent(self, q):
         if q.dedicated_time:

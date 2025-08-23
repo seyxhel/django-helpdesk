@@ -69,13 +69,7 @@
         </li>
         {% endif %}
     {% else %}
-        {# Public menu #}
-        <li class="nav-item{% if request.path == '/' %} active{% endif %}">
-          <a class="nav-link" href="{% url 'helpdesk:home' %}">
-            <i class="fas fa-fw fa-home"></i>
-            <span>{% trans "Homepage" %}</span>
-          </a>
-        </li>
+        {# Public menu: remove Homepage and reorder for regular users #}
         {% if user.is_authenticated %}
         <li class="nav-item{% if 'my-tickets' in request.path %} active{% endif %}">
             <a class="nav-link" href="{% url 'helpdesk:my-tickets' %}">
@@ -83,8 +77,15 @@
                 <span>{% trans "My Tickets" %}</span>
             </a>
         </li>
-
         {% endif %}
+
+        <li class="nav-item{% if 'submit' in request.path %} active{% endif %}">
+          <a class="nav-link" href="{% url 'helpdesk:submit' %}">
+            <i class="fas fa-fw fa-plus-circle"></i>
+            <span>{% trans "New Ticket" %}</span>
+          </a>
+        </li>
+
         {% if helpdesk_settings.HELPDESK_KB_ENABLED %}
         <li class="nav-item{% if 'kb' in request.path %} active{% endif %}">
           <a class="nav-link" href="{% url 'helpdesk:kb_index' %}">
@@ -94,8 +95,12 @@
         </li>
         {% endif %}
     {% endif %}
-    </ul>
-    <script>
+  </ul>
+
+  {# Page-specific sidebar content can be injected by templates using this block. #}
+  {% block helpdesk_sidebar %}{% endblock %}
+
+  <script>
     (function(){
       var sidebar = document.getElementById('helpdesk-sidebar');
       if(!sidebar) return;
