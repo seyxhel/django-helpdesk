@@ -1,0 +1,25 @@
+name: CI - Docker build
+
+on:
+  push:
+    branches: [ release ]
+  pull_request:
+    branches: [ release ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (validate Dockerfile.railway)
+        run: |
+          docker build --progress=plain -f Dockerfile.railway -t django-helpdesk:railway .
+
+      - name: Inspect image
+        run: |
+          docker images --format "{{.Repository}}:{{.Tag}}\t{{.Size}}"
