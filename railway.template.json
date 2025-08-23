@@ -1,0 +1,44 @@
+{
+  "project": {
+    "name": "django-helpdesk-release-template",
+    "description": "Template for deploying django-helpdesk backend (and optional frontend) to Railway.\nWARNING: this template contains NO SECRETS. Fill env variables in Railway UI after import."
+  },
+  "services": [
+    {
+      "name": "backend",
+      "type": "docker",
+      "dockerfilePath": "Dockerfile.railway",
+      "build": {
+        "command": "docker build -f Dockerfile.railway -t $RAILWAY_SERVICE_NAME ."
+      },
+      "run": {
+        "command": "",
+        "port": 8000
+      },
+      "healthcheck": {
+        "path": "/healthz",
+        "method": "GET",
+        "port": 8000
+      },
+      "env": [
+        {"key": "DJANGO_HELPDESK_SECRET_KEY", "value": "<set in Railway UI>"},
+        {"key": "DATABASE_URL", "value": "<set by attaching postgres plugin or set DATABASE_PUBLIC_URL>"},
+        {"key": "DJANGO_HELPDESK_ALLOWED_HOSTS", "value": "*"},
+        {"key": "DEFAULT_FROM_EMAIL", "value": "admin@example.com"}
+      ],
+      "plugins": [
+        {
+          "type": "postgres",
+          "name": "postgres",
+          "description": "Attach an existing Postgres plugin or add a new one and then set DATABASE_URL/DATABASE_PUBLIC_URL in environment variables."
+        }
+      ]
+    },
+    {
+      "name": "frontend",
+      "type": "static",
+      "description": "Optional frontend service. Configure build and publish settings as needed.",
+      "env": []
+    }
+  ]
+}

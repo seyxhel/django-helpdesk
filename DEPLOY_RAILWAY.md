@@ -59,5 +59,8 @@ Troubleshooting
 Security
 - Do not commit secrets. Use Railway's environment variables UI to store secrets.
 
-That's it — if you'd like, I can add a `railway.json` export to preconfigure services,
-or add a small `healthz` endpoint used by Railway for healthchecks.
+Template: `railway.template.json`
+--------------------------------
+I added `railway.template.json` to the repo which you can import into Railway as
+a starting point. The template intentionally omits secrets — after import, set
+the environment variables and attach the Postgres plugin.
