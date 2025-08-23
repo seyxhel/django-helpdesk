@@ -229,6 +229,18 @@ class CreateTicketView(BaseCreateTicketView):
         form.error_css_class = "text-danger"
         return form
 
+    def get_success_url(self):
+        """Redirect back to the homepage with a flag so we can show an inline toast.
+
+        We prefer to show the ticket list on the home page rather than navigating
+        immediately to the ticket public view so users get immediate confirmation
+        and can see their newly created ticket there.
+        """
+        try:
+            return reverse("helpdesk:home") + "?created=1"
+        except Exception:
+            return super().get_success_url()
+
 
 class CreateTicketIframeView(BaseCreateTicketView):
     template_name = "helpdesk/public_create_ticket_iframe.html"

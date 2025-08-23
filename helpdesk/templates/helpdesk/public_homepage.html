@@ -89,6 +89,70 @@
                     </div>
                 </div>
         </div>
+
+    <!-- Success overlay (hidden by default). Shown when URL ?created=1 -->
+    <div id="ticket-success-overlay" aria-hidden="true" style="display:none; position:fixed; inset:0; z-index:1200; align-items:center; justify-content:center;">
+        <div id="ticket-success-backdrop" style="background: rgba(0,0,0,0.4); position:absolute; inset:0;"></div>
+        <div style="position:relative; z-index:1201; display:flex; align-items:center; justify-content:center;">
+            <div id="ticket-success-card" role="status" aria-live="polite" style="width:420px; max-width:94vw; background:#fff; border-radius:12px; padding:28px; box-shadow:0 10px 40px rgba(0,0,0,0.2); text-align:center; transition: transform 250ms ease, opacity 250ms ease;">
+                <!-- animated check circle -->
+                <svg width="84" height="84" viewBox="0 0 120 120" style="display:block;margin:0 auto 12px auto;">
+                    <circle cx="60" cy="60" r="48" stroke="#0f9d58" stroke-width="6" fill="none" stroke-dasharray="302" stroke-dashoffset="302">
+                        <animate attributeName="stroke-dashoffset" from="302" to="0" dur="0.45s" fill="freeze" />
+                    </circle>
+                    <path d="M40 62 L54 76 L82 46" stroke="#0f9d58" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0">
+                        <animate attributeName="opacity" from="0" to="1" begin="0.4s" dur="0.15s" fill="freeze" />
+                    </path>
+                </svg>
+                <h2 style="margin:0 0 8px 0; font-size:20px;">Success!</h2>
+                <p id="ticket-success-text" style="margin:0; color:#444;">Ticket created. Please check your email.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Show the same centered success overlay used on the password-change page when
+    // the page loads with ?created=1. After showing it briefly, remove the query
+    // param and reload so the newly created ticket appears in the ticket list.
+    (function(){
+        function showTicketSuccess() {
+            var overlay = document.getElementById('ticket-success-overlay');
+            var card = document.getElementById('ticket-success-card');
+            if(!overlay || !card) return;
+            overlay.style.display = 'flex';
+            overlay.setAttribute('aria-hidden','false');
+            // animate in
+            card.style.transform = 'translateY(-6px)';
+            card.style.opacity = '1';
+            // after short delay, remove the query param and reload to reflect new ticket
+            setTimeout(function(){
+                try {
+                    var url = new URL(window.location.href);
+                    url.searchParams.delete('created');
+                    window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+                } catch (e) {
+                    // ignore
+                }
+                // reload to fetch updated ticket list
+                window.location.reload();
+            }, 1400);
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){
+            try {
+                var params = new URLSearchParams(window.location.search);
+                if (params.get('created') === '1') {
+                    showTicketSuccess();
+                }
+            } catch (e) {
+                // fallback naive check for older browsers
+                if (window.location.search && window.location.search.indexOf('created=1') !== -1) {
+                    showTicketSuccess();
+                }
+            }
+        });
+    })();
+    </script>
     </div>
 {% endblock %}
 
