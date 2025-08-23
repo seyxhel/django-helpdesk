@@ -10,67 +10,168 @@
 {% endblock %}
 
 {% block helpdesk_head %}
+  {# Load fonts used on this page: Montserrat for headers, Poppins for buttons, Roboto for normal text #}
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Poppins:wght@400;500;600&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 {% endblock %}
 
 {% block helpdesk_body %}
-    <div class="container">
-        <div class="card card-register mx-auto mt-5">
-            <div class="card-header">{% trans "Submit a Ticket" %}</div>
-            <div class="card-body">
-                <p>
-                    {% trans "Unless otherwise stated, all fields are required." %}
-                    {% trans "Please provide as descriptive a title and description as possible." %}
-                </p>
+<style>
+  /* Page-level font stack */
+  html, body { font-family: "Roboto", Arial, sans-serif; }
 
-                {% if form.errors %}
-                    {% include 'helpdesk/include/alert_form_errors.html' %}
-                {% endif %}
+  /* Match the compact professional "change password" style */
+  .ticket-create-wrapper { display:flex; justify-content:center; padding:36px 16px; }
+  .ticket-create-card {
+    width:100%;
+    max-width:800px;
+    border-radius:12px;
+    box-shadow: 0 8px 30px rgba(15,23,42,0.08);
+    border: 1px solid rgba(15,43,68,0.06);
+    overflow: hidden;
+    background: linear-gradient(180deg,#ffffff,#fbfeff);
+    /* ensure body text uses Roboto */
+    font-family: "Roboto", Arial, sans-serif;
+  }
+  .ticket-create-card .card-header {
+    display:flex;
+    gap:14px;
+    align-items:center;
+    padding:20px 22px;
+    /* make header visually part of the same card (no divider) */
+    background: linear-gradient(180deg,#ffffff,#fbfeff);
+    border-bottom: none; /* removed divider */
+  }
+  /* ensure body sits flush with header */
+  .ticket-create-card .card-body {
+    padding:20px 22px 26px;
+    background: transparent;
+    font-size:13px; /* <- enforced */
+    margin-top: 0;
+  }
+  /* remove any border shown by Bootstrap between header/body */
+  .ticket-create-card .card-header + .card-body { border-top: none; }
 
-                <form method='post' enctype='multipart/form-data'>
-                    {% csrf_token %}
-                    {% for field in form %}
-                        {% if field.is_hidden %}
-                            {{ field }}
-                        {% else %}
-                            <div class="form-group">
-                                <label for='id_{{ field.name }}'>
-                                    {{ field.label }}
-                                    {% if not field.field.required %}
-                                        ({% trans "Optional" %})
-                                    {% endif %}
-                                </label>
-                                {{ field }}
-                                {% if field.errors %}
-                                    <small class='error'>{{ field.errors }}</small>
-                                {% endif %}
-                                {% if field.help_text %}
-                                    <small class='form_help_text help-block'>{% trans field.help_text %}</small>
-                                {% endif %}
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-                    <button type="submit" class="btn btn-primary btn-lg btn-block">
-                        <i class="fa fa-send"></i> {% trans "Submit Ticket" %}
-                    </button>
-                </form>
-            </div>
-        </div>
+  .ticket-create-card .card-header .icon {
+    width:44px; height:44px; border-radius:10px;
+    background: linear-gradient(180deg,#f0f6ff,#e8f0ff);
+    display:flex; align-items:center; justify-content:center;
+    color: #0b57d0; font-size:18px;
+    box-shadow: inset 0 -2px 0 rgba(11,87,208,0.06);
+  }
+  .ticket-create-card .card-header .titles { line-height:1; }
+  /* header uses Montserrat */
+  .ticket-create-card .card-header .titles .title {
+    font-family: "Montserrat", sans-serif;
+    font-weight:700;
+    font-size:18px;
+    color:#0f2b44;
+  }
+  .ticket-create-card .card-header .titles .subtitle {
+    font-family: "Roboto", Arial, sans-serif;
+    font-size:13px;
+    color:#6c7783;
+    margin-top:4px;
+  }
+
+  /* Set card body content to 13px */
+  .ticket-create-card .card-body {
+    padding:20px 22px 26px;
+    background:transparent;
+    font-size:13px; /* <- enforced */
+  }
+  .ticket-create-card .form-group { margin-bottom:14px; }
+  .ticket-create-card label {
+    font-weight:600;
+    font-size:13px;
+    margin-bottom:6px;
+    display:block;
+    color:#0f2b44;
+    font-family: "Roboto", Arial, sans-serif;
+  }
+  .ticket-create-card .form-control, .ticket-create-card textarea, .ticket-create-card select {
+    padding:10px 12px; border-radius:8px; border:1px solid #e6eef6; background:#fff; font-size:13px;
+    font-family: "Roboto", Arial, sans-serif;
+  }
+  .ticket-create-card .form-help { font-size:12px; color:#6c757d; margin-top:6px; font-family: "Roboto", Arial, sans-serif; }
+  .ticket-create-card .error { color:#b02a37; font-size:13px; margin-top:6px; font-family: "Roboto", Arial, sans-serif; }
+  .ticket-create-card .submit-row { display:flex; justify-content:center; padding-top:6px; }
+  /* buttons use Poppins and submit button font-size 13px */
+  .ticket-create-card .btn, .ticket-create-card .btn-submit {
+    font-family: "Poppins", sans-serif;
+    font-weight:500;
+    font-size:13px; /* <- enforced for buttons */
+  }
+  .ticket-create-card .btn-submit {
+    width:100%; max-width:320px; border-radius:10px; padding:10px 14px;
+  }
+
+  @media (max-width:576px){
+    .ticket-create-card { border-radius:10px; }
+    .ticket-create-card .card-header { padding:16px; }
+    .ticket-create-card .card-body { padding:16px; }
+  }
+</style>
+
+<div class="ticket-create-wrapper">
+  <div class="card ticket-create-card" role="region" aria-labelledby="create-ticket-heading">
+    <div class="card-header">
+      <div class="titles">
+        <div id="create-ticket-heading" class="title">{% trans "Submit a Ticket" %}</div>
+        <div class="subtitle d-none d-sm-block">{% trans "Unless otherwise stated, all fields are required. Please provide as descriptive a title and description as possible." %}</div>
+      </div>
     </div>
 
+    <div class="card-body">
+      {% if form.errors %}
+        {% include 'helpdesk/include/alert_form_errors.html' %}
+      {% endif %}
+
+      <form method='post' enctype='multipart/form-data' novalidate>
+        {% csrf_token %}
+        <div class="container-fluid">
+          <div class="row">
+            {% for field in form %}
+              {% if field.is_hidden %}
+                {{ field }}
+              {% else %}
+                <div class="form-group col-12">
+                  <label for="id_{{ field.name }}">{{ field.label }}{% if not field.field.required %} <small class="text-muted">({% trans "Optional" %})</small>{% endif %}</label>
+                  {{ field }}
+                  {% if field.help_text %}
+                    <div class="form-help">{{ field.help_text|safe }}</div>
+                  {% endif %}
+                  {% if field.errors %}
+                    <div class="error">{{ field.errors|striptags }}</div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+
+          <div class="row mt-3">
+            <div class="col-12 col-md-8 offset-md-2 submit-row">
+              <button type="submit" class="btn btn-primary btn-submit">
+                <i class="fa fa-paper-plane mr-1" aria-hidden="true"></i> {% trans "Submit Ticket" %}
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
 {% endblock %}
 
 {% block helpdesk_js %}
     {{ form.media.js }}
     <script>
-        // this function listens for changes on any file input, and
-        // emits the appropriate event to update the input's text.
-        // Needed to have properly styled file input buttons! (this really shouldn't be this hard...)
+        // Keep existing file-input label helper
         $(document).on('change', ':file', function () {
             const input = $(this),
-                inputWidgetNum = $(this).attr('id').split("file")[1],
                 numFiles = input.get(0).files ? input.get(0).files.length : 1,
                 label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
-            input.trigger('fileselect', [numFiles, label, inputWidgetNum]);
+            input.trigger('fileselect', [numFiles, label]);
         });
     </script>
 {% endblock %}

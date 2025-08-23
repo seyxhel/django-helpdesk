@@ -2,6 +2,515 @@
 {% load static %}
 {% load helpdesk_util %}
 
+<style>
+  /* Typography tokens */
+  :root{
+  --font-base: "Roboto", Arial, sans-serif;
+  --font-heading: "Montserrat", sans-serif;
+  --font-button: "Poppins", sans-serif;
+  --muted: #6c7783;
+  --accent: #0b57d0;
+  --card-radius: 12px;
+  --card-border: rgba(15,43,68,0.06);
+  --bg-gradient: linear-gradient(180deg,#ffffff,#fbfeff);
+
+  /* Button tokens */
+  --btn-radius: 8px;
+  --btn-font-size: 11px;
+  --btn-height: 34px; /* visual height for btn / btn-sm */
+  --btn-padding-x: 10px;
+  --btn-gap: 8px;
+}
+
+  /* Card surface */
+  .card.mb-3 {
+    border-radius: var(--card-radius);
+    border: 1px solid var(--card-border);
+    background: var(--bg-gradient);
+    box-shadow: 0 8px 30px rgba(15,23,42,0.04);
+    overflow: hidden;
+    font-family: var(--font-base);    /* make Roboto the default inside the card */
+    color: #0f2b44;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Card body: unified surface, content sized at 13px */
+  .card.mb-3 > .card-body {
+    padding: 20px;
+    font-size: 13px; /* enforced card content size */
+    line-height: 1.45;
+    background: transparent;
+  }
+
+  /* Table container: subtle inset panel with rounded corners */
+  .card.mb-3 .table-responsive {
+    background: #ffffff;
+    border: 1px solid rgba(15,43,68,0.03);
+    border-radius: 10px;
+    padding: 12px;            /* a little more breathing room */
+    box-shadow: 0 2px 10px rgba(15,23,42,0.03);
+    overflow: auto;
+    font-family: var(--font-base); /* ensure consistent font inside the table panel */
+  }
+
+  /* Table tuning for clarity and readability */
+  .card.mb-3 .table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    margin-bottom: 0;
+    font-size: 13px;
+    color: #0f2b44;
+    font-family: var(--font-base);
+  }
+
+  /* Heading/title inside table — use Montserrat */
+  .card.mb-3 .table h3,
+  .card.mb-3 .table h4 {
+    margin: 0 0 6px 0;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 18px;
+    color: #0f2b44;
+  }
+
+  /* H4 used for description heading */
+  .card.mb-3 #ticket-description h4,
+  .card.mb-3 h4 {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  /* Table headers */
+  .card.mb-3 .table thead th {
+    background: transparent;
+    border-bottom: 1px solid rgba(15,43,68,0.06);
+    padding: 10px 12px;
+    font-weight: 700;
+    color: #0f2b44;
+    text-align: left;
+    font-family: var(--font-base);
+  }
+
+  /* Table body cells */
+  .card.mb-3 .table tbody td,
+  .card.mb-3 .table tbody th {
+    padding: 10px 12px;
+    vertical-align: middle;
+    background: transparent;
+    font-family: var(--font-base);
+    font-size: 13px;
+  }
+
+  /* Emphasised label cells */
+  .card.mb-3 .table .table-active {
+    background: linear-gradient(180deg,#fbfeff,#ffffff);
+    color: var(--accent);
+    font-weight: 600;
+    font-family: var(--font-base);
+  }
+
+  /* Links, small text and lists inside the card use base font */
+  .card.mb-3 a,
+  .card.mb-3 small,
+  .card.mb-3 .text-muted,
+  .card.mb-3 ul,
+  .card.mb-3 p {
+    font-family: var(--font-base);
+    color: #0f2b44;
+  }
+
+  /* Buttons: consistent size, radius, and icon alignment */
+  .ticket_toolbar .btn,
+  .card.mb-3 .btn,
+  .card.mb-3 .btn-sm,
+  .card.mb-3 .input-group-append .btn {
+    font-family: var(--font-button);
+    font-weight: 400 !important;              /* not bold */
+    font-size: var(--btn-font-size) !important;
+    height: var(--btn-height);
+    min-height: var(--btn-height);
+    line-height: 1;
+    border-radius: var(--btn-radius) !important;
+    padding: 0 var(--btn-padding-x) !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+  }
+
+  /* Make sure small variant visually matches height but uses slightly smaller padding */
+  .card.mb-3 .btn-sm {
+    padding: 0 8px !important;
+    height: var(--btn-height);
+    min-height: var(--btn-height);
+  }
+
+  /* Icon sizing / spacing inside buttons */
+  .ticket_toolbar .btn i,
+  .card.mb-3 .btn i {
+    font-family: "Font Awesome 5 Free", "Font Awesome 6 Free", var(--font-button);
+    font-weight: 900;
+    font-size: 13px;
+    line-height: 1;
+    vertical-align: middle;
+    margin: 0;
+    display: inline-block;
+  }
+
+  /* Remove inconsistent float spacing and rely on flex gaps */
+  .card.mb-3 .btn + .btn,
+  .ticket_toolbar .btn + .btn {
+    margin-left: 0;
+  }
+
+  /* Keep comfortable spacing between groups via gap */
+  /* tighten gap for small clusters (2-3 buttons) */
+  .card.mb-3 .btn-group,
+  .card.mb-3 .ticket_toolbar .btn-group,
+  .ticket_toolbar .btn-group,
+  .card.mb-3 .btn-toolbar,
+  .card.mb-3 .d-flex > .btn-group {
+    gap: 5px; /* reduced gap for compact clusters */
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* fallback for adjacent buttons not wrapped in a .btn-group */
+  .card.mb-3 .btn + .btn,
+  .ticket_toolbar .btn + .btn {
+    margin-left: 5px;
+  }
+
+  /* Ensure action buttons inside table cells don't collapse the row height */
+  .card.mb-3 .table tbody td .btn,
+  .card.mb-3 .table tbody th .btn {
+    vertical-align: middle;
+  }
+
+  /* Example: primary / warning visual polish kept */
+  .card.mb-3 .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(11,87,208,0.06);
+  }
+  .card.mb-3 .btn-warning {
+    background: #f6c84c;
+    border-color: #f6c84c;
+    color: #10223a;
+  }
+
+  /* Responsive tweak: keep buttons tappable on small screens */
+  @media (max-width: 480px) {
+    :root { --btn-height: 36px; }
+    .card.mb-3 .btn { font-size: 12px !important; }
+  }
+
+  /* Remove visible "divider" characters between inline buttons (e.g. the "|" span) */
+  .card.mb-3 span.text-muted.px-1,
+  .card.mb-3 .btn + span.text-muted,
+  .card.mb-3 .btn-divider {
+    display: none !important;
+  }
+
+  /* Specific: make small status messages (like "This ticket does not resolve any other") readable */
+  .card.mb-3 small.p-2 {
+    font-family: var(--font-base);
+    font-size: 13px;
+    color: #4b5563; /* dark gray */
+    font-weight: 400;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 576px) {
+    .card.mb-3 > .card-body { padding: 12px; font-size: 12px; }
+    .card.mb-3 .table thead th,
+    .card.mb-3 .table tbody td { padding: 8px; font-size: 12px; }
+    .ticket_toolbar .btn { padding: 6px 8px; font-size: 12px; }
+    .card.mb-3 .table-responsive { padding: 8px; }
+  }
+
+  /* Followups / markdown content — ensure consistent Roboto text and readable spacing */
+  .card.mb-3 .followup,
+  .card.mb-3 .followup * ,
+  .card.mb-3 .followup-content,
+  .card.mb-3 .markdown,
+  .card.mb-3 .followup-text {
+    font-family: var(--font-base) !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    color: #0f2b44 !important;
+  }
+
+  /* Improve pre/code blocks inside description/followups */
+  .card.mb-3 pre,
+  .card.mb-3 code,
+  .card.mb-3 pre code {
+    font-family: "Roboto Mono", monospace;
+    font-size: 12px;
+    background: #f7f9fb;
+    padding: 8px;
+    border-radius: 6px;
+    overflow: auto;
+  }
+
+  /* Small toolbar refinements */
+  .ticket_toolbar .btn + .btn { margin-left: 8px; }
+
+  /* Header row: center vertically, keep queue under title, toolbar at right */
+  .card.mb-3 .table thead th > .header-content {
+    display: flex;
+    align-items: center;           /* vertical centering */
+    justify-content: space-between;/* left content / right toolbar */
+    gap: 16px;
+  }
+
+  .card.mb-3 .header-left {
+    display: flex;
+    flex-direction: column;        /* stack title + queue */
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .card.mb-3 .header-left h3 {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 18px;
+  }
+
+  .card.mb-3 .ticket-queue {
+    font-family: var(--font-base);
+    font-size: 13px;
+    color: #6c7783;
+    margin: 0;
+  }
+
+  .card.mb-3 .ticket_toolbar {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  @media (max-width: 576px) {
+    .card.mb-3 .table thead th > .header-content {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .card.mb-3 .ticket_toolbar { width: 100%; justify-content: flex-start; }
+  }
+
+  /* Color tokens for action buttons */
+  :root{
+    --btn-edit: #0b5ed7;   /* blue */
+    --btn-delete: #dc3545; /* red */
+    --btn-hold: #f59e0b;   /* orange */
+  }
+
+  /* Edit (blue) */
+  .card.mb-3 a.ticket-edit,
+  .card.mb-3 .ticket-edit {
+    background: var(--btn-edit) !important;
+    border-color: var(--btn-edit) !important;
+    color: #ffffff !important;
+  }
+  .card.mb-3 a.ticket-edit:hover,
+  .card.mb-3 .ticket-edit:hover,
+  .card.mb-3 a.ticket-edit:focus,
+  .card.mb-3 .ticket-edit:focus {
+    filter: brightness(.94);
+    color: #ffffff !important;
+    text-decoration: none;
+  }
+  .card.mb-3 a.ticket-edit i,
+  .card.mb-3 .ticket-edit i { color: #ffffff !important; }
+
+  /* Delete (red) */
+  .card.mb-3 a.ticket-delete,
+  .card.mb-3 .ticket-delete {
+    background: var(--btn-delete) !important;
+    border-color: var(--btn-delete) !important;
+    color: #ffffff !important;
+  }
+  .card.mb-3 a.ticket-delete:hover,
+  .card.mb-3 .ticket-delete:hover {
+    filter: brightness(.94);
+    color: #ffffff !important;
+  }
+  .card.mb-3 a.ticket-delete i,
+  .card.mb-3 .ticket-delete i { color: #ffffff !important; }
+
+  /* On-hold / Unhold (orange) - target buttons inside the ticket-hold form */
+  .card.mb-3 .ticket-hold .btn {
+    background: var(--btn-hold) !important;
+    border-color: var(--btn-hold) !important;
+    color: #ffffff !important;
+  }
+  .card.mb-3 .ticket-hold .btn:hover,
+  .card.mb-3 .ticket-hold .btn:focus {
+    filter: brightness(.94);
+    color: #ffffff !important;
+  }
+  .card.mb-3 .ticket-hold .btn i { color: #ffffff !important; }
+
+  /* Ensure icon-only and mixed-icon buttons keep white icons where appropriate */
+  .card.mb-3 .btn i { color: inherit; }
+
+  /* Position assignment controls flush to the right of the cell */
+.card.mb-3 td form .d-flex.align-items-center {
+  position: relative;
+  width: 100%;
+  align-items: center;
+}
+
+/* Make select take available space but leave room on the right for two buttons */
+.card.mb-3 td form .d-flex .input-group.input-group-sm {
+  width: 100%;
+  max-width: 420px;
+  box-sizing: border-box;
+  position: relative;
+  margin-right: 15px; /* gap between the select and the right-aligned buttons */
+}
+
+/* Ensure select does not underlap the buttons */
+.card.mb-3 td form .d-flex .input-group.input-group-sm .form-control {
+  padding-right: 120px; /* room for both buttons */
+}
+
+/* Place the save (submit) button just left of the self-assign button */
+.card.mb-3 td form .d-flex > button[type="submit"] {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  z-index: 2;
+}
+
+/* Place the self-assign button at the far right */
+.card.mb-3 td form .d-flex > a.btn[href*="?take"] {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  z-index: 2;
+}
+
+/* Remove any pipe / divider spacing that might conflict */
+.card.mb-3 td form .d-flex .text-muted.px-1 { display: none !important; }
+
+/* Small screens: stack controls so they remain usable */
+@media (max-width: 480px) {
+  .card.mb-3 td form .d-flex.align-items-center {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .card.mb-3 td form .d-flex .input-group.input-group-sm,
+  .card.mb-3 td form .d-flex .input-group.input-group-sm .form-control {
+    max-width: 100%;
+    padding-right: 12px;
+    margin-right: 0; /* remove extra right margin on small screens */
+  }
+  .card.mb-3 td form .d-flex > button[type="submit"],
+  .card.mb-3 td form .d-flex > a.btn[href*="?take"] {
+    position: static;
+    transform: none;
+    right: auto;
+  }
+}
+
+/* place immediate small buttons inside a <td> flush to the right, stacked from the right inward */
+.card.mb-3 .table tbody td {
+  position: relative;
+}
+
+/* target only immediate .btn.btn-sm children of td (matches the submitter buttons) */
+.card.mb-3 .table tbody td > a.btn.btn-sm,
+.card.mb-3 .table tbody td > button.btn.btn-sm {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  right: 0; /* default - the last button sits at the very right edge */
+  z-index: 2;
+  /* keep visual consistency with assignment buttons */
+  height: var(--btn-height);
+  font-family: var(--font-button);
+  font-size: var(--btn-font-size) !important;
+  font-weight: 400 !important;
+  border-radius: var(--btn-radius) !important;
+  padding: 0 var(--btn-padding-x) !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+}
+
+/* stack up to three buttons from the right */
+.card.mb-3 .table tbody td > a.btn.btn-sm:nth-last-of-type(1),
+.card.mb-3 .table tbody td > button.btn.btn-sm:nth-last-of-type(1) {
+  right: 0;
+}
+.card.mb-3 .table tbody td > a.btn.btn-sm:nth-last-of-type(2),
+.card.mb-3 .table tbody td > button.btn.btn-sm:nth-last-of-type(2) {
+  right: 44px; /* second button sits 44px from right */
+}
+.card.mb-3 .table tbody td > a.btn.btn-sm:nth-last-of-type(3),
+.card.mb-3 .table tbody td > button.btn.btn-sm:nth-last-of-type(3) {
+  right: 88px; /* third button sits further left */
+}
+
+/* give a small left gap between select/text and the button group */
+.card.mb-3 .table tbody td > a.btn.btn-sm + a.btn.btn-sm,
+.card.mb-3 .table tbody td > a.btn.btn-sm + button.btn.btn-sm,
+.card.mb-3 .table tbody td > button.btn.btn-sm + a.btn.btn-sm {
+  margin-left: 5px;
+}
+
+/* on very small screens revert to flow so buttons are tappable */
+@media (max-width: 480px) {
+  .card.mb-3 .table tbody td {
+    position: static;
+  }
+  .card.mb-3 .table tbody td > a.btn.btn-sm,
+  .card.mb-3 .table tbody td > button.btn.btn-sm {
+    position: static;
+    transform: none;
+    right: auto;
+    top: auto;
+    display: inline-flex;
+    margin-left: 8px;
+  }
+}
+
+/* Checklist button flush to the very right (no right margin/padding) */
+.card.mb-3 .checklist-cell { position: relative; padding-right: 0 !important; }
+.card.mb-3 .checklist-actions-container {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: 0;
+}
+.card.mb-3 .checklist-actions-container .btn {
+  margin: 0;
+  border-radius: var(--btn-radius);
+  height: var(--btn-height);
+  padding: 0 10px;
+}
+</style>
+
 <div class="card mb-3">
     <!--div class="card-header">
         {# trans "Ticket Summary" #}
@@ -12,17 +521,20 @@
                 <thead class="thead-light">
                     <tr class=''>
                         <th colspan='4'>
-                            <h3>{{ ticket.queue.slug }}-{{ ticket.id }}. {{ ticket.title }}</h3>
-                            {% blocktrans with ticket.queue as queue %}Queue: {{ queue }}{% endblocktrans %}
-                            <span class='ticket_toolbar float-right'>
-                                <div class="btn-group" style="gap: 8px;">
-                                    <a href="{% url 'helpdesk:edit' ticket.id %}" class="btn btn-warning btn-sm ticket-edit">
-                                        <i class="fas fa-pencil-alt"></i> {% trans "Edit" %}
-                                    </a>
-                                    | <a href="{% url 'helpdesk:delete' ticket.id %}" class="btn btn-danger btn-sm ticket-delete">
-                                        <i class="fas fa-trash-alt"></i> {% trans "Delete" %}
-                                    </a>
-                                    | {% if ticket.on_hold %}
+                            <div class="header-content">
+                                <div class="header-left">
+                                    <h3>{{ ticket.queue.slug }}-{{ ticket.id }}. {{ ticket.title }}</h3>
+                                    <div class="ticket-queue">{% blocktrans with ticket.queue as queue %}Queue: {{ queue }}{% endblocktrans %}</div>
+                                </div>
+                                <div class='ticket_toolbar'>
+                                    <div class="btn-group" style="gap: 8px;">
+                                     <a href="{% url 'helpdesk:edit' ticket.id %}" class="btn btn-warning btn-sm ticket-edit">
+                                         <i class="fas fa-pencil-alt"></i> {% trans "Edit" %}
+                                     </a>
+                                     <a href="{% url 'helpdesk:delete' ticket.id %}" class="btn btn-danger btn-sm ticket-delete">
+                                         <i class="fas fa-trash-alt"></i> {% trans "Delete" %}
+                                     </a>
+                                    {% if ticket.on_hold %}
                                         <form class="form-inline ticket-hold" method='post' action='unhold/'>
                                             {% csrf_token %}
                                             <button class="btn btn-warning btn-sm" type='submit'>
@@ -37,10 +549,11 @@
                                             </button>
                                         </form>
                                     {% endif %}
+                                    </div>
                                 </div>
-                            </span>
-                        </th>
-                    </tr>
+                            </div>
+                         </th>
+                     </tr>
                 </thead>
                 <tbody>
                     {% for customfield in ticket.ticketcustomfieldvalue_set.all %}
@@ -100,15 +613,12 @@
                                             {% endfor %}
                                         </select>
 
-                                        <div class="input-group-append">
-                                            <button class="btn btn-primary btn-sm" type="submit" data-toggle="tooltip"
-                                                    title="{% trans 'Save ticket assignment' %}">
-                                                <i class="fas fa-user-check"></i>
-                                            </button>
-                                        </div>
                                     </div>
 
-                                    <span class="text-muted px-1">|</span>
+                                    <button class="btn btn-primary btn-sm" type="submit" data-toggle="tooltip"
+                                        title="{% trans 'Save ticket assignment' %}">
+                                        <i class="fas fa-user-check"></i>
+                                    </button>
 
                                     <!-- self assign hand -->
                                     <a class="btn btn-primary btn-sm" data-toggle="tooltip" href="?take"
@@ -170,9 +680,6 @@
 		    <tr>
 			<th class="table-active">
 			    {% trans "Resolves" %}
-			    <a data-toggle='tooltip' href='{% url 'helpdesk:ticket_resolves_add' ticket.id %}'
-			       title='{% trans "Make this ticket resolve another ticket." %}'>
-				<button type="button" class="btn btn-primary btn-sm float-right"><i class="fas fa-link"></i></button></a>
 			</th>
 			<td colspan="3" class="p-0">
 			    {% for resolves in ticket.depends_on.all %}
@@ -191,16 +698,15 @@
 				{% if forloop.last %}</table>{% endif %}
 			    {% empty %}
 			    <small class="p-2">{% trans "This ticket does not resolve any other" %}</small>
+                <a data-toggle='tooltip' href='{% url 'helpdesk:ticket_resolves_add' ticket.id %}'
+			    title='{% trans "Make this ticket resolve another ticket." %}'>
+				<button type="button" class="btn btn-primary btn-sm float-right"><i class="fas fa-link"></i></button></a>
 			    {% endfor %}
 			</td>
 		    </tr>
 		    <tr>
 			<th class="table-active">
 			    {% trans "Depends" %}
-			    <a data-toggle='tooltip' href='{% url 'helpdesk:ticket_dependency_add' ticket.id %}'
-			       title='{% trans "Make this ticket dependent on another ticket. A ticket may not be closed until all tickets it depends on are closed or removed." %}'>
-				<button type="button" class="btn btn-primary btn-sm float-right"><i class="fas fa-link"></i></button></a>
-
 			</th>
                         <td colspan="3" class="p-0">
                             {% for dep in dependencies %}
@@ -219,6 +725,7 @@
                                     {% if forloop.last %}</table>{% endif %}
                             {% empty %}
                             <small class="p-2">{% trans "This ticket has no dependencies." %}</small>
+                            
                             {% endfor %}
                         </td>
 		    </tr>
@@ -298,15 +805,15 @@
                                             </div>
                                         </div>
                                     {% endfor %}
-                                    <div class="col-sm-4 col-xs-12">
+                                    <div class="col-sm-4 col-xs-12 ml-auto d-flex justify-content-end">
                                         <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#createChecklistModal">
                                             <i class="fas fa-plus"></i>
                                             {% trans "Create new checklist" %}
                                         </button>
                                     </div>
-                                </div>
-                            </div>
-                        </td>
+                                 </div>
+                             </div>
+                         </td>
                     </tr>
                     <tr>
                         <td id="ticket-description" colspan='4'>
