@@ -24,18 +24,21 @@
 </div>
 
 {% for category in kb_categories %}
-{% cycle 'one' 'two' 'three' as catnumperrow silent %}
-{% if catnumperrow == 'one' %}<div class="card-deck">{% endif %}
-<div class="card">
+<div class="card mb-3">
     <div class="card-header">
-      <h5>{{ category.title }}</h5>
+        <h5 class="mb-0">{{ category.title }}</h5>
     </div>
     <div class="card-body">
-        <p class="card-text">{{ category.description }}</p>
-        <p class="card-text"><small class="text-muted"><a class="btn btn-primary" href='{{ category.get_absolute_url }}'>{% trans 'View articles' %} <i class="fa fa-share"></i></a></small></p>
+        {% if category.description %}
+            <p class="card-text mb-0 font-weight-normal">{{ category.description|linebreaksbr }}</p>
+        {% endif %}
+        <p class="card-text">
+            <small class="text-muted">
+                <a class="btn btn-primary" href="{{ category.get_absolute_url }}">{% trans 'View articles' %} <i class="fa fa-share"></i></a>
+            </small>
+        </p>
     </div>
 </div>
-{% if catnumperrow == 'three' %}</div>{% endif %}
 {% endfor %}
 
 {% endblock %}

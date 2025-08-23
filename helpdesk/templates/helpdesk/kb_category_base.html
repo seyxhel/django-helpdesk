@@ -2,8 +2,8 @@
 {% block header %}
 <div class="d-flex align-items-start justify-content-between">
     <div>
-        <h2>{% blocktrans with category.title as kbcat %}{{ kbcat }}{% endblocktrans %}</h2>
-        {{ category.description|linebreaks }}
+    <h2>{% blocktrans with category.title as kbcat %}{{ kbcat }}{% endblocktrans %}</h2>
+    <p class="mb-0 font-weight-normal">{{ category.description|linebreaksbr }}</p>
     </div>
     {% if request.user.is_superuser %}
     <div class="ml-3">
@@ -13,6 +13,7 @@
         </a>
     </div>
     {% endif %}
+</div>
 {% endblock %}
 
 {% block item_list %}
