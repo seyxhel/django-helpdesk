@@ -1,1 +1,14 @@
 db/
+__pycache__/
+*.pyc
+.env
+.env.*
+*.sqlite3
+/media
+node_modules/
+.git
+.DS_Store
+.venv
+dist
+build
+coverage
