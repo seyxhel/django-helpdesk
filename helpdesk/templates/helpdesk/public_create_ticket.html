@@ -1,4 +1,4 @@
-{% extends "helpdesk/public_base.html" %}
+{% extends "helpdesk/base.html" %}
 {% load i18n %}
 
 {% block helpdesk_title %}{% trans "Create Ticket" %}{% endblock %}
@@ -20,6 +20,10 @@
         </div>
     </div>
 {% endblock %}
+
+{# keep the default navigation sidebar; do not place the form here so the form
+   does not depend on the sidebar being present. If you want the form also
+   shown in the sidebar, include the partial here. #}
 
 {% block helpdesk_js %}
     {{ form.media.js }}

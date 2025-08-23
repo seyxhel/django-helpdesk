@@ -1,4 +1,4 @@
-{% extends "helpdesk/public_base.html" %}
+{% extends "helpdesk/base.html" %}
 
 {% block title %}User settings{% endblock %}
 
@@ -67,7 +67,6 @@
       </div>
 
       <div class="reset-actions">
-        <a href="{% url 'helpdesk:home' %}" class="btn-secondary">Back to homepage</a>
         <button type="submit" class="btn-primary">Save changes</button>
       </div>
 

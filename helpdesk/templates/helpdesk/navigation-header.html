@@ -5,16 +5,14 @@
   <nav class="navbar navbar-expand static-top" style="background-color: #000C7D;">
 
   <div class="d-flex align-items-center">
-      {% if user|is_helpdesk_staff %}
+      <!-- hamburger toggle always visible so regular users can show/hide the sidebar -->
       <button class="btn btn-link btn-sm text-white order-1 order-sm-0 sidebar-toggle-btn" id="sidebarToggle" href="#" aria-controls="helpdesk-sidebar" aria-expanded="false" aria-label="Toggle sidebar">
         <i class="fas fa-bars" aria-hidden="true"></i>
       </button>
-      {% endif %}
   <a class="navbar-brand" href="{% url 'helpdesk:dashboard' %}" style="color: white; text-decoration: none; font-size: 16px; font-weight: 700; font-family: 'Montserrat', sans-serif; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; pointer-events: none; margin-left: 5px;">{% trans 'PrimeDesk Technologies' %}</a>
   </div>
   <div class="ml-auto d-flex align-items-center">
-      {% if helpdesk_settings.HELPDESK_NAVIGATION_ENABLED and user.is_authenticated or user|is_helpdesk_staff %}
-  <!-- Navbar Search (professional) -->
+  <!-- Navbar Search (always rendered) -->
   <form class="d-none d-md-inline-block form-inline ml-2 my-2 my-md-0" id="searchform" method="get" action="{% url 'helpdesk:list' %}" role="search" aria-label="{% trans 'Search tickets' %}">
         <label for="search_query" class="sr-only">{% trans "Search tickets" %}</label>
         <div class="input-group search-pill align-items-center">
@@ -39,7 +37,6 @@
         </div>
         {% csrf_token %}
       </form>
-      {% endif %}
 
       
   <!-- Navbar -->

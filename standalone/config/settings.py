@@ -135,7 +135,9 @@ HELPDESK_REDIRECT_TO_LOGIN_BY_DEFAULT = (
     os.environ.get("HELPDESK_REDIRECT_TO_LOGIN_BY_DEFAULT", "False") == "True"
 )
 LOGIN_URL = "helpdesk:login"
-LOGIN_REDIRECT_URL = "helpdesk:home"
+# After login, redirect to the customer's ticket list page so they land on
+# their tickets at /tickets/my-tickets/ (named route 'helpdesk:my-tickets').
+LOGIN_REDIRECT_URL = "helpdesk:my-tickets"
 
 
 DATABASES = {
