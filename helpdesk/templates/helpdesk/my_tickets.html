@@ -3,8 +3,8 @@
 {% block helpdesk_title %}{% trans "My Tickets" %}{% endblock %}
 
 {% block helpdesk_breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'helpdesk:dashboard' %}">{% trans "Dashboard" %}</a></li>
 <li class="breadcrumb-item active">{% trans "My Tickets" %}</li>
+<li id="last-ticket-breadcrumb" class="breadcrumb-item" style="display:none"></li>
 {% endblock %}
 
 {% block helpdesk_body %}
@@ -19,6 +19,31 @@
 </style>
 
 <div class="container mt-4">
+    <div class="d-flex justify-content-end mb-2">
+        <div class="btn-group" role="group" aria-label="Ordering">
+            <button id="orderToggle" class="btn btn-secondary" data-order="desc">Order: Newest</button>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <input id="queueSearch" class="form-control" placeholder="Search queues or click to see all" autocomplete="off" />
+            <div id="queueDropdown" class="list-group" style="position:absolute;z-index:1000;display:none;max-height:200px;overflow:auto;width:100%;"></div>
+        </div>
+        <div class="col-md-3">
+            <select id="statusFilter" class="form-control">
+                <option value="">All statuses</option>
+                {% for code,label in status_choices %}
+                <option value="{{ code }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-5 text-right">
+            <!-- pagination will be aligned to right -->
+        </div>
+    </div>
+
+    <div class="table-responsive">
     <table class="table table-striped" id="ticketsTable">
         <thead>
             <tr>
@@ -26,14 +51,16 @@
                 <th>{% trans "Queue" %}</th>
                 <th>{% trans "Status" %}</th>
                 <th>{% trans "Created" %}</th>
+                <th>{% trans "Last updated" %}</th>
             </tr>
         </thead>
         <tbody>
             <!-- Rows will be added here dynamically using jQuery -->
         </tbody>
     </table>
+    </div>
     <nav aria-label="{% trans 'Page navigation' %}">
-        <ul class="pagination" id="pagination">
+        <ul class="pagination justify-content-end" id="pagination">
             <!-- Pagination buttons will be added here dynamically -->
         </ul>
     </nav>
@@ -44,8 +71,44 @@
 // because we need to wait for the page to load before we can fetch the tickets
 window.addEventListener('load', function()
  {
+    let cachedQueues = [];
+
+    function fetchQueues(q = ''){
+        // Try common mount points for the API so this works if helpdesk is included at root or under /helpdesk/
+        const candidates = ['/api/queues/', '/helpdesk/api/queues/'];
+        function tryIndex(i){
+            if(i >= candidates.length){ cachedQueues = []; renderQueueDropdown(q); return; }
+            $.get(candidates[i], function(data){
+                cachedQueues = data;
+                renderQueueDropdown(q);
+            }).fail(function(){ tryIndex(i+1); });
+        }
+        tryIndex(0);
+    }
+
+    function renderQueueDropdown(filter){
+        const container = $('#queueDropdown');
+        container.empty();
+        const f = (filter || '').toLowerCase();
+        let shown = 0;
+        cachedQueues.forEach(function(q){
+            if(!f || q.title.toLowerCase().indexOf(f) !== -1){
+                shown++;
+                container.append(`<a href="#" class="list-group-item list-group-item-action" data-id="${q.id}">${q.title}</a>`);
+            }
+        });
+        if(shown > 0){
+            container.show();
+        } else {
+            container.hide();
+        }
+    }
+
     function fetchTickets(page = 1) {
-        const endpoint = '{% url "helpdesk:user_tickets-list" %}?page=' + page;
+        const ordering = $('#orderToggle').data('order') || 'desc';
+        const status = $('#statusFilter').val() || '';
+        const queueId = $('#queueSearch').data('queue-id') || '';
+        const endpoint = '{% url "helpdesk:user_tickets-list" %}?page=' + page + '&ordering=' + ordering + '&page_size=8' + (status ? '&status=' + status : '') + (queueId ? '&queue=' + queueId : '');
 
         $.get(endpoint, function(data) {
             $('#ticketsTable tbody').empty();
@@ -54,19 +117,24 @@ window.addEventListener('load', function()
                 $('#ticketsTable tbody').append(`
                     <tr>
                         <td>
-                            <a href='{% url "helpdesk:public_view" %}?ticket=${ticket.id}&email=${ticket.submitter}&key=${ticket.secret_key}'>${ticket.title}</a>
+                            <a href='/view/?ticket=${ticket.id}&email=${ticket.submitter}&key=${ticket.secret_key}'>${ticket.title}</a>
                         </td>
                         <td>${ticket.queue.title}</td>
                         <td>${ticket.status}</td>
                         <td>${ticket.created}</td>
+                        <td>${ticket.last_followup || ''}</td>
                     </tr>
                 `);
             });
 
             $('#pagination').empty();
-            for (let i = 1; i <= data.total_pages; i++) {
+            // compute total pages from DRF count; use requested `page` as current
+            const pageSize = 8;
+            const totalPages = Math.max(1, Math.ceil((data.count || 0) / pageSize));
+            const currentPage = parseInt(page) || 1;
+            for (let i = 1; i <= totalPages; i++) {
                 $('#pagination').append(`
-                    <li class="page-item ${i === data.page ? 'active' : ''}">
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
                         <a class="page-link" href="#" data-page="${i}">${i}</a>
                     </li>
                 `);
@@ -75,6 +143,76 @@ window.addEventListener('load', function()
         });
     }
 
+    // Load last viewed ticket from localStorage (set by public view)
+    (function populateLastTicketBreadcrumb(){
+        try{
+            const last = JSON.parse(localStorage.getItem('helpdesk_last_public_ticket') || 'null');
+            if(last && last.url && last.title){
+                $('#last-ticket-breadcrumb').html(`<a href="${last.url}">${last.title}</a>`).show();
+            }
+        }catch(e){/* ignore */}
+    })();
+
+    // Toggle ordering
+    $('#orderToggle').on('click', function(){
+        const current = $(this).data('order') === 'asc' ? 'desc' : 'asc';
+        $(this).data('order', current);
+        $(this).text(current === 'asc' ? 'Order: Oldest' : 'Order: Newest');
+        fetchTickets(1);
+    });
+
+    // Queue search interactions
+    $('#queueSearch').on('focus', function(){
+        // show all queues on focus
+        if(cachedQueues.length === 0){ fetchQueues(''); }
+        else { renderQueueDropdown(''); }
+    });
+    $('#queueSearch').on('input', function(){
+        const v = $(this).val();
+        if(cachedQueues.length === 0){ fetchQueues(v); }
+        else { renderQueueDropdown(v); }
+    });
+    // Pick a queue
+    $(document).on('click', '#queueDropdown a', function(e){
+        e.preventDefault();
+        const id = $(this).data('id');
+        const title = $(this).text();
+        $('#queueSearch').val(title).data('queue-id', id);
+        $('#queueDropdown').hide();
+        fetchTickets(1);
+    });
+    // Clear queue when emptying input
+    $('#queueSearch').on('keydown', function(e){
+        if(e.key === 'Backspace' && $(this).val().length <= 1){
+            $(this).data('queue-id', '');
+        }
+    });
+
+    // Hide dropdown when clicking outside or pressing Escape
+    $(document).on('click', function(e){
+        if(!$(e.target).closest('#queueSearch, #queueDropdown').length){
+            $('#queueDropdown').hide();
+        }
+    });
+
+    $(document).on('keydown', function(e){
+        if(e.key === 'Escape'){
+            $('#queueDropdown').hide();
+            $('#queueSearch').blur();
+        }
+    });
+
+    // Status filter
+    $('#statusFilter').on('change', function(){ fetchTickets(1); });
+
+    // Pagination click
+    $(document).on('click', '#pagination a', function(e){
+        e.preventDefault();
+        const page = parseInt($(this).data('page')) || 1;
+        fetchTickets(page);
+    });
+
+    // initial load
     fetchTickets();
 });
 

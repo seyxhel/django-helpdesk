@@ -14,10 +14,18 @@ from rest_framework.viewsets import GenericViewSet
 from rest_framework.pagination import PageNumberPagination
 
 from helpdesk import settings as helpdesk_settings
+from helpdesk.models import Queue
+from helpdesk.serializers import QueueSerializer
 
 
 class ConservativePagination(PageNumberPagination):
     page_size = 25
+    page_size_query_param = "page_size"
+
+
+class SmallPagination(PageNumberPagination):
+    # small page size for the public 'my tickets' list
+    page_size = 8
     page_size_query_param = "page_size"
 
 
@@ -29,13 +37,34 @@ class UserTicketViewSet(viewsets.ReadOnlyModelViewSet):
     """
 
     serializer_class = PublicTicketListingSerializer
-    pagination_class = ConservativePagination
+    pagination_class = SmallPagination
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        tickets = Ticket.objects.filter(
-            submitter_email=self.request.user.email
-        ).order_by("-created")
+        tickets = Ticket.objects.filter(submitter_email=self.request.user.email)
+        # Filter by queue id if provided
+        queue_id = self.request.query_params.get('queue', None)
+        if queue_id:
+            try:
+                tickets = tickets.filter(queue__id=int(queue_id))
+            except Exception:
+                pass
+        # Filter by status (single or comma-separated numeric codes)
+        status = self.request.query_params.get('status', None)
+        if status:
+            statuses = status.split(',')
+            try:
+                statuses = [int(s) for s in statuses if s.isdigit()]
+                if statuses:
+                    tickets = tickets.filter(status__in=statuses)
+            except Exception:
+                pass
+        # Support ascending/descending ordering from the UI via ?ordering=asc|desc
+        ordering = self.request.query_params.get("ordering", "desc")
+        if ordering == "asc":
+            tickets = tickets.order_by("created")
+        else:
+            tickets = tickets.order_by("-created")
         for ticket in tickets:
             ticket.set_custom_field_values()
         return tickets
@@ -79,6 +108,16 @@ class TicketViewSet(viewsets.ModelViewSet):
         ticket = super().get_object()
         ticket.set_custom_field_values()
         return ticket
+
+
+class QueueViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Simple read-only viewset to list public queues for autocomplete on the public UI.
+    """
+    queryset = Queue.objects.filter(allow_public_submission=True).order_by('title')
+    serializer_class = QueueSerializer
+    permission_classes = []
+    pagination_class = None
 
 
 class FollowUpViewSet(viewsets.ModelViewSet):

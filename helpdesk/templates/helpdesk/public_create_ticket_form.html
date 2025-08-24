@@ -1,0 +1,2 @@
+{% comment %}Compatibility wrapper: some templates include `helpdesk/public_create_ticket_form.html` while newer layouts use the `_base` partial. Keep a thin shim to avoid TemplateDoesNotExist errors.{% endcomment %}
+{% include 'helpdesk/public_create_ticket_base.html' %}

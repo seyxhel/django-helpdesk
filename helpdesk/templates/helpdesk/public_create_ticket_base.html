@@ -62,7 +62,7 @@
 
             {# Description/body #}
             <div class="form-group">
-                <label for="id_body">{% trans "Description of your issue" %}{% if form.body.field.required %}<span class="text-danger">*</span>{% endif %}</label>
+                <label for="id_body">{% trans "Description of your issue" %}{% if form.body.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                 {{ form.body }}
                 {% if form.body.help_text %}
                     <small class="form-text text-muted">{{ form.body.help_text }}</small>
@@ -103,7 +103,7 @@
             {# Due date label updated and modern calendar class applied #}
             {% if form.due_date %}
                 <div class="form-group">
-                    <label for="id_due_date">{% trans "Due on (optional)" %}</label>
+                    <label for="id_due_date">{% trans "Due on" %} <small class="text-muted">({% trans "optional" %})</small></label>
                     {{ form.due_date }}
                 </div>
             {% endif %}
@@ -111,7 +111,7 @@
             {# Attachment help text simplified #}
             {% if form.attachment %}
                 <div class="form-group">
-                    <label for="id_attachment">{{ form.attachment.label }}</label>
+                    <label for="id_attachment">{{ form.attachment.label }} <small class="text-muted">({% trans "optional" %})</small></label>
                     {{ form.attachment }}
                     <small class="form-text text-muted">{% trans "Accepted attachments:" %} .txt, .pdf, .docx, .odt, .png, .jpg</small>
                 </div>
@@ -119,7 +119,7 @@
 
             {# Submitter Email moved below attachments per request #}
             {% if form.submitter_email %}
-                <div class="form-group">
+                <div class="form-group" style="display:none;" aria-hidden="true">
                     <label for="id_submitter_email">{% trans "Your E-Mail Address" %}{% if form.submitter_email.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                     {{ form.submitter_email }}
                     {% if form.submitter_email.help_text %}

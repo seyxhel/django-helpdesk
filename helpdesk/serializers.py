@@ -8,6 +8,7 @@ from .lib import format_time_spent
 from .models import CustomField, FollowUp, FollowUpAttachment, Ticket
 from .user import HelpdeskUser
 from .update_ticket import update_ticket
+from .models import Queue
 
 
 class DatatablesTicketSerializer(serializers.ModelSerializer):
@@ -169,6 +170,7 @@ class PublicTicketListingSerializer(BaseTicketSerializer):
     ticket = serializers.SerializerMethodField()
     submitter = serializers.SerializerMethodField()
     created = serializers.SerializerMethodField()
+    last_followup = serializers.SerializerMethodField()
     due_date = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     queue = serializers.SerializerMethodField()
@@ -184,6 +186,7 @@ class PublicTicketListingSerializer(BaseTicketSerializer):
             "title",
             "queue",
             "status",
+            "last_followup",
             "created",
             "due_date",
             "submitter",
@@ -211,6 +214,25 @@ class PublicTicketListingSerializer(BaseTicketSerializer):
 
     def get_kbitem(self, obj):
         return obj.kbitem.title if obj.kbitem else ""
+
+    def get_last_followup(self, obj):
+        # Return a human-friendly last activity time if available
+        try:
+            from django.contrib.humanize.templatetags import humanize
+            if getattr(obj, 'last_followup', None):
+                return humanize.naturaltime(obj.last_followup)
+            # Fallback to created date if no last_followup available
+            if getattr(obj, 'created', None):
+                return humanize.naturaltime(obj.created)
+        except Exception:
+            pass
+        return ""
+
+
+class QueueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Queue
+        fields = ("id", "title")
 
 
 class TicketSerializer(BaseTicketSerializer):

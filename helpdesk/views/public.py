@@ -237,7 +237,9 @@ class CreateTicketView(BaseCreateTicketView):
         and can see their newly created ticket there.
         """
         try:
-            return reverse("helpdesk:home") + "?created=1"
+            # Stay on the submit page so we can show the success overlay there,
+            # then the client JS will redirect to the My Tickets page.
+            return reverse("helpdesk:submit") + "?created=1"
         except Exception:
             return super().get_success_url()
 
@@ -431,6 +433,13 @@ class ViewTicket(TemplateView):
             "helpdesk_settings": helpdesk_settings,
             "next": self.get_next_url(ticket_id),
         }
+        # For authenticated non-staff users, render inside the main site shell
+        # so the sidebar and 'My Tickets' navigation remain visible.
+        try:
+            if request.user.is_authenticated and not request.user.is_staff:
+                context["base_template"] = "helpdesk/base.html"
+        except Exception:
+            pass
         return self.render_to_response(context)
 
     def get_next_url(self, ticket_id):
@@ -452,6 +461,12 @@ class MyTickets(TemplateView):
             return HttpResponseRedirect(reverse("helpdesk:login"))
 
         context = self.get_context_data(**kwargs)
+        # Provide status choices to populate the status filter dropdown
+        try:
+            from helpdesk import settings as helpdesk_settings
+            context['status_choices'] = helpdesk_settings.TICKET_STATUS_CHOICES
+        except Exception:
+            context['status_choices'] = []
         return self.render_to_response(context)
 
 

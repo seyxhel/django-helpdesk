@@ -21,6 +21,7 @@ from helpdesk.views.api import (
     FollowUpViewSet,
     TicketViewSet,
     UserTicketViewSet,
+    QueueViewSet,
 )
 from rest_framework.routers import DefaultRouter
 from django.shortcuts import redirect
@@ -229,6 +230,7 @@ urlpatterns += [
 router = DefaultRouter()
 router.register(r"tickets", TicketViewSet, basename="ticket")
 router.register(r"user_tickets", UserTicketViewSet, basename="user_tickets")
+router.register(r"queues", QueueViewSet, basename="queue")
 router.register(r"followups", FollowUpViewSet, basename="followups")
 router.register(
     r"followups-attachments", FollowUpAttachmentViewSet, basename="followupattachments"

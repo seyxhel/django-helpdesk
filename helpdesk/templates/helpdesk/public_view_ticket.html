@@ -1,6 +1,13 @@
-{% extends "helpdesk/public_base.html" %}{% load i18n humanize %}
+{% extends base_template|default:"helpdesk/public_base.html" %}{% load i18n humanize %}
 {% load static %}
 {% block helpdesk_title %}{% trans "View a Ticket" %}{% endblock %}
+
+{% block helpdesk_breadcrumb %}
+{% if not user.is_staff %}
+<li class="breadcrumb-item"><a href="{% url 'helpdesk:my-tickets' %}">{% trans "My Tickets" %}</a></li>
+<li class="breadcrumb-item active">{{ ticket.title }}</li>
+{% endif %}
+{% endblock %}
 
 {% block helpdesk_body %}
 
@@ -195,4 +202,16 @@
 </script>
 {% endif %}
 
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Save last viewed public ticket info for My Tickets breadcrumb
+try{
+    const ticketTitle = document.title || ("Ticket " + ('{{ ticket.id }}' || ''));
+    const ticketUrl = window.location.href;
+    const payload = { title: ticketTitle, url: ticketUrl };
+    localStorage.setItem('helpdesk_last_public_ticket', JSON.stringify(payload));
+}catch(e){/* ignore */}
+</script>
 {% endblock %}

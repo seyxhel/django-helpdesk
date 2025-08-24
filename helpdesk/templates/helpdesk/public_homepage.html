@@ -124,18 +124,19 @@
             // animate in
             card.style.transform = 'translateY(-6px)';
             card.style.opacity = '1';
-            // after short delay, remove the query param and reload to reflect new ticket
-            setTimeout(function(){
-                try {
-                    var url = new URL(window.location.href);
-                    url.searchParams.delete('created');
-                    window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
-                } catch (e) {
-                    // ignore
-                }
-                // reload to fetch updated ticket list
-                window.location.reload();
-            }, 1400);
+                // after short delay, navigate to the My Tickets page so user sees their tickets
+                setTimeout(function(){
+                    try {
+                        // Attempt to replace URL first to remove the query param from history
+                        var url = new URL(window.location.href);
+                        url.searchParams.delete('created');
+                        window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+                    } catch (e) {
+                        // ignore
+                    }
+                    // Redirect to My Tickets
+                    window.location.href = '/tickets/my-tickets/';
+                }, 1400);
         }
 
         document.addEventListener('DOMContentLoaded', function(){
