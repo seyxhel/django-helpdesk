@@ -509,6 +509,17 @@
   height: var(--btn-height);
   padding: 0 10px;
 }
+
+  /* enforce 13px base font inside ticket card */
+  .card.mb-3,
+  .card.mb-3 > .card-body,
+  .card.mb-3 .table,
+  .card.mb-3 small,
+  .card.mb-3 a,
+  .card.mb-3 td,
+  .card.mb-3 th {
+    font-size: 12px !important;
+  }
 </style>
 
 <div class="card mb-3">
@@ -696,14 +707,16 @@
 				    </td>
 				</tr>
 				{% if forloop.last %}</table>{% endif %}
-			    {% empty %}
-			    <small class="p-2">{% trans "This ticket does not resolve any other" %}</small>
-                <a data-toggle='tooltip' href='{% url 'helpdesk:ticket_resolves_add' ticket.id %}'
-			    title='{% trans "Make this ticket resolve another ticket." %}'>
-				<button type="button" class="btn btn-primary btn-sm float-right"><i class="fas fa-link"></i></button></a>
+				{% empty %}
+                <div class="d-flex align-items-center justify-content-between p-2">
+                  <small class="mb-0">{% trans "This ticket does not resolve any other" %}</small>
+                  <a data-toggle="tooltip" href="{% url 'helpdesk:ticket_resolves_add' ticket.id %}" title="{% trans 'Make this ticket resolve another ticket.' %}">
+                    <button type="button" class="btn btn-primary btn-sm"><i class="fas fa-link"></i></button>
+                  </a>
+                </div>
 			    {% endfor %}
-			</td>
-		    </tr>
+             </td>
+             </tr>
 		    <tr>
 			<th class="table-active">
 			    {% trans "Depends" %}
@@ -724,8 +737,12 @@
 				    </td>
                                     {% if forloop.last %}</table>{% endif %}
                             {% empty %}
-                            <small class="p-2">{% trans "This ticket has no dependencies." %}</small>
-                            
+                              <div class="d-flex align-items-center justify-content-between p-2">
+                                <small class="mb-0">{% trans "This ticket has no dependencies." %}</small>
+                                <a data-toggle="tooltip" href="{% url 'helpdesk:ticket_dependency_add' ticket.id %}" title="{% trans 'Make this ticket depend on another ticket.' %}">
+                                  <button type="button" class="btn btn-primary btn-sm"><i class="fas fa-link"></i></button>
+                                </a>
+                              </div>
                             {% endfor %}
                         </td>
 		    </tr>

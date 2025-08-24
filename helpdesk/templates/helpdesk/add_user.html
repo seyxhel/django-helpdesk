@@ -10,181 +10,238 @@
 {% endblock %}
 
 {% block helpdesk_body %}
-<h2>{% trans "Add User" %}</h2>
-<p>{% trans "Create a new user for the helpdesk." %}</p>
+<h2 class="sr-only">{% trans "Add User" %}</h2>
 
 <style>
-.helpdesk-add-user /* Scoped styles to normalize reduced vertical spacing */
-.helpdesk-add-user .mb-3 { padding-bottom: .35rem; margin-bottom: .35rem; }
-.helpdesk-add-user .form-text { margin-bottom: .18rem; }
-.helpdesk-add-user .client-required-error,
-.helpdesk-add-user .text-danger.small { min-height: .9rem; display: block; }
-.helpdesk-add-user .form-control { margin-bottom: .12rem; }
-.helpdesk-add-user .field-error-space { min-height: .9rem; }
-.helpdesk-add-user .email-block { margin-bottom: 0; padding-bottom: 0; }
-.helpdesk-add-user .name-row { margin-top: 0; }
-/* Remove any pseudo-element icon (exclamation in circle) shown before field errors */
-.helpdesk-add-user .field-error::before { content: none !important; display: none !important; }
-/* Additional overrides: hide any before/after icons for common error containers inside this card */
-.helpdesk-add-user .form-errors::before,
-.helpdesk-add-user .form-errors::after,
-.helpdesk-add-user .server-field-error::before,
-.helpdesk-add-user .server-field-error::after,
-.helpdesk-add-user .text-danger::before,
-.helpdesk-add-user .text-danger::after,
-.helpdesk-add-user [class*="fa-"]::before,
-.helpdesk-add-user [class*="fa-"]::after {
-    content: none !important;
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-}
-/* Also hide any <i> or svg icons that might be placed inside error containers */
-.helpdesk-add-user .field-error-space i,
-.helpdesk-add-user .field-error-space svg,
-.helpdesk-add-user .form-errors i,
-.helpdesk-add-user .form-errors svg,
-.helpdesk-add-user .server-field-error i,
-.helpdesk-add-user .server-field-error svg {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-}
-/* Ensure no icon glyph shows by forcing normal font-family and removing generated content */
-.helpdesk-add-user .field-error,
-.helpdesk-add-user .form-errors,
-.helpdesk-add-user .server-field-error {
-    font-family: inherit !important;
+:root{
+  --brand: #0b3ea6;            /* slightly darker for strong CTA */
+  --brand-strong: #062f85;
+  --muted: #6b7280;
+  --card-bg: #fff;
+  --surface: #fbfdff;
+  --radius-lg: 12px;
+  --radius-sm: 8px;
+  --btn-radius: 22px;
+  --input-height: 46px;
 }
 
-/* Additional hard overrides for icons inserted at the input level by vendor CSS or browsers */
-.helpdesk-add-user input.is-invalid,
-.helpdesk-add-user textarea.is-invalid,
-.helpdesk-add-user .form-select.is-invalid {
-    background-image: none !important;
-    background: none !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
-    box-shadow: none !important;
-    outline: none !important;
+/* Centered page card matching the screenshot */
+.page-card {
+  max-width: 640px;
+  margin: 28px auto;
+  padding: 0 16px;
+}
+.page-card .card {
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg,var(--card-bg) 0%, var(--surface) 100%);
+  box-shadow: 0 12px 40px rgba(8,24,48,0.08);
+  border: 1px solid rgba(15,23,42,0.04);
+  overflow: hidden;
+}
+.page-card .card-body { padding: 28px 28px 20px; }
+
+/* Title & subtitle */
+h3.page-title { margin:0 0 8px; font-size:20px; font-weight:700; color:#0f1724; }
+.page-sub { color:var(--muted); font-size:13px; margin-bottom:20px; display:block; }
+
+/* Inputs */
+.helpdesk-add-user input[type="text"],
+.helpdesk-add-user input[type="password"],
+.helpdesk-add-user input[type="email"],
+.helpdesk-add-user select,
+.helpdesk-add-user textarea {
+  width:100%;
+  height:var(--input-height);
+  padding:.5rem .9rem;
+  border-radius:10px;
+  border:1px solid rgba(15,23,42,0.08);
+  box-sizing:border-box;
+  background:#fff;
+  font-size:14px;
+  transition: box-shadow .12s ease, border-color .12s ease, transform .06s ease;
+  outline: none;
+}
+.helpdesk-add-user textarea { min-height:140px; height:auto; padding-top:.75rem; padding-bottom:.75rem; }
+
+/* Input focus */
+.helpdesk-add-user input:focus,
+.helpdesk-add-user textarea:focus,
+.helpdesk-add-user select:focus {
+  border-color: rgba(11,94,215,0.25);
+  box-shadow: 0 6px 18px rgba(11,94,215,0.08);
 }
 
-/* Remove pseudo-elements that some libraries use to draw an icon near inputs */
-.helpdesk-add-user input.is-invalid::before,
-.helpdesk-add-user input.is-invalid::after,
-.helpdesk-add-user textarea.is-invalid::before,
-.helpdesk-add-user textarea.is-invalid::after,
-.helpdesk-add-user .form-select.is-invalid::before,
-.helpdesk-add-user .form-select.is-invalid::after {
-    content: none !important;
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
+/* Labels / helper text / errors */
+.helpdesk-add-user label { display:block; margin-bottom:8px; font-weight:600; color:#111827; font-size:13px; }
+.helpdesk-add-user .form-text, .helpdesk-add-user .helptext { font-size:13px; color:var(--muted); margin-top:6px; }
+.helpdesk-add-user .text-danger.small, .helpdesk-add-user .client-required-error { color:#dc3545; font-size:13px; margin-top:6px; }
+
+/* Small utility spacing for stacked fields */
+.gap-row { gap: 12px; display:flex; flex-wrap:wrap; }
+
+/* Checkbox layout improvements */
+.checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 6px;
 }
 
-/* Hide any <i> or svg icons that are adjacent to an invalid input */
-.helpdesk-add-user .is-invalid + i,
-.helpdesk-add-user .is-invalid + svg,
-.helpdesk-add-user .is-invalid ~ i,
-.helpdesk-add-user .is-invalid ~ svg,
-.helpdesk-add-user .field-error-space i,
-.helpdesk-add-user .field-error-space svg {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
+/* Toggle / checkboxes - improved alignment & clickable labels */
+.form-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  vertical-align: middle;
+}
+.form-check input[type="checkbox"],
+.form-check input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex: 0 0 18px;
+  transform: translateY(-1px);
+  accent-color: var(--brand); /* modern browsers */
+  cursor: pointer;
+}
+.form-check .form-check-label {
+  margin: 0;
+  font-weight: 600;
+  color: #111827;
+  font-size: 13px;
+  cursor: pointer; /* label clickable */
+  user-select: none;
+}
+
+/* Reserve space for inline server/client errors to avoid layout jump */
+.field-error-space { min-height: 1.25rem; }
+
+/* Small screens stack checkboxes */
+@media (max-width: 576px) {
+  .checkbox-group { flex-direction: column; align-items: flex-start; }
+}
+
+/* Action buttons — centered, pill style */
+.form-actions {
+  padding-top:22px;
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  align-items:center;
+}
+.form-actions .btn {
+  height:44px;
+  border-radius:var(--btn-radius);
+  padding:0 20px;
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  font-weight:600;
+  font-size:14px;
+}
+.btn-cancel {
+  background:#ffffff;
+  color:#0f1724;
+  border:1px solid rgba(15,23,42,0.08);
+  box-shadow:none;
+}
+.btn-primary {
+  background:var(--brand);
+  border:1px solid var(--brand);
+  color:#fff;
+  box-shadow: 0 10px 28px rgba(11,94,215,0.12);
+}
+.btn-primary:hover { background:var(--brand-strong); border-color:var(--brand-strong); transform: translateY(-1px); }
+
+/* Responsive tweaks */
+@media (max-width:600px) {
+  .page-card { margin: 18px; }
+  .form-actions { flex-direction:column-reverse; }
+  .form-actions .btn { width:100%; justify-content:center; }
+  .row.gx-3 { --bs-gutter-x: .75rem; }
+  .checkbox-row { flex-direction: column; align-items: flex-start; gap: 10px; }
 }
 </style>
 
-<form method="post" class="form helpdesk-add-user" novalidate>
-    {% csrf_token %}
+<div class="container page-card">
+  <div class="card">
+    <div class="card-body">
+      <h3 class="page-title">{% trans "Add User" %}</h3>
+      <span class="page-sub">{% trans "Create a new user for the helpdesk." %}</span>
 
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <!-- First and Last name row (shorter fields, placed above username) -->
-            <div class="row name-row g-2">
-                <div class="col-md-6 mb-3">
-                    <label for="id_first_name" class="form-label">{{ form.first_name.label }}</label>
-                    {{ form.first_name }}
-                    <div class="field-error-space">{% for err in form.first_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="id_last_name" class="form-label">{{ form.last_name.label }}</label>
-                    {{ form.last_name }}
-                    <div class="field-error-space">{% for err in form.last_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
-                </div>
-            </div>
+      <form method="post" class="form helpdesk-add-user" novalidate>
+        {% csrf_token %}
 
-            <label for="id_username" class="form-label">{{ form.username.label }}</label>
+        <div class="row gx-3">
+          <div class="col-12 col-md-6 mb-3">
+            <label for="id_first_name">{{ form.first_name.label }}</label>
+            {{ form.first_name }}
+            <div class="field-error-space">{% for err in form.first_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+          </div>
+
+          <div class="col-12 col-md-6 mb-3">
+            <label for="id_last_name">{{ form.last_name.label }}</label>
+            {{ form.last_name }}
+            <div class="field-error-space">{% for err in form.last_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+          </div>
+
+          <div class="col-12 mb-3">
+            <label for="id_username">{{ form.username.label }}</label>
             {{ form.username }}
             {% if form.username.help_text %}<div class="form-text">{{ form.username.help_text }}</div>{% endif %}
-            <div class="field-error-space">
-                {% for err in form.username.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
-            </div>
+            <div class="field-error-space">{% for err in form.username.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+          </div>
 
-            <!-- email directly below username -->
-            <div class="mb-3">
-                <label for="id_email" class="form-label">{{ form.email.label }}</label>
-                {{ form.email }}
-                {% if form.email.help_text %}<div class="form-text">{{ form.email.help_text }}</div>{% endif %}
-                <div class="field-error-space">
-                    {% for err in form.email.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
-                </div>
-            </div>
-        </div>
+          <div class="col-12 mb-3">
+            <label for="id_email">{{ form.email.label }}</label>
+            {{ form.email }}
+            {% if form.email.help_text %}<div class="form-text">{{ form.email.help_text }}</div>{% endif %}
+            <div class="field-error-space">{% for err in form.email.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+          </div>
 
-        <div class="col-md-6 mb-3">
-            <!-- intentionally left blank to keep form alignment -->
-        </div>
-    </div>
-
-    <!-- name-row moved above username to preserve layout while changing visual order -->
-
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label for="id_password1" class="form-label">{{ form.password1.label }}</label>
+          <div class="col-12 col-md-6 mb-3">
+            <label for="id_password1">{{ form.password1.label }}</label>
             {{ form.password1 }}
             {% if form.password1.help_text %}<div class="form-text">{{ form.password1.help_text }}</div>{% endif %}
             <div class="field-error-space">{% for err in form.password1.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+          </div>
 
-            <!-- confirm password below the password field -->
-            <div class="mb-3">
-                <label for="id_password2" class="form-label">{{ form.password2.label }}</label>
-                {{ form.password2 }}
-                <div class="field-error-space">{% for err in form.password2.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+          <div class="col-12 col-md-6 mb-3">
+            <label for="id_password2">{{ form.password2.label }}</label>
+            {{ form.password2 }}
+            <div class="field-error-space">{% for err in form.password2.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+          </div>
+
+          <div class="col-12 mb-2 d-flex align-items-center">
+            <div class="form-check">
+              {{ form.is_staff }}
+              <label class="form-check-label" for="id_is_staff">{{ form.is_staff.label }}</label>
             </div>
-        </div>
-
-        <div class="col-md-6 mb-3">
-            <!-- right column intentionally left blank to keep layout symmetric -->
-        </div>
-    </div>
-
-    <div class="row mb-3">
-        <div class="col-md-12">
-            <div class="form-check form-check-inline me-3">
-                {{ form.is_staff }}
-                <label class="form-check-label" for="id_is_staff">{{ form.is_staff.label }}</label>
+            <div class="form-check">
+              {{ form.is_active }}
+              <label class="form-check-label" for="id_is_active">{{ form.is_active.label }}</label>
             </div>
-            <div class="form-check form-check-inline">
-                {{ form.is_active }}
-                <label class="form-check-label" for="id_is_active">{{ form.is_active.label }}</label>
-            </div>
-            {% for err in form.is_staff.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
-            {% for err in form.is_active.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+          </div>
+
+          {% if form.non_field_errors %}
+          <div class="col-12 mb-2">
+            {% for err in form.non_field_errors %}<div class="alert alert-danger mb-0">{{ err }}</div>{% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="col-12 form-actions mt-4">
+            <a class="btn btn-cancel" href="{% url 'helpdesk:system_settings' %}">{% trans "Cancel" %}</a>
+            <button type="submit" class="btn btn-primary">{% trans "Create User" %}</button>
+          </div>
         </div>
+      </form>
     </div>
+  </div>
+</div>
 
-    {% if form.non_field_errors %}
-        {% for err in form.non_field_errors %}
-            <div class="alert alert-danger">{{ err }}</div>
-        {% endfor %}
-    {% endif %}
-
-    <div class="d-flex">
-        <a class="btn btn-secondary me-2" href="{% url 'helpdesk:system_settings' %}">{% trans "Cancel" %}</a>
-        <button type="submit" class="btn btn-success">{% trans "Create User" %}</button>
-    </div>
-</form>
+<!-- keep the existing client-side validation script unchanged -->
 <script>
 // Show inline required message on blur for required fields and remove on input
  (function(){

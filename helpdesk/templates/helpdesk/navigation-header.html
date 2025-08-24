@@ -77,9 +77,6 @@
             </div>
             <div class="dropdown-divider"></div>
             <a class="dropdown-item" href="{% url 'helpdesk:user_settings' %}"><i class="fas fa-fw fa-user-cog"></i> {% trans "User Settings" %}</a>
-            {% if user|is_helpdesk_staff %}
-            <a class="dropdown-item" href='{% url 'helpdesk:rss_index' %}'><i class="fas fa-fw fa-rss-square"></i> {% trans "RSS Feeds" %}</a>
-            {% endif %}
             {% if helpdesk_settings.HELPDESK_SHOW_CHANGE_PASSWORD and user.has_usable_password %}
             <a class="dropdown-item" href="{% url 'helpdesk:password_change' %}"><i class="fas fa-fw fa-user-secret"></i> {% trans "Change password" %}</a>
             {% endif %}
