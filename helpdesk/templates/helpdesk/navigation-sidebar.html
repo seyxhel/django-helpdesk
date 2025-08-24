@@ -41,12 +41,6 @@
           </a>
         </li>
         {% if helpdesk_settings.HELPDESK_SHOW_MY_TICKETS_IN_NAV_FOR_STAFF %}
-        <li class="nav-item{% if 'my-tickets' in request.path %} active{% endif %}">
-            <a class="nav-link" href="{% url 'helpdesk:my-tickets' %}">
-                <i class="fas fa-fw fa-tasks"></i>
-                <span>{% trans "My Tickets" %}</span>
-            </a>
-        </li>
         {% endif %}
         <li class="nav-item{% if 'reports' in request.path %} active{% endif %}">
           <a class="nav-link" href="{% url 'helpdesk:report_index' %}">
@@ -78,13 +72,6 @@
             </a>
         </li>
         {% endif %}
-
-        <li class="nav-item{% if 'submit' in request.path %} active{% endif %}">
-          <a class="nav-link" href="{% url 'helpdesk:submit' %}">
-            <i class="fas fa-fw fa-plus-circle"></i>
-            <span>{% trans "New Ticket" %}</span>
-          </a>
-        </li>
 
         {% if helpdesk_settings.HELPDESK_KB_ENABLED %}
         <li class="nav-item{% if 'kb' in request.path %} active{% endif %}">

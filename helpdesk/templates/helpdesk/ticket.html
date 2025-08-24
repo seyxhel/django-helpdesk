@@ -99,157 +99,198 @@
         {% endif %}
 
         <div class="card mb-3">
-            <div class="card-header">{% trans "Respond to this ticket" %}</div>
-            <div class="card-body">
+          <div class="card-header">{% trans "Respond to this ticket" %}</div>
+          <div class="card-body">
 
-         <form method="post" action="{% url 'helpdesk:update' ticket.id %}" enctype="multipart/form-data">
-
-        <fieldset>
-            <dl>
-                {% if preset_replies %}
-                <dt><label for='id_preset'>{% trans "Use a Pre-set Reply" %}</label> <span class='form_optional'>{% trans "(Optional)" %}</span></dt>
-                <dd><select name='preset' id='id_preset'><option value=''>------</option>{% for preset in preset_replies %}<option value='{{ preset.id }}'>{{ preset.name }}</option>{% endfor %}</select></dd>
-                <dd class='form_help_text'>{% trans "Selecting a pre-set reply will over-write your comment below. You can then modify the pre-set reply to your liking before saving this update." %}</dd>
-                {% endif %}
-
-                <dt>
-                    <label for='commentBox'>{% trans "Comment / Resolution" %}</label>
-                </dt>
-                <dd><textarea rows='8' cols='70' name='comment' id='commentBox'>{% if form.errors %}{{ xform.comment }}{% endif %}</textarea></dd>
-                {% url "helpdesk:help_context" as context_help_url %}
-                {% blocktrans %}
-                <dd class='form_help_text'>You can insert ticket and queue details in your message. For more information, see the <a href='{{ context_help_url }}'>context help page</a>.</dd>
-                {% endblocktrans %}
-
-                <dt><label>{% trans "New Status" %}</label></dt>
-                {% if not ticket.can_be_resolved %}<dd>{% trans "This ticket cannot be resolved or closed until the tickets it depends on are resolved." %}</dd>{% endif %}
-                <dd><div class="form-group">
-                {% for status_choice in ticket.get_allowed_status_flow %}
-                    <label for='st_{{ status_choice.1|lower }}' class='{% if ticket.status == status_choice.0 %}active {% endif %}radio-inline'><input type='radio' name='new_status' value='{{ status_choice.0 }}' id='st_{{ status_choice.1|lower }}'{% if not ticket.can_be_resolved %} disabled='disabled'{% endif %}{% if ticket.status == status_choice.0 %} checked='checked'{% endif %}>{{ status_choice.1 }}{% if forloop.last %}{% else %} &raquo;{% endif %}</label>
+    <form method="post" action="{% url 'helpdesk:update' ticket.id %}" enctype="multipart/form-data" novalidate>
+      <fieldset>
+        <div class="form-row">
+          <!-- Main column: comment + presets -->
+          <div class="col-lg-8 col-md-12 mb-3">
+            {% if preset_replies %}
+            <div class="form-group">
+              <label for="id_preset" class="font-weight-600">{% trans "Use a Pre-set Reply" %} <small class="text-muted">({% trans "Optional" %})</small></label>
+              <select name="preset" id="id_preset" class="custom-select">
+                <option value="">{% trans "Choose..." %}</option>
+                {% for preset in preset_replies %}
+                <option value="{{ preset.id }}">{{ preset.name }}</option>
                 {% endfor %}
-                </div></dd>
+              </select>
+              <small class="form-text text-muted">
+                {% trans "Selecting a pre-set reply will over-write your comment below. You can then modify the pre-set reply to your liking before saving this update." %}
+              </small>
+            </div>
+            {% endif %}
 
-                {% if helpdesk_settings.HELPDESK_UPDATE_PUBLIC_DEFAULT %}
-                <input type='hidden' name='public' value='1'>
-                {% else %}
-                <dt>
-                    <label for='id_public'>{% trans "Is this update public?" %}</label> <span class='form_optional'>{% trans "(Optional)" %}</span>
-                </dt>
-                <dd><input type='checkbox' name='public' value='1' checked='checked' />&nbsp; {% trans 'Yes, make this update public.' %}</dd>
-                <dd class='form_help_text'>{% trans "If this is public, the submitter will be e-mailed your comment or resolution." %}</dd>
+            <div class="form-group">
+              <label for="commentBox" class="font-weight-600">{% trans "Comment / Resolution" %}</label>
+              <textarea id="commentBox" name="comment" rows="8" class="form-control" placeholder="{% trans 'Write your comment or resolution here...' %}">{% if form.errors %}{{ xform.comment }}{% endif %}</textarea>
+              {% url "helpdesk:help_context" as context_help_url %}
+              <small class="form-text text-muted">
+                {% blocktrans %}
+                You can insert ticket and queue details in your message. For more information, see the <a href='{{ context_help_url }}'>context help page</a>.
+                {% endblocktrans %}
+              </small>
+            </div>
+
+            <!-- Attachments toggle kept for backward compatibility -->
+            {% if helpdesk_settings.HELPDESK_ENABLE_ATTACHMENTS %}
+            <p id="ShowFileUploadPara" class="mb-2">
+              <button type="button" id="ShowFileUpload" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-paperclip mr-1"></i> {% trans "Attach File(s)" %} &raquo;
+              </button>
+            </p>
+            <div id="FileUpload" style="display: none;">
+              <div class="form-group">
+                <label for="file0">{% trans "Attach a File" %}</label>
+                <div class="add_file_fields_wrap">
+                  <button class="add_file_field_button btn btn-sm btn-success mb-2">{% trans "Add Another File" %}</button>
+                  <div>
+                    <label class="btn btn-primary btn-sm btn-file">
+                      Browse... <input type="file" name="attachment" id="file0" style="display: none;" />
+                    </label>
+                    <span class="ml-2" id="selectedfilename0">{% trans 'No files selected.' %}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Side column: status / public / time / actions -->
+          <div class="col-lg-4 col-md-12">
+            <div class="card card-body p-3 mb-3">
+              <div class="mb-2">
+                <label class="d-block font-weight-600">{% trans "New Status" %}</label>
+                {% if not ticket.can_be_resolved %}
+                  <small class="d-block text-muted mb-2">{% trans "This ticket cannot be resolved or closed until the tickets it depends on are resolved." %}</small>
                 {% endif %}
+                <div class="btn-group-toggle btn-group d-flex flex-wrap" data-toggle="buttons" role="group" aria-label="{% trans 'Status' %}">
+                  {% for status_choice in ticket.get_allowed_status_flow %}
+                    {% comment %} Use the status name as a stable id (lowered) {% endcomment %}
+                    <label class="btn btn-outline-secondary mb-2 flex-fill {% if ticket.status == status_choice.0 %}active{% endif %}">
+                      <input type="radio"
+                             name="new_status"
+                             value="{{ status_choice.0 }}"
+                             id="st_{{ status_choice.1|lower }}"
+                             {% if not ticket.can_be_resolved %} disabled="disabled"{% endif %}
+                             {% if ticket.status == status_choice.0 %} checked="checked"{% endif %}>
+                      {{ status_choice.1 }}
+                    </label>
+                  {% endfor %}
+                </div>
+              </div>
 
-                {% if helpdesk_settings.HELPDESK_ENABLE_TIME_SPENT_ON_TICKET %}
-                {% if user.is_staff %}
-                <dt>
-                    <label for='id_time_spent'>{% trans "Time spent" %}</label> <span class='form_optional'>{% trans "(Optional)" %}</span>
-                </dt>
-                <dd><input name='time_spent' type="time" value="{% if form.errors %}{{ xform.time_spent }}{% endif %}"/></dd>
-                {% endif %}
-                {% endif %}
-            </dl>
+              {% if helpdesk_settings.HELPDESK_UPDATE_PUBLIC_DEFAULT %}
+                <input type="hidden" name="public" value="1">
+              {% else %}
+                <div class="form-group form-check mb-2">
+                  <input type="checkbox" class="form-check-input" id="id_public" name="public" value="1" checked="checked">
+                  <label class="form-check-label" for="id_public">{% trans "Yes, make this update public." %}</label>
+                  <small class="form-text text-muted">{% trans "If this is public, the submitter will be e-mailed your comment or resolution." %}</small>
+                </div>
+              {% endif %}
 
-        <p id='ShowFurtherOptPara'><button type="button" class="btn btn-warning btn-sm" id='ShowFurtherEditOptions'>{% trans "Change Further Details &raquo;" %}</button></p>
+              {% if helpdesk_settings.HELPDESK_ENABLE_TIME_SPENT_ON_TICKET and user.is_staff %}
+              <div class="form-group mb-2">
+                <label for="id_time_spent" class="font-weight-600">{% trans "Time spent" %} <small class="text-muted">({% trans "Optional" %})</small></label>
+                <input id="id_time_spent" name="time_spent" type="time" class="form-control" value="{% if form.errors %}{{ xform.time_spent }}{% endif %}" />
+              </div>
+              {% endif %}
 
-        <div id='FurtherEditOptions' style='display: none;'>
+            </div>
+          </div>
+        </div> <!-- /.form-row -->
 
-            <dl>
+                      <div class="d-flex justify-content-end">
+                <button type="button" class="btn btn-outline-warning btn-sm mr-2" id="ShowFurtherEditOptions">{% trans "Change Further Details" %} &raquo;</button>
+                <button type="submit" class="btn btn-primary">{% trans "Update This Ticket" %}</button>
+              </div>
 
-                <dt><label for='id_title'>{% trans "Title" %}</label></dt>
-                <dd><input type='text' name='title' value='{{ ticket.title|escape }}' /></dd>
+        <!-- Further edit options (keeps existing ids for JS hooks) -->
+        <div id="FurtherEditOptions" style="display: none;">
+          <div class="card card-body mb-3">
+            <div class="form-row">
+              <div class="form-group col-md-12">
+                <label for="id_title" class="font-weight-600">{% trans "Title" %}</label>
+                <input type="text" class="form-control" id="id_title" name="title" value="{{ ticket.title|escape }}" />
+              </div>
 
-                <dt><label for='id_owner'>{% trans "Owner" %}</label></dt>
-                <dd>
-                    <select id='id_owner' name='owner'>
-                        <option value='0'>{% trans "Unassigned" %}</option>
-                        {% for u in assignable_users %}
-                            <option value='{{ u.id }}'{% if u.id == ticket.assigned_to.id %} selected{% endif %}>{{ u }}</option>
-                        {% endfor %}
-                    </select>
-                </dd>
+              <div class="form-group col-md-6">
+                <label for="id_owner" class="font-weight-600">{% trans "Owner" %}</label>
+                <select id="id_owner" name="owner" class="custom-select">
+                  <option value="0">{% trans "Unassigned" %}</option>
+                  {% for u in assignable_users %}
+                    <option value="{{ u.id }}"{% if u.id == ticket.assigned_to.id %} selected{% endif %}>{{ u }}</option>
+                  {% endfor %}
+                </select>
+              </div>
 
-                <dt><label for='id_priority'>{% trans "Priority" %}</label></dt>
-                <dd><select id='id_priority' name='priority'>{% for p in priorities %}{% if p.0 == ticket.priority %}<option value='{{ p.0 }}' selected='selected'>{{ p.1 }}</option>{% else %}<option value='{{ p.0 }}'>{{ p.1 }}</option>{% endif %}{% endfor %}</select></dd>
+              <div class="form-group col-md-6">
+                <label for="id_priority" class="font-weight-600">{% trans "Priority" %}</label>
+                <select id="id_priority" name="priority" class="custom-select">
+                  {% for p in priorities %}
+                    <option value="{{ p.0 }}"{% if p.0 == ticket.priority %} selected{% endif %}>{{ p.1 }}</option>
+                  {% endfor %}
+                </select>
+              </div>
 
-                <dt><label for='id_queue'>{% trans "Queue" %}</label></dt>
-                <dd><select id='id_queue' name='queue'>{% for queue_id, queue_name in queues %}<option value='{{ queue_id }}'{% if queue_id == ticket.queue.id %} selected{% endif %}>{{ queue_name }}</option>{% endfor %}</select></dd>
+              <div class="form-group col-md-6">
+                <label for="id_queue" class="font-weight-600">{% trans "Queue" %}</label>
+                <select id="id_queue" name="queue" class="custom-select">
+                  {% for queue_id, queue_name in queues %}
+                    <option value="{{ queue_id }}"{% if queue_id == ticket.queue.id %} selected{% endif %}>{{ queue_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
 
-                <dt><label for='id_due_date'>{% trans "Due on" %}</label></dt>
-                <dd>{{ form.due_date }}</dd>
+              <div class="form-group col-md-6">
+                <label for="id_due_date" class="font-weight-600">{% trans "Due on" %}</label>
+                <div>{{ form.due_date }}</div>
+              </div>
+            </div>
 
-            </dl>
-
-            <dl>
-                <dt>{{ customfields_form }}</dt>
-            </dl>
-
+            <div class="mt-2">
+              <label class="font-weight-600">{% trans "Custom fields" %}</label>
+              <div>{{ customfields_form }}</div>
+            </div>
+          </div>
         </div>
 
         {% if ticket.checklists.exists %}
-            <p>
-                <button type="button" class="btn btn-warning btn-sm" id='ShowChecklistEditOptions'>
-                    {% trans "Update checklists" %} &raquo;
-                </button>
-            </p>
-
-            <div id="checklistEdit" style="display: none">
-                <div class="row">
-                    {% for checklist in ticket.checklists.all %}
-                        <div class="col-sm-4 col-xs-12">
-                            <div class="card mb-4">
-                                <div class="card-header">
-                                    <h5>{{ checklist }}</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="list-group">
-                                        {% for task in checklist.tasks.all %}
-                                            <div class="list-group-item"{% if task.completion_date %} title="{% trans "Completed on" %} {{ task.completion_date }}" {% endif %}>
-                                                <label>
-                                                    <input type="checkbox" name="checklist-{{ checklist.id }}" value="{{ task.id }}" {% if task.completion_date %} checked{% endif %}>
-                                                    {{ task }}
-                                                </label>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
+        <div class="mb-3">
+          <button type="button" class="btn btn-outline-warning btn-sm" id="ShowChecklistEditOptions">{% trans "Update checklists" %} &raquo;</button>
+          <div id="checklistEdit" style="display: none;" class="mt-3">
+            <div class="row">
+              {% for checklist in ticket.checklists.all %}
+              <div class="col-sm-4 col-xs-12 mb-3">
+                <div class="card h-100">
+                  <div class="card-header"><h5 class="mb-0">{{ checklist }}</h5></div>
+                  <div class="card-body">
+                    <div class="list-group">
+                      {% for task in checklist.tasks.all %}
+                        <div class="list-group-item"{% if task.completion_date %} title="{% trans "Completed on" %} {{ task.completion_date }}"{% endif %}>
+                          <label class="mb-0">
+                            <input type="checkbox" name="checklist-{{ checklist.id }}" value="{{ task.id }}" {% if task.completion_date %} checked{% endif %}>
+                            {{ task }}
+                          </label>
                         </div>
-                    {% endfor %}
-                </div>
-            </div>
-        {% endif %}
-
-        {% if helpdesk_settings.HELPDESK_ENABLE_ATTACHMENTS %}
-            {% if form.errors.attachment %}
-                    <small class='error'>{{ form.errors.attachment }}</small>
-            {% endif %}
-        <p id='ShowFileUploadPara'><button type="button" class="btn btn-warning btn-sm" id='ShowFileUpload'>{% trans "Attach File(s) &raquo;" %}</button></p>
-        {% endif %}
-
-        <div id='FileUpload' style='display: none;'>
-
-            <dl>
-                <dt><label for='id_file'>{% trans "Attach a File" %}</label></dt>
-               <dd>
-                    <div class="add_file_fields_wrap">
-                        <button class="add_file_field_button btn btn-success btn-xs">{% trans "Add Another File" %}</button>
-                        <div><label class='btn btn-primary btn-sm btn-file'>
-                                Browse... <input type="file" name='attachment' id='file0' style='display: none;'/>
-                        </label><span>&nbsp;</span><span id='selectedfilename0'>{% trans 'No files selected.' %}</span></div>
+                      {% endfor %}
                     </div>
-                </dd>
-            </dl>
-
-        </div>
-
-        </fieldset>
-
-        <button class="btn btn-primary float-right" type='submit' onclick='$("#ShowFurtherEditOptions").click()'>{% trans "Update This Ticket" %}</button>
-
-        {% csrf_token %}</form>
-
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
             </div>
+          </div>
         </div>
+        {% endif %}
+
+        {% csrf_token %}
+      </fieldset>
+    </form>
+  </div>
+</div>
 
         <div class="modal fade" id="createChecklistModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered" role="document">
