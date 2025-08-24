@@ -384,6 +384,34 @@ ul.sidebar.d-none {
 .stats-grid-item { display:flex; }
 .stats-grid .card { width:100%; }
 
+/* Override for Create New Ticket buttons: placed in helpdesk-extend.css so it loads last */
+.btn-fixed-ticket {
+    width: 110px !important;
+    height: 38px !important;
+    padding: 6px 10px !important;
+    border-radius: 6px !important;
+    font-size: 0.9rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.btn-fixed-ticket i {
+    margin-right: 8px !important;
+    font-size: 1.05rem !important;
+}
+
+.btn-fixed-text {
+    display: inline-block !important;
+    max-width: 70px !important; /* leave room for the icon */
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
 /* Dashboard specific styling */
 .dashboard-actions .card-header { border-bottom: 0; }
 .dashboard-actions .btn { text-align: left; }

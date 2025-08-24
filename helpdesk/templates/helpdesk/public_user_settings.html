@@ -10,7 +10,7 @@
     /* Reset-card layout (match password-change look) */
     :root { --input-padding-x: 0.75rem; --input-padding-y: 0.75rem; }
     .reset-wrapper { padding: 40px 20px; display:flex; align-items:center; justify-content:center; }
-    .reset-card { width: 540px; max-width:94%; padding: 28px; border-radius: 12px; background: #fff; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border: 1px solid #e0e0e0; }
+  .reset-card { width: 540px; max-width:94%; padding: 28px; border-radius: 12px; background: #fff; box-shadow: 0 6px 18px rgba(0,0,0,0.06); border: 1px solid #e0e0e0; border-top: 0; }
     .reset-card h1 { margin: 0 0 6px 0; font-size: 20px; font-family: 'Montserrat', sans-serif; }
     .reset-card p { margin: 0 0 16px 0; color: #444; font-family: 'Roboto', sans-serif; font-size:13px; }
 
@@ -67,6 +67,7 @@
       </div>
 
       <div class="reset-actions">
+        <a class="btn-secondary" href="http://127.0.0.1:8000/tickets/my-tickets/">Cancel</a>
         <button type="submit" class="btn-primary">Save changes</button>
       </div>
 
