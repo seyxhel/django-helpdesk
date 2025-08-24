@@ -1537,6 +1537,11 @@ class KBCategory(models.Model):
 
 
 class KBItem(models.Model):
+    allow_ticket_creation = models.BooleanField(
+        _('Allow regular users to make ticket about this?'),
+        default=False,
+        help_text=_('If checked, regular users can create tickets from this knowledgebase item.')
+    )
     """
     An item within the knowledgebase. Very straightforward question/answer
     style system.

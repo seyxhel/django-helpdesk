@@ -1,38 +1,44 @@
+<style>
+    .required-asterisk {
+        float: right;
+        color: #dc3545;
+        font-weight: 600;
+        margin-left: 6px;
+    }
+    .field-error {
+        color: #dc3545;
+        font-size: 13px;
+        float: right;
+        margin-top: 2px;
+        margin-right: 2px;
+        display: block;
+    }
+    .modern-calendar { padding: .5rem .75rem; border-radius: 6px; }
+</style>
+
 {% load i18n bootstrap4form %}
 {% load load_helpdesk_settings %}
 
 {% with request|load_helpdesk_settings as helpdesk_settings %}
     {% if helpdesk_settings.HELPDESK_SUBMIT_A_TICKET_PUBLIC %}
-        {# Top-level form error banner removed: prefer inline per-field messages (Queue/title/body) #}
-    <form role="form" method='post' enctype='multipart/form-data' novalidate>
-            <style>
-                .required-asterisk { margin-left: 6px; color: #dc3545; font-weight: 600; }
-                .modern-calendar { padding: .5rem .75rem; border-radius: 6px; }
-                /* Local small red inline error for the public submit-ticket form */
-                form[novalidate] .field-error {
-                    color: #c62828;
-                    font-size: 12px;
-                    margin-left: 6px;
-                    display: inline-block;
-                    vertical-align: middle;
-                }
-                form[novalidate] .field-error::before { content: none; }
-            </style>
-            {% csrf_token %}
 
-        {# Queue (select) #}
-            {% if form.queue %}
-                <div class="form-group">
-            <label for="id_queue">{{ form.queue.label }}{% if form.queue.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
-                    <select name="queue" class="form-control" id="id_queue" {% if form.queue.field.required %}required aria-required="true"{% endif %}>
-                        {% for val,label in form.queue.field.choices %}
-                            {% if val|stringformat:"s" == "" %}
-                                <option value="">{% trans "Select Queue" %}</option>
-                            {% else %}
-                                <option value="{{ val }}" {% if val|stringformat:"s" == form.queue.value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
+        {% if allow_ticket_creation %}
+            {# Top-level form error banner removed: prefer inline per-field messages (Queue/title/body) #}
+            <form role="form" method='post' enctype='multipart/form-data' novalidate>
+                {% csrf_token %}
+                {# Queue (select) #}
+                {% if form.queue %}
+                    <div class="form-group">
+                        <label for="id_queue">{{ form.queue.label }}{% if form.queue.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
+                        <select name="queue" class="form-control" id="id_queue" {% if form.queue.field.required %}required aria-required="true"{% endif %}>
+                            {% for val,label in form.queue.field.choices %}
+                                {% if val|stringformat:"s" == "" %}
+                                    <option value="">{% trans "Select Queue" %}</option>
+                                {% else %}
+                                    <option value="{{ val }}" {% if val|stringformat:"s" == form.queue.value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
                         {% if form.queue.errors %}
                             {% for err in form.queue.errors %}
                                 {% if err == "This field is required." %}
@@ -42,98 +48,100 @@
                                 {% endif %}
                             {% endfor %}
                         {% endif %}
-                </div>
-            {% endif %}
-
-            {# Subject (was 'Summary of the problem') #}
-            <div class="form-group">
-                <label for="id_title">{% trans "Subject" %}{% if form.title.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
-                {{ form.title }}
-                {% if form.title.errors %}
-                    {% for err in form.title.errors %}
-                        {% if err == "This field is required." %}
-                            <div id="id_title-client-error" class="field-error" aria-live="polite">{% trans "Please fill in the required field." %}</div>
-                        {% else %}
-                            <div id="id_title-client-error" class="field-error" aria-live="polite">{{ err }}</div>
-                        {% endif %}
-                    {% endfor %}
+                    </div>
                 {% endif %}
-            </div>
 
-            {# Description/body #}
-            <div class="form-group">
-                <label for="id_body">{% trans "Description of your issue" %}{% if form.body.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
-                {{ form.body }}
-                {% if form.body.help_text %}
-                    <small class="form-text text-muted">{{ form.body.help_text }}</small>
-                {% endif %}
-                {% if form.body.errors %}
-                    {% for err in form.body.errors %}
-                        {% if err == "This field is required." %}
-                            <div id="id_body-client-error" class="field-error" aria-live="polite">{% trans "Please fill in the required field." %}</div>
-                        {% else %}
-                            <div id="id_body-client-error" class="field-error" aria-live="polite">{{ err }}</div>
-                        {% endif %}
-                    {% endfor %}
-                {% endif %}
-            </div>
-
-            {# Priority with modified default label #}
-            {% if form.priority %}
+                {# Subject (was 'Summary of the problem') #}
                 <div class="form-group">
-                    <label for="id_priority">{{ form.priority.label }}{% if form.priority.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
-                    <select name="priority" class="form-control" id="id_priority">
-                        {% for val, label in form.priority.field.choices %}
-                            {% if val|stringformat:"s" == form.priority.value|stringformat:"s" %}
-                                <option value="{{ val }}" selected>
+                    <label for="id_title">{% trans "Subject" %}{% if form.title.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                        {% for err in form.title.errors %}
+                            {% if err == "This field is required." %}
+                                <div id="id_title-client-error" class="field-error" aria-live="polite">{% trans "Please fill in the required field." %}</div>
                             {% else %}
-                                <option value="{{ val }}">
+                                <div id="id_title-client-error" class="field-error" aria-live="polite">{{ err }}</div>
                             {% endif %}
-                            {% if val|stringformat:"s" == "3" %}
-                                {{ label }} (Default)
-                            {% else %}
-                                {{ label }}
-                            {% endif %}
-                            </option>
                         {% endfor %}
-                    </select>
-                </div>
-            {% endif %}
-
-            {# Due date label updated and modern calendar class applied #}
-            {% if form.due_date %}
-                <div class="form-group">
-                    <label for="id_due_date">{% trans "Due on" %} <small class="text-muted">({% trans "optional" %})</small></label>
-                    {{ form.due_date }}
-                </div>
-            {% endif %}
-
-            {# Attachment help text simplified #}
-            {% if form.attachment %}
-                <div class="form-group">
-                    <label for="id_attachment">{{ form.attachment.label }} <small class="text-muted">({% trans "optional" %})</small></label>
-                    {{ form.attachment }}
-                    <small class="form-text text-muted">{% trans "Accepted attachments:" %} .txt, .pdf, .docx, .odt, .png, .jpg</small>
-                </div>
-            {% endif %}
-
-            {# Submitter Email moved below attachments per request #}
-            {% if form.submitter_email %}
-                <div class="form-group" style="display:none;" aria-hidden="true">
-                    <label for="id_submitter_email">{% trans "Your E-Mail Address" %}{% if form.submitter_email.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
-                    {{ form.submitter_email }}
-                    {% if form.submitter_email.help_text %}
-                        <small class="form-text text-muted">{{ form.submitter_email.help_text }}</small>
-                    {% else %}
-                        <small class="form-text text-muted">{% trans "We will e-mail you when your ticket is updated." %}</small>
                     {% endif %}
                 </div>
-            {% endif %}
 
-            {# Submit button styled to top-bar blue #000C7D #}
-            <button type="submit" class="btn btn-primary btn-lg btn-block" style="background-color:#000C7D; border-color:#000C7D; color:#ffffff;">
-                {% trans "Submit Ticket" %} <i class="fa fa-paper-plane"></i>
-            </button>
+                {# Description/body #}
+                <div class="form-group">
+                    <label for="id_body">{% trans "Description of your issue" %}{% if form.body.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
+                    {{ form.body }}
+                    {% if form.body.help_text %}
+                        <small class="form-text text-muted">{{ form.body.help_text }}</small>
+                    {% endif %}
+                    {% if form.body.errors %}
+                        {% for err in form.body.errors %}
+                            {% if err == "This field is required." %}
+                                <div id="id_body-client-error" class="field-error" aria-live="polite">{% trans "Please fill in the required field." %}</div>
+                            {% else %}
+                                <div id="id_body-client-error" class="field-error" aria-live="polite">{{ err }}</div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                {# Priority with modified default label #}
+                {% if form.priority %}
+                    <div class="form-group">
+                        <label for="id_priority">{{ form.priority.label }}{% if form.priority.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
+                        <select name="priority" class="form-control" id="id_priority">
+                            {% for val, label in form.priority.field.choices %}
+                                {% if val|stringformat:"s" == form.priority.value|stringformat:"s" %}
+                                    <option value="{{ val }}" selected>
+                                {% else %}
+                                    <option value="{{ val }}">
+                                {% endif %}
+                                {% if val|stringformat:"s" == "3" %}
+                                    {{ label }} (Default)
+                                {% else %}
+                                    {{ label }}
+                                {% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+
+                {# Due date label updated and modern calendar class applied #}
+                {% if form.due_date %}
+                    <div class="form-group">
+                        <label for="id_due_date">{% trans "Due on" %} <small class="text-muted">({% trans "optional" %})</small></label>
+                        {{ form.due_date }}
+                    </div>
+                {% endif %}
+
+                {# Attachment help text simplified #}
+                {% if form.attachment %}
+                    <div class="form-group">
+                        <label for="id_attachment">{{ form.attachment.label }} <small class="text-muted">({% trans "optional" %})</small></label>
+                        {{ form.attachment }}
+                        <small class="form-text text-muted">{% trans "Accepted attachments:" %} .txt, .pdf, .docx, .odt, .png, .jpg</small>
+                    </div>
+                {% endif %}
+
+                {# Submitter Email moved below attachments per request #}
+                {% if form.submitter_email %}
+                    <div class="form-group" style="display:none;" aria-hidden="true">
+                        <label for="id_submitter_email">{% trans "Your E-Mail Address" %}{% if form.submitter_email.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
+                        {{ form.submitter_email }}
+                        {% if form.submitter_email.help_text %}
+                            <small class="form-text text-muted">{{ form.submitter_email.help_text }}</small>
+                        {% else %}
+                            <small class="form-text text-muted">{% trans "We will e-mail you when your ticket is updated." %}</small>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {# Submit button styled to top-bar blue #000C7D #}
+                <button type="submit" class="btn btn-primary btn-lg btn-block" style="background-color:#000C7D; border-color:#000C7D; color:#ffffff;">
+                    {% trans "Submit Ticket" %} <i class="fa fa-paper-plane"></i>
+                </button>
+            </form>
+        {% endif %}
 
             <script>
                 // Ensure the due date input is legacy-datepicker friendly: use

@@ -531,13 +531,26 @@ class AbstractTicketForm(CustomFieldMixin, forms.Form):
 
     def _get_queue(self):
         # this procedure is re-defined for public submission form
-        return Queue.objects.get(id=int(self.cleaned_data["queue"]))
+        queue_val = self.cleaned_data.get("queue", None)
+        if not queue_val or str(queue_val).strip() == "":
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Queue is required.")
+        try:
+            return Queue.objects.get(id=int(queue_val))
+        except (ValueError, Queue.DoesNotExist):
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Invalid queue selected.")
 
     def _create_ticket(self):
         queue = self._get_queue()
         kbitem = None
-        if "kbitem" in self.cleaned_data:
-            kbitem = KBItem.objects.get(id=int(self.cleaned_data["kbitem"]))
+        kbitem_val = self.cleaned_data.get("kbitem", None)
+        if kbitem_val and str(kbitem_val).strip() != "":
+            try:
+                kbitem = KBItem.objects.get(id=int(kbitem_val))
+            except (ValueError, KBItem.DoesNotExist):
+                from django.core.exceptions import ValidationError
+                raise ValidationError("Invalid knowledgebase item selected.")
 
         ticket = Ticket(
             title=self.cleaned_data["title"],

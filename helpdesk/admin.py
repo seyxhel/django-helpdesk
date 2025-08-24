@@ -216,11 +216,11 @@ if helpdesk_settings.HELPDESK_KB_ENABLED:
 
     @admin.register(KBItem)
     class KBItemAdmin(admin.ModelAdmin):
-        list_display = ("category", "title", "last_updated", "team", "order", "enabled")
+        list_display = ("category", "title", "last_updated", "team", "order", "enabled", "allow_ticket_creation")
         inlines = [KBIAttachmentInline]
         readonly_fields = ("voted_by", "downvoted_by")
-
         list_display_links = ("title",)
+        fields = ("category", "title", "question", "answer", "allow_ticket_creation", "last_updated", "team", "order", "enabled")
 
     if helpdesk_settings.HELPDESK_KB_ENABLED:
         # Import the KBCategoryForm so description can be optional in admin
@@ -243,8 +243,9 @@ if helpdesk_settings.HELPDESK_KB_ENABLED:
                 return ["name", "title", "slug", "description", "public", "queue"]
 
             def save_model(self, request, obj, form, change):
-                """Auto-generate a unique slug on create when not provided."""
+                """Auto-generate a unique slug on create when not provided. Also create a Queue and link it to KBCategory."""
                 from django.utils.text import slugify
+                from helpdesk.models import Queue
 
                 if not change:
                     # creating new object
@@ -257,6 +258,11 @@ if helpdesk_settings.HELPDESK_KB_ENABLED:
                             slug = f"{base}-{counter}"
                             counter += 1
                         obj.slug = slug
+                    # Automatically create a Queue for this KBCategory
+                    queue_title = obj.name or obj.title or "KB Queue"
+                    queue_slug = obj.slug
+                    queue = Queue.objects.create(title=queue_title, slug=queue_slug, allow_public_submission=True)
+                    obj.queue = queue
                 super().save_model(request, obj, form, change)
 
 

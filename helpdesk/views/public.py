@@ -56,6 +56,15 @@ def create_ticket(request, *args, **kwargs):
 
 
 class BaseCreateTicketView(abstract_views.AbstractCreateTicketMixin, FormView):
+    def get_initial(self):
+        initial = super().get_initial()
+        kbitem_id = self.request.GET.get('kbitem')
+        if kbitem_id:
+            from helpdesk.models import KBItem
+            kbitem = KBItem.objects.filter(pk=kbitem_id).first()
+            if kbitem:
+                initial['title'] = kbitem.title
+        return initial
     # Provide a sensible default redirect for non-iframe public submissions so
     # FormView.post() can resolve a success URL and avoid ImproperlyConfigured
     # when no explicit redirect is returned by form_valid().
@@ -222,12 +231,28 @@ class SuccessIframeView(TemplateView):
 class CreateTicketView(BaseCreateTicketView):
     template_name = "helpdesk/public_create_ticket.html"
 
+
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        # Add the CSS error class to the form in order to better see them in
-        # the page
         form.error_css_class = "text-danger"
         return form
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        kbitem_id = self.request.GET.get('kbitem')
+        kbitem = None
+        allow_ticket_creation = True
+        if kbitem_id:
+            from helpdesk.models import KBItem
+            try:
+                kbitem = KBItem.objects.get(pk=kbitem_id)
+                context['kbitem'] = kbitem
+                allow_ticket_creation = getattr(kbitem, 'allow_ticket_creation', True)
+            except KBItem.DoesNotExist:
+                context['kbitem'] = None
+                allow_ticket_creation = True
+        context['allow_ticket_creation'] = allow_ticket_creation
+        return context
 
     def get_success_url(self):
         """Redirect back to the homepage with a flag so we can show an inline toast.
@@ -501,8 +526,6 @@ class HelpdeskPasswordResetView(auth_views.PasswordResetView):
         # EMAIL_HOST_USER, SERVER_EMAIL, or a safe default.
         def _coerce(val):
             if not val:
-                return None
-            if isinstance(val, str) and val.strip().lower() == "none":
                 return None
             return val
 
