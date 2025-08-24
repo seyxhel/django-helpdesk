@@ -986,12 +986,22 @@ class RegistrationForm(forms.ModelForm):
     password1 = forms.CharField(
         label=_("Password"),
         strip=False,
-        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        widget=forms.PasswordInput(attrs={
+            "class": "form-control",
+            "autocomplete": "new-password",
+            "inputmode": "text",
+            "spellcheck": "false"
+        }),
     )
     password2 = forms.CharField(
         label=_("Confirm password"),
         strip=False,
-        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        widget=forms.PasswordInput(attrs={
+            "class": "form-control",
+            "autocomplete": "new-password",
+            "inputmode": "text",
+            "spellcheck": "false"
+        }),
     )
 
     class Meta:
