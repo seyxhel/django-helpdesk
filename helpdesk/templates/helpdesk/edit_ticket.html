@@ -15,33 +15,145 @@
 {% endblock %}
 
 {% block helpdesk_body %}
-    <div class="col-xs-6">
-        <div class="panel panel-default">
-            <div class="panel-body"><h2>{% trans "Edit a Ticket" %}</h2>
-                <p>
-                    {% trans "Unless otherwise stated, all fields are required." %}
-                    {% trans "Please provide as descriptive a title and description as possible." %}
-                </p>
-                <p>
-                    <strong>{% trans "Note" %}:</strong>
-                    {% blocktrans %}Editing a ticket does <em>not</em> send an e-mail to the ticket owner or submitter. No new details should be entered, this form should only be used to fix incorrect details or clean up the submission.{% endblocktrans %}
-                </p>
-                {% if errors %}<p class="text-danger">{% for error in errors %}{% trans "Error: " %}{{ error }}<br>{% endfor %}</p>{% endif %}
-                <form method='post'>
-                    {% csrf_token %}
-                    <fieldset>
-                        {{ form|bootstrap4form }}
-                        <div class='buttons form-group'>
-                            <input type='submit' class="btn btn-primary btn-sm" value='{% trans "Save Changes" %}'/>
-                            <a href='{{ ticket.get_absolute_url }}'>
-                                <button class="btn btn-danger">{% trans "Cancel Changes" %}</button>
-                            </a>
-                        </div>
-                    </fieldset>
-                </form>
-            </div>
+<style>
+  :root{
+    --brand: #0b5ed7;       /* Primedesk color */
+    --brand-strong: #084bb5;
+  }
+  /* Card / general */
+  .edit-card {
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(8,24,48,0.08);
+    overflow: visible;
+    border: 1px solid rgba(15,23,42,0.06);
+  }
+  .edit-card .card-header {
+    background: transparent;
+    border-bottom: 0;
+    padding-bottom: 0.75rem;
+  }
+  .edit-card h5 { font-weight: 700; margin-bottom: 0.15rem; font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+  .edit-card .card-body { padding-top: 0.75rem; }
+
+  /* Form fields */
+  .edit-form .form-group { margin-bottom: 1.1rem; }
+  .edit-form label { font-weight: 600; color: #1f2d3d; margin-bottom: 0.35rem; display:block; }
+  .edit-form .form-control {
+    height: 44px;
+    border-radius: 10px;
+    border: 1px solid rgba(15,23,42,0.12);
+    padding: .55rem .75rem;
+    box-shadow: none;
+    background: #fff;
+  }
+  .edit-form .form-control:focus {
+    border-color: #0b5ed7;
+    box-shadow: 0 6px 18px rgba(11,87,215,0.06);
+  }
+
+  /* Validation */
+  .edit-form .is-invalid, .edit-form .was-validated .form-control:invalid {
+    border-color: #dc3545 !important;
+    box-shadow: none;
+  }
+  .edit-form .invalid-feedback { display:block; color:#dc3545; margin-top:.35rem; }
+
+  /* Small helper text */
+  .edit-card .alert-info.small { background: #f6fbff; border: 1px solid rgba(11,87,215,0.06); color: #0b57d0; border-radius:8px; padding:.6rem .75rem; }
+
+  /* Submit button style matching the image */
+  .edit-actions {
+    padding: 1rem;
+    border-top: 1px solid rgba(15,23,42,0.04);
+    background: transparent;
+  }
+
+  /* Make both action buttons visually consistent (size, radius, alignment) */
+  .edit-actions .btn {
+    height: 44px;
+    padding: .45rem 1.2rem;
+    border-radius: 24px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    box-shadow: none;
+  }
+
+  /* Primary buttons: single Primedesk color */
+  .edit-actions .btn-primary {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(11,94,215,0.12);
+  }
+  .edit-actions .btn-primary:hover {
+    background: var(--brand-strong);
+    border-color: var(--brand-strong);
+    transform: translateY(-1px);
+  }
+  .edit-actions .btn-secondary {
+    background: #ffffff;
+    border: 1px solid rgba(15,23,42,0.08);
+    color: #1f2d3d;
+  }
+
+  /* Center the action buttons and keep them compact */
+  .edit-actions .actions-wrap { display:flex; gap:.75rem; justify-content:center; align-items:center; }
+
+  @media (max-width: 576px) {
+    .edit-actions .actions-wrap { flex-direction:column-reverse; gap:.5rem; }
+    .edit-form .form-control { height:46px; }
+  }
+</style>
+
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-9 col-lg-7">
+      <div class="card edit-card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <div>
+            <h5>{{ ticket.queue.slug }}-{{ ticket.id }} — {% trans "Edit Ticket" %}</h5>
+            <small class="text-muted">{% trans "Modify ticket details (won't notify the submitter)." %}</small>
+          </div>
         </div>
+
+        <div class="card-body">
+          {% if errors %}
+            <div class="alert alert-danger">
+              {% for error in errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="alert alert-info small">
+            <strong>{% trans "Note" %}:</strong>
+            {% blocktrans %}Editing a ticket does <em>not</em> send an e-mail to the ticket owner or submitter. Use this form only to fix incorrect details or clean up the submission.{% endblocktrans %}
+          </div>
+
+          <form method="post" novalidate class="edit-form">
+            {% csrf_token %}
+            <fieldset>
+              {{ form|bootstrap4form }}
+            </fieldset>
+        </div>
+
+        <div class="card-footer edit-actions">
+          <div class="actions-wrap">
+            <a href="{{ ticket.get_absolute_url }}" class="btn btn-secondary btn-sm">
+              <i class="fas fa-times mr-1"></i> {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="fas fa-save mr-1"></i> {% trans "Save Changes" %}
+            </button>
+          </div>
+          </form>
+        </div>
+      </div>
     </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block helpdesk_js %}

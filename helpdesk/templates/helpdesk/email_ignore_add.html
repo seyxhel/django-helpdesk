@@ -10,25 +10,238 @@
 {% endblock %}
 
 {% block helpdesk_body %}
-<h2>{% trans "Ignore E-Mail Address" %}</h2>
+<style>
+  :root{
+    --brand: #0b5ed7;
+    --brand-strong: #084bb5;
+    --muted: #6b7280;
+    --card-bg: #ffffff;
+    --radius-lg: 12px;
+    --btn-radius: 25px;
+  }
 
-<p>{% blocktrans %}To ignore an e-mail address and prevent any emails from that address creating tickets automatically, enter the e-mail address below.{% endblocktrans %}</p>
+  .page-card {
+    max-width: 720px;
+    margin: 28px auto;
+  }
 
-<p>{% blocktrans %}You can either enter a whole e-mail address such as <em>email@domain.com</em> or a portion of an e-mail address with a wildcard, such as <em>*@domain.com</em> or <em>user@*</em>.{% endblocktrans %}</p>
+  .page-card .card {
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 30px rgba(15,23,42,0.06);
+    border: 1px solid rgba(15,23,42,0.04);
+    overflow: hidden;
+    background: var(--card-bg);
+  }
 
-<form method='post' action='./'>
+  .page-card .card-body {
+    padding: 28px;
+  }
 
-<fieldset>
-    <dl>{% for field in form %}
-        <dt><label for='id_{{ field.name }}'>{{ field.label }}</label></dt>
-        <dd>{{ field }}</dd>
-        {% if field.errors %}<dd class='error'>{{ field.errors }}</dd>{% endif %}
-        {% if field.help_text %}<dd class='form_help_text'>{{ field.help_text }}</dd>{% endif %}
-    {% endfor %}</dl>
-</fieldset>
+  .page-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    color: #0f1724;
+    font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  .page-sub {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 18px;
+    display:block;
+  }
 
-<input class="btn btn-primary" type='submit' value='{% trans "Ignore E-Mail Address" %}' />
+  /* form layout */
+  .ignore-form .form-group {
+    margin-bottom: 14px;
+  }
+  .ignore-form label {
+    display:block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #1f2d3d;
+    font-size: 13px;
+  }
+  .ignore-form input[type="text"],
+  .ignore-form input[type="email"],
+  .ignore-form input,
+  .ignore-form select,
+  .ignore-form .form-control {
+    width:100%;
+    height:44px;
+    padding: .55rem .75rem;
+    border-radius: 10px;
+    border: 1px solid rgba(15,23,42,0.08);
+    box-shadow: none;
+    background: #fff;
+    box-sizing: border-box;
+  }
+  .ignore-form .helptext {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .ignore-form .errorlist {
+    margin: .25rem 0 0;
+    color: #dc3545;
+    font-size: 13px;
+  }
 
-{% csrf_token %}</form>
+  /* Note styling (make it like the screenshot) */
+  .confirm-warning {
+    border-radius: 10px;
+    padding: 14px 16px;
+    background: #fff7ee;               /* soft warm background */
+    border: 1px solid rgba(245,183,77,0.25);
+    color: #7a3f00;
+    margin-bottom: 18px;
+    font-size: 14px;
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+  }
+  .confirm-warning .warn-icon {
+    flex:0 0 auto;
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    background: linear-gradient(180deg,#fffaf0,#fff2e0);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:#c87114;
+    font-weight:700;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .confirm-warning strong { color:#c45a00; margin-right:6px; }
 
+  /* actions */
+  .confirm-actions {
+    padding: 24px 28px 28px;
+    display:flex;
+    justify-content:center; /* centered buttons */
+    gap: 14px;
+  }
+
+  .confirm-actions .btn {
+    height: 44px;
+    border-radius: var(--btn-radius);
+    padding: 0 18px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-weight:600;
+    transition: transform .08s ease, box-shadow .12s ease, filter .08s ease;
+  }
+
+  .btn-cancel {
+    background: #ffffff;
+    color: #0f1724;
+    border: 1px solid rgba(15,23,42,0.08);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset;
+  }
+  .btn-cancel:hover { transform: translateY(-1px); }
+
+  /* Primary: use single Primedesk color (flat) */
+  .btn-primary-ghost {
+    background: var(--brand);
+    color: #ffffff;
+    border: 1px solid var(--brand);
+    box-shadow: 0 8px 20px rgba(11,94,215,0.12);
+  }
+  .btn-primary-ghost:hover {
+    background: var(--brand-strong);
+    border-color: var(--brand-strong);
+    transform: translateY(-1px);
+    filter: none;
+  }
+
+  /* Checkbox -> replaced by compact dropdown: keep it left-aligned with no indent */
+  .ignore-form .form-group-boolean {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:14px;
+  }
+  .ignore-form .form-group-boolean label {
+    margin:0;
+    font-weight:600;
+    color:#1f2d3d;
+    min-width:210px; /* label column width */
+  }
+  .ignore-form .form-group-boolean select {
+    width:160px;
+    min-width:120px;
+  }
+
+  @media (max-width:576px) {
+    .page-card .card-body { padding: 20px; }
+    .confirm-actions { flex-direction:column-reverse; padding: 16px; align-items:stretch; }
+    .confirm-actions .btn { width:100%; justify-content:center; }
+    .ignore-form .form-group-boolean { flex-direction:column; align-items:stretch; }
+    .ignore-form .form-group-boolean label { min-width:auto; margin-bottom:6px; }
+    .ignore-form .form-group-boolean select { width:100%; }
+  }
+</style>
+
+<div class="container page-card">
+  <div class="card">
+    <div class="card-body">
+      <h3 class="page-title">{% trans "Ignore E-Mail Address" %}</h3>
+      <span class="page-sub">{% trans "Prevent emails from this address creating tickets automatically." %}</span>
+
+      {% if form.non_field_errors %}
+        <div class="confirm-warning" role="alert">
+          <span class="warn-icon">!</span>
+          <div><strong>{% trans "Warning:" %}</strong> {{ form.non_field_errors }}</div>
+        </div>
+      {% endif %}
+
+      <form method="post" action="./" class="ignore-form" novalidate>
+        {% csrf_token %}
+        <fieldset>
+          {% for field in form %}
+            {% comment %} Render boolean/checkbox fields as a compact dropdown on the right of the label {% endcomment %}
+            {% if field.field.widget.input_type == "checkbox" %}
+              <div class="form-group-boolean">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                <select name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-control form-control-sm">
+                  <option value="True" {% if field.value|stringformat:"s" == "True" or field.value == True %}selected{% endif %}>{% trans "Yes" %}</option>
+                  <option value="False" {% if field.value|stringformat:"s" == "False" or not field.value %}selected{% endif %}>{% trans "No" %}</option>
+                </select>
+                {% if field.help_text %}
+                  <div class="helptext" style="margin-left:0;">{{ field.help_text }}</div>
+                {% endif %}
+                {% if field.errors %}
+                  <div class="errorlist">{{ field.errors|striptags }}</div>
+                {% endif %}
+              </div>
+            {% else %}
+              <div class="form-group">
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.help_text %}
+                  <div class="helptext">{{ field.help_text }}</div>
+                {% endif %}
+                {% if field.errors %}
+                  <div class="errorlist">{{ field.errors|striptags }}</div>
+                {% endif %}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </fieldset>
+
+        <div class="confirm-actions">
+          <a href="{% url 'helpdesk:list' %}" class="btn btn-cancel btn-sm" role="button">
+            <i class="fas fa-arrow-left"></i>&nbsp;{% trans "Cancel" %}
+          </a>
+
+          <button type="submit" class="btn btn-primary-ghost btn-sm">
+            <i class="fas fa-ban"></i>&nbsp;{% trans "Ignore E-Mail Address" %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}

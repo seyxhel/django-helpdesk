@@ -13,15 +13,148 @@
 {% endblock %}
 
 {% block helpdesk_body %}
-<h2>{% trans "Delete Ticket" %}</h2>
+<style>
+  :root{
+    --brand: #0b5ed7;
+    --brand-strong: #084bb5;
+    --muted: #6b7280;
+    --card-bg: #ffffff;
+    --radius-lg: 12px;
+    --btn-radius: 25px;
+  }
 
-<p>{% blocktrans with ticket.title as ticket_title %}Are you sure you want to delete this ticket (<em>{{ ticket_title }}</em>)? All traces of the ticket, including followups, attachments, and updates will be irreversibly removed.{% endblocktrans %}</p>
+  /* Card like the provided image: white, rounded, soft shadow */
+  .confirm-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 28px rgba(15,23,42,0.06);
+    border: 1px solid rgba(15,23,42,0.04);
+    overflow: hidden;
+  }
 
-<p><a href='../'><button class="btn btn-primary btn-lg">{% trans "No, Don't Delete It" %}</button></a></p>
+  .confirm-card .card-body {
+    padding: 28px 28px 20px;
+  }
 
-<form method='post' action='./'>
-    {% csrf_token %}
-    <input type="hidden" name="next" value="{{ next }}">
-    <button class="btn btn-danger" type='submit'>{% trans "Yes I Understand - Delete It Anyway" %}</button>
-</form>
+  .confirm-title {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f1724; /* slightly off-black */
+    font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  .confirm-sub {
+    display:block;
+    color: var(--muted);
+    margin-bottom: 18px;
+    font-size: 13px;
+  }
+
+  .confirm-body {
+    color: #1f2d3d;
+    margin-bottom: 14px;
+    line-height: 1.45;
+  }
+
+  .confirm-warning {
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: #fff4e5;
+    border: 1px solid rgba(220, 101, 23, 0.12);
+    color: #974b00;
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+
+  /* Button bar centered, pill buttons */
+  .confirm-actions {
+    padding: 22px;
+    display:flex;
+    justify-content:center;
+    gap: 12px;
+    background: transparent;
+  }
+  .confirm-actions .btn {
+    height: 44px;
+    border-radius: var(--btn-radius);
+    padding: 0 18px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-weight:600;
+    box-shadow: none;
+    transition: transform .08s ease, box-shadow .12s ease, filter .08s ease;
+  }
+
+  /* Cancel: white pill with subtle border and dark text (like your screenshot) */
+  .btn-cancel {
+    background: #ffffff;
+    color: #0f1724; /* slightly off-black */
+    border: 1px solid rgba(15,23,42,0.08);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset;
+  }
+  .btn-cancel .fas { color: #0f1724; }
+  .btn-cancel:hover {
+    background: #f8fafc;
+    border-color: rgba(15,23,42,0.12);
+    transform: translateY(-1px);
+  }
+
+  /* Primary (Save/Delete): deep brand blue pill with subtle glow */
+  .btn-delete {
+    background: linear-gradient(180deg,#0b5ed7 0%,#084bb5 100%);
+    color: #ffffff;
+    border: 1px solid rgba(8,75,181,0.9);
+    box-shadow: 0 10px 30px rgba(11,94,215,0.18);
+  }
+  .btn-delete .fas { color: #ffffff; }
+  .btn-delete:hover {
+    filter: brightness(.98);
+    transform: translateY(-1px);
+  }
+
+  /* small screens */
+  @media (max-width: 576px) {
+    .confirm-card .card-body { padding: 20px; }
+    .confirm-actions { flex-direction:column-reverse; gap:10px; padding:16px; }
+    .confirm-actions .btn { width:100%; justify-content:center; }
+  }
+</style>
+
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="card confirm-card">
+        <div class="card-body">
+          <h3 class="confirm-title">{% trans "Delete Ticket" %}</h3>
+          <span class="confirm-sub">{% trans "Permanent removal of the ticket and all associated data." %}</span>
+
+          <div class="confirm-body">
+            {% blocktrans with ticket.title as ticket_title %}
+              Are you sure you want to delete this ticket <strong>({{ ticket_title }})</strong>? This will permanently remove the ticket, followups, attachments and all related data.
+            {% endblocktrans %}
+          </div>
+
+          <div class="confirm-warning" role="alert">
+            <strong>{% trans "Warning" %}:</strong>&nbsp;{% trans "This action cannot be undone." %}
+          </div>
+        </div>
+
+        <div class="confirm-actions">
+          <a href="../" class="btn btn-cancel btn-sm" role="button">
+            <i class="fas fa-arrow-left"></i>&nbsp;{% trans "Cancel" %}
+          </a>
+
+          <form method="post" action="./" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            <button class="btn btn-delete btn-sm" type="submit">
+              <i class="fas fa-trash-alt"></i>&nbsp;{% trans "Yes — Delete It" %}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
