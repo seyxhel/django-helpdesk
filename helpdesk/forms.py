@@ -181,6 +181,7 @@ class AddUserForm(UserCreationForm):
                 # Provide a clearer message for duplicate usernames
                 if f == "username":
                     self.fields[f].error_messages["unique"] = "Invalid Username."
+                    self.fields[f].error_messages["invalid"] = "Invalid Username."
                 # Also provide a clearer message for duplicate emails
                 if f == "email":
                     self.fields[f].error_messages["unique"] = "Invalid Email."
@@ -194,7 +195,7 @@ class AddUserForm(UserCreationForm):
         """Ensure the provided email isn't already used by another user."""
         email = self.cleaned_data.get("email")
         if email and User.objects.filter(email__iexact=email).exists():
-            raise ValidationError(_("A user with that email address already exists."))
+            raise ValidationError(_("Invalid Email."))
         return email
 
 
