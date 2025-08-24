@@ -220,7 +220,6 @@ DEFAULT_TICKET_PRIORITY_CHOICES = (
     (2, _("2. High")),
     (3, _("3. Normal")),
     (4, _("4. Low")),
-    (5, _("5. Very Low")),
 )
 TICKET_PRIORITY_CHOICES = getattr(
     settings, "HELPDESK_TICKET_PRIORITY_CHOICES", DEFAULT_TICKET_PRIORITY_CHOICES

@@ -72,6 +72,46 @@
       </div>
 
     </form>
+    {% if request.GET.updated %}
+      <div id="profile-success-overlay" aria-hidden="true" style="display:none; position:fixed; inset:0; z-index:1200; align-items:center; justify-content:center;">
+        <div id="profile-success-backdrop" style="background: rgba(0,0,0,0.4); position:absolute; inset:0;"></div>
+        <div style="position:relative; z-index:1201; display:flex; align-items:center; justify-content:center;">
+          <div id="profile-success-card" role="status" aria-live="polite" style="width:420px; max-width:94vw; background:#fff; border-radius:12px; padding:28px; box-shadow:0 10px 40px rgba(0,0,0,0.2); text-align:center; transition: transform 250ms ease, opacity 250ms ease;">
+            <!-- animated check circle -->
+            <svg width="84" height="84" viewBox="0 0 120 120" style="display:block;margin:0 auto 12px auto;">
+              <circle cx="60" cy="60" r="48" stroke="#0f9d58" stroke-width="6" fill="none" stroke-dasharray="302" stroke-dashoffset="302">
+                <animate attributeName="stroke-dashoffset" from="302" to="0" dur="0.45s" fill="freeze" />
+              </circle>
+              <path d="M40 62 L54 76 L82 46" stroke="#0f9d58" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0">
+                <animate attributeName="opacity" from="0" to="1" begin="0.4s" dur="0.15s" fill="freeze" />
+              </path>
+            </svg>
+            <h2 style="margin:0 0 8px 0; font-size:20px;">Success!</h2>
+            <p id="profile-success-text" style="margin:0; color:#444;">Profile Updated.</p>
+          </div>
+        </div>
+      </div>
+      <script>
+      (function(){
+        var overlay = document.getElementById('profile-success-overlay');
+        var card = document.getElementById('profile-success-card');
+        if(overlay && card) {
+          overlay.style.display = 'flex';
+          overlay.setAttribute('aria-hidden','false');
+          card.style.transform = 'translateY(-6px)';
+          card.style.opacity = '1';
+          setTimeout(function(){
+            try {
+              var url = new URL(window.location.href);
+              url.searchParams.delete('updated');
+              window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+            } catch (e) {}
+            overlay.style.display = 'none';
+          }, 1400);
+        }
+      })();
+      </script>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

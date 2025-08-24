@@ -287,7 +287,7 @@ class PublicUserSettingsView(LoginRequiredMixin, FormView):
 
     template_name = "helpdesk/public_user_settings.html"
     form_class = None
-    success_url = reverse_lazy("helpdesk:home")
+    success_url = reverse_lazy("helpdesk:user_settings")
 
     def dispatch(self, request, *args, **kwargs):
         # Staff should continue to use the staff settings view
@@ -316,7 +316,8 @@ class PublicUserSettingsView(LoginRequiredMixin, FormView):
 
     def form_valid(self, form):
         form.save()
-        return HttpResponseRedirect(self.get_success_url())
+        # Redirect to /settings/?updated=1 to trigger the overlay
+        return HttpResponseRedirect(self.get_success_url() + "?updated=1")
 
 
 class AdaptivePasswordChangeView(LoginRequiredMixin, PasswordChangeView):
