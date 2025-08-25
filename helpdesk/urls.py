@@ -14,6 +14,7 @@ from django.views.generic import TemplateView
 from helpdesk import settings as helpdesk_settings
 from helpdesk.decorators import helpdesk_staff_member_required, protect_view
 from helpdesk.views import feeds, login, public, staff
+from helpdesk.views import sla_staff
 from helpdesk.forms import CustomSetPasswordForm
 from helpdesk.views.api import (
     CreateUserView,
@@ -58,6 +59,7 @@ base64_pattern = r"(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)
 urlpatterns = [
     path("dashboard/", staff.dashboard, name="dashboard"),
     path("ajax/email_exists/", staff.ajax_email_exists, name="ajax_email_exists"),
+    path("sla/", sla_staff.sla_staff, name="sla_staff"),
     # Dashboard dynamic stats
     path("ajax/dashboard/ticket_count/", staff.ajax_ticket_count, name="ajax_ticket_count"),
     path("ajax/dashboard/user_count/", staff.ajax_user_count, name="ajax_user_count"),
@@ -179,9 +181,9 @@ if helpdesk_settings.HELPDESK_ENABLE_DEPENDENCIES_ON_TICKET:
 
 ## Removed duplicate root URL pattern so home_view is used exclusively
     path(
-        "tickets/my-tickets/",
+        "tickets/my-assigned-tickets/",
         protect_view(public.MyTickets.as_view()),
-        name="my-tickets",
+        name="my-assigned-tickets",
     ),
     path("tickets/submit/", public.create_ticket, name="submit"),
     path(
