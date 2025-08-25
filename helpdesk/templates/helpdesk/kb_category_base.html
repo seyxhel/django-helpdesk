@@ -5,14 +5,7 @@
     <h2>{% blocktrans with category.title as kbcat %}{{ kbcat }}{% endblocktrans %}</h2>
     <p class="mb-0 font-weight-normal">{{ category.description|linebreaksbr }}</p>
     </div>
-    {% if request.user.is_superuser %}
-    <div class="ml-3">
-        <a href="{% url 'helpdesk:kb_category_add' %}" class="btn btn-outline-primary btn-sm" title="{% trans "Add KB category" %}">
-            <i class="fa fa-plus" aria-hidden="true"></i>
-            <span class="sr-only">{% trans "Add KB category" %}</span>
-        </a>
-    </div>
-    {% endif %}
+    
 </div>
 {% endblock %}
 
@@ -54,7 +47,7 @@
                     {% if iframe %}
                     <div class="btn btn-success btn-circle btn-xl float-right"><i  class="fa fa-envelope fa-lg"></i> {% trans 'Contact a human' %}</div>
                     {% else %}
-                    <div class="btn btn-success btn-circle btn-xl float-right"><i  class="fa fa-plus-circle fa-lg"></i> {% trans 'Create New Ticket' %}{% trans " Queue: " %}{{item}}</div>
+                    <div class="btn btn-success btn-circle btn-xl float-right"><i  class="fa fa-plus-circle fa-lg"></i> {% trans 'Create New Ticket' %}</div>
                     {% endif %}
                 </a>
                 {% endif %}

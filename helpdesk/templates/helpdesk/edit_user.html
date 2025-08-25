@@ -1,0 +1,76 @@
+{% extends "helpdesk/base.html" %}{% load i18n %}
+
+{% block helpdesk_title %}{% trans "User Details" %}{% endblock %}
+
+{% block helpdesk_breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'helpdesk:system_settings' %}">{% trans "System Settings" %}</a>
+</li>
+<li class="breadcrumb-item active">{% trans "User Details" %}</li>
+{% endblock %}
+
+{% block helpdesk_body %}
+<h2 class="sr-only">{% trans "User Details" %}</h2>
+
+<div class="container page-card">
+  <div class="card">
+    <div class="card-body">
+    <h3 class="page-title">{% trans "User Details" %}</h3>
+      <form method="post" class="form helpdesk-add-user" novalidate>
+        {% csrf_token %}
+        <div class="row gx-3">
+            <div class="col-12 col-md-6 mb-3">
+                <label for="id_first_name">{{ form.first_name.label }}</label>
+                <input type="text" name="first_name" id="id_first_name" value="{{ form.first_name.value }}" class="readonly-field form-control" readonly />
+                <div class="field-error-space">{% for err in form.first_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+            </div>
+            <div class="col-12 col-md-6 mb-3">
+                <label for="id_last_name">{{ form.last_name.label }}</label>
+                <input type="text" name="last_name" id="id_last_name" value="{{ form.last_name.value }}" class="readonly-field form-control" readonly />
+                <div class="field-error-space">{% for err in form.last_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+            </div>
+            <div class="col-12 mb-3">
+                <label for="id_username">{{ form.username.label }}</label>
+                <input type="text" name="username" id="id_username" value="{{ form.username.value }}" class="readonly-field form-control" readonly />
+                <div class="field-error-space">{% for err in form.username.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+            </div>
+            <div class="col-12 mb-3">
+                <label for="id_email">{{ form.email.label }}</label>
+                <input type="email" name="email" id="id_email" value="{{ form.email.value }}" class="readonly-field form-control" readonly />
+                <div class="field-error-space">{% for err in form.email.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+            </div>
+            <div class="col-12 col-md-6 mb-3">
+                <label for="id_password1">{{ form.password1.label }}</label>
+                <input type="password" name="password1" id="id_password1" value="{{ form.password1.value }}" class="readonly-field form-control" readonly />
+                <div class="field-error-space">{% for err in form.password1.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+            </div>
+            <div class="col-12 col-md-6 mb-3">
+                <label for="id_password2">{{ form.password2.label }}</label>
+                <input type="password" name="password2" id="id_password2" value="{{ form.password2.value }}" class="readonly-field form-control" readonly />
+                <div class="field-error-space">{% for err in form.password2.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+            </div>
+            <div class="col-12 mb-2 d-flex align-items-center">
+                <div class="form-check">
+                    {{ form.is_staff }}
+                    <label class="form-check-label" for="id_is_staff">{{ form.is_staff.label }}</label>
+                </div>
+                <div class="form-check">
+                    {{ form.is_active }}
+                    <label class="form-check-label" for="id_is_active">{{ form.is_active.label }}</label>
+                </div>
+            </div>
+        </div>
+        {% if form.non_field_errors %}
+        <div class="col-12 mb-2">
+            {% for err in form.non_field_errors %}<div class="alert alert-danger mb-0">{{ err }}</div>{% endfor %}
+        </div>
+        {% endif %}
+        <div class="col-12 form-actions mt-4">
+            <a class="btn btn-cancel" href="{% url 'helpdesk:system_settings' %}">{% trans "Cancel" %}</a>
+            <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

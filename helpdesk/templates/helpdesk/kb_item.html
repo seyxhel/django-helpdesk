@@ -132,11 +132,13 @@
                 <div id="id_answer-client-error" class="field-error" aria-live="polite"></div>
         </div>
 
-        <div class="form-group">
-                {{ form.enabled.label_tag }} {{ form.enabled }}
-        </div>
-
-        <div class="form-note">{% trans "Fields marked required must be completed." %}</div>
+    <div class="form-group">
+        <label for="id_allow_ticket">Allow regular users to make ticket about this?</label>
+        <input type="checkbox" id="id_allow_ticket" name="allow_ticket" {% if form.allow_ticket.value %}checked{% endif %} />
+    </div>
+    <div class="form-group">
+        {{ form.enabled.label_tag }} {{ form.enabled }}
+    </div>
 
         <div style="margin-top:12px">
             <button id="kb-submit" type="submit" class="btn btn-primary" disabled aria-disabled="true">{% trans "Create" %}</button>

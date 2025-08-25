@@ -26,6 +26,7 @@
             <th>{% trans "Name" %}</th>
             <th>{% trans "Active" %}</th>
             <th>{% trans "Staff" %}</th>
+            <th>{% trans "Admin" %}</th>
             <th></th>
         </tr>
     </thead>
@@ -37,7 +38,8 @@
             <td>{{ u.get_full_name }}</td>
             <td>{% if u.is_active %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
             <td>{% if u.is_staff %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
-            <td><a href="{% url 'helpdesk:edit_user' u.id %}">{% trans "Edit" %}</a></td>
+            <td>{% if u.is_superuser %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
+            <td><a href="{% url 'helpdesk:edit_user' u.id %}">{% trans "View" %}</a></td>
         </tr>
     {% endfor %}
     </tbody>
