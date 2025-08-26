@@ -100,9 +100,15 @@
                 </a>
             </li>
             <li class="nav-item dropdown no-arrow">
-                <a class="nav-link dropdown-toggle" href="{% url 'helpdesk:submit' %}" role="button" aria-haspopup="true" aria-expanded="false">
-                    <i class="fas fa-user-circle fa-fw"></i> {% trans "Submit a Ticket" %}
-                </a>
+          {% if user.is_staff %}
+            <a class="nav-link dropdown-toggle" href="{% url 'helpdesk:submit_staff' %}" role="button" aria-haspopup="true" aria-expanded="false">
+              <i class="fas fa-user-circle fa-fw"></i> {% trans "Submit a Ticket" %}
+            </a>
+          {% else %}
+            <a class="nav-link dropdown-toggle" href="{% url 'helpdesk:submit' %}" role="button" aria-haspopup="true" aria-expanded="false">
+              <i class="fas fa-user-circle fa-fw"></i> {% trans "Submit a Ticket" %}
+            </a>
+          {% endif %}
             </li>
         {% endif %}
         {% if not request.path == '/helpdesk/login/' or user.is_authenticated %}

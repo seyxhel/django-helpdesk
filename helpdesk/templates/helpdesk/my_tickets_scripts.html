@@ -1,0 +1,36 @@
+<script>
+// Shared My Tickets client-side script
+// This file is included into both my_tickets.html and my_tickets_public.html
+window.addEventListener('load', function() {
+    // Minimal bootstrap: fetch and render via DRF endpoint; identical to previous logic
+    function fetchTickets(page=1){
+        const endpoint = '{% url "helpdesk:user_tickets-list" %}?page=' + page + '&page_size=8';
+        $.get(endpoint, function(data){
+            $('#ticketsTable tbody').empty();
+            data.results.forEach(function(ticket){
+                ticket.title = $('<div>').html(ticket.title).html();
+                $('#ticketsTable tbody').append(`
+                    <tr>
+                        <td><a href='/view/?ticket=${ticket.id}&email=${ticket.submitter}&key=${ticket.secret_key}'>${ticket.title}</a></td>
+                        <td>${ticket.queue.title}</td>
+                        <td>${ticket.status}</td>
+                        <td>${ticket.created}</td>
+                        <td>${ticket.last_followup || ''}</td>
+                    </tr>
+                `);
+            });
+            // pagination
+            $('#pagination').empty();
+            const pageSize = 8;
+            const totalPages = Math.max(1, Math.ceil((data.count || 0) / pageSize));
+            const currentPage = parseInt(page) || 1;
+            for (let i=1;i<=totalPages;i++){
+                $('#pagination').append(`<li class="page-item ${i===currentPage? 'active':''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`);
+            }
+        });
+    }
+    // pagination click
+    $(document).on('click', '#pagination a', function(e){ e.preventDefault(); fetchTickets(parseInt($(this).data('page')||1)); });
+    fetchTickets();
+});
+</script>

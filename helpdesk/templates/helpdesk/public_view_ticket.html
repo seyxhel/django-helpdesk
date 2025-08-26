@@ -4,7 +4,7 @@
 
 {% block helpdesk_breadcrumb %}
 {% if not user.is_staff %}
-<li class="breadcrumb-item"><a href="{% url 'helpdesk:my-assigned-tickets' %}">{% trans "My Tickets" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'helpdesk:my-tickets' %}">{% trans "My Tickets" %}</a></li>
 <li class="breadcrumb-item active">{{ ticket.title }}</li>
 {% endif %}
 {% endblock %}
@@ -101,7 +101,11 @@
 {% endfor %}
 {% endif %}
 
+{% if user.is_staff %}
 <form method='post' action="{% url 'helpdesk:update' ticket.id %}" enctype='multipart/form-data'>
+{% else %}
+<form method='post' action="{% url 'helpdesk:public_update' ticket.id %}" enctype='multipart/form-data'>
+{% endif %}
     <input type="hidden" name="key" value="{{ key }}" />
     <input type="hidden" name="mail" value="{{ mail }}" />
 
@@ -136,8 +140,11 @@
     </dl>
         
 {% if helpdesk_settings.HELPDESK_ENABLE_ATTACHMENTS %}
-<p id='ShowFileUploadPara'><button class="btn btn-warning btn-sm"
-    id='ShowFileUpload' onclick="$('#FileUpload')[0].style.display='block';return false;" >{% trans "Attach File(s) &raquo;" %}</button></p>
+<p id='ShowFileUploadPara'><button type="button" class="btn btn-warning btn-sm"
+    id='ShowFileUpload' onclick="$('#FileUpload')[0].style.display='block';return false;" >{% trans "Attach File(s) &raquo;" %}</button>
+</p>
+
+
 
 <div id='FileUpload' style='display: none;'>
 
@@ -145,10 +152,18 @@
         <dt><label for='id_file'>{% trans "Attach a File" %}</label></dt>
         <dd>
             <div class="add_file_fields_wrap">
-                <button class="add_file_field_button btn btn-success btn-xs">{% trans "Add Another File" %}</button>
-                <div><label class='btn btn-primary btn-sm btn-file'>
-                        Browse... <input type="file" name='attachment' id='file0' style='display: none;'/>
-                </label><span>&nbsp;</span><span id='selectedfilename0'>{% trans 'No files selected.' %}</span></div>
+                <label role="button" id="add_file_label" class="add_file_field_button btn btn-success btn-xs" style="display:none">{% trans "Add Another File" %}</label>
+                <!-- persistent hidden file picker used by the Add label; moved into the list when files are chosen -->
+                <input type="file" id="file_add" style="position:absolute;left:-9999px;top:auto;" />
+            <div class="file-entry" data-fileindex="0">
+                <!-- Visible Browse button that contains the native input (opacity:0) -->
+                <button type="button" class="btn btn-primary btn-sm browse0" style="position:relative;overflow:hidden;">{% trans 'Browse...' %}
+                    <input type="file" name="attachment" id="file0" data-fileindex="0" style="position:absolute;left:0;top:0;opacity:0;width:100%;height:100%;cursor:pointer;" />
+                </button>
+                <span class='selectedfilename' id='selectedfilename0'>{% trans 'No files selected.' %}</span>
+                <button type="button" id="remove0" class="btn btn-danger btn-xs remove-file" data-fileindex="0" style="display:none;margin-left:8px;">&times;</button>
+            </div>
+        
             </div>
         </dd>
     </dl>
@@ -166,6 +181,20 @@
 <script type='text/javascript' language='javascript'>
   $(document).ready(function() {
 
+            // Translated default label used when no file is selected
+        window.defaultSelectedText = "{% trans 'No files selected.' %}";
+        // visible status update so users can confirm the JS ran
+        
+
+      // Ensure initial file input updates the visible filename
+      $('#file0').on('change', function(){
+          var label = (this.files && this.files.length) ? this.files[0].name : defaultSelectedText;
+          $('#selectedfilename0').text(label);
+          
+      });
+
+    // native inputs are embedded inside Browse buttons now; no programmatic trigger needed
+
       $("#ShowFileUpload").click(function() {
           $("#FileUpload").fadeIn();
           $("#ShowFileUploadPara").hide();
@@ -179,26 +208,284 @@
 
       var x = 0;
       var wrapper         = $(".add_file_fields_wrap"); //Fields wrapper
-      var add_button      = $(".add_file_field_button"); //Add button ID
+      var add_label       = $("#add_file_label"); // label that will open next input
 
-      $(add_button).click(function(e){ //on add input button click
-          x++;
+      // When the initial file0 gets a file, show the Add label and move file_add into the list
+      $('#file0').on('change', function(){
+          var label = (this.files && this.files.length) ? this.files[0].name : defaultSelectedText;
+          $('#selectedfilename0').text(label);
+          if(label && label !== defaultSelectedText){
+              if(add_label.is(':hidden')){
+                  add_label.show();
+              }
+              // show remove button for the primary entry
+              $('#remove0').show();
+              // prepare a fresh hidden picker if not present
+              if(!document.getElementById('file_add')){
+                  $('<input type="file" id="file_add" style="position:absolute;left:-9999px;top:auto;" />').appendTo(wrapper.parent());
+              }
+          }
+      });
+
+      // Handler for the persistent hidden picker: when files chosen, move this input into the visible list
+      function bindPersistentPicker(){
+          var $picker = $(document.getElementById('file_add'));
+          if(!$picker.length) return;
+          $picker.off('change').on('change', function(){
+              if(!this.files || !this.files.length) return;
+              x++;
+              var idx = x;
+              console.log('[helpdesk] persistent picker change - creating entry idx=', idx);
+              // move this input into a visible label wrapper
+              var $this = $(this);
+              // create container
+              var $container = $("<div></div>");
+              var $lbl = $("<label class='btn btn-primary btn-sm btn-file'>Browse... </label>");
+              var $span = $("<span class='selectedfilename' id='selectedfilename" + idx + "'></span>");
+              // set filename text
+              var fname = this.files && this.files.length ? this.files[0].name : defaultSelectedText;
+              $span.text(fname);
+              // set attributes on the input to preserve it
+              $this.attr('id', 'file' + idx);
+              $this.attr('data-fileindex', idx);
+              // ensure server receives these files under the expected name
+              $this.attr('name', 'attachment');
+              // append input into the label and container
+              $lbl.append($this);
+              $container.addClass('file-entry').attr('data-fileindex', idx);
+              // add remove button for this entry
+              var $remBtn = $("<button type='button' class='btn btn-danger btn-xs remove-file' style='margin-left:8px;'>&times;</button>");
+              $remBtn.attr('data-fileindex', idx);
+              $container.append($lbl).append(' ').append($span).append($remBtn);
+              $(wrapper).append($container);
+              // show remove for this newly added entry and attach a direct handler as a fallback
+              $remBtn.show();
+              $remBtn.on('click', function(e){
+                  e.preventDefault();
+                  console.log('[helpdesk] remove clicked for idx=', idx);
+                  $container.remove();
+                  // ensure no stray file_add remains inside wrapper
+                  $('#file_add').each(function(){ if(!this.files || !this.files.length) $(this).remove(); });
+                  try{ syncFileLabels(); }catch(e){}
+                  var any = false;
+                  $('.add_file_fields_wrap input[type=file]').each(function(){ if(this.files && this.files.length) any = true; });
+                  if(!any) $('#add_file_label').hide();
+              });
+              try{ syncFileLabels(); }catch(e){}
+              // attach change handler to this input (size check and filename updates)
+              $this.on('change', function(){
+                  var label = (this.files && this.files.length) ? this.files[0].name : defaultSelectedText;
+                  var max = window.HELPDESK_MAX_ATTACHMENT_SIZE || (25*1024*1024);
+                  if(this.files && this.files.length && this.files[0].size > max){
+                      alert('File exceeds maximum size of ' + (max/1024/1024) + ' MB');
+                      this.value = '';
+                      $('#selectedfilename' + idx).text(defaultSelectedText);
+                      return;
+                  }
+                  $('#selectedfilename' + idx).text(label);
+              });
+              // recreate a fresh hidden picker and rebind
+              $('<input type="file" id="file_add" style="position:absolute;left:-9999px;top:auto;" />').appendTo(wrapper.parent());
+              bindPersistentPicker();
+          });
+      }
+
+      // initial bind for persistent picker
+      bindPersistentPicker();
+
+      // When user clicks Add Another File, create a fresh file input (user gesture) and open it.
+      // On change, convert that input into a visible entry with filename and remove button.
+      add_label.on('click', function(e){
           e.preventDefault();
-          $(wrapper).append("<div><label class='btn btn-primary btn-sm btn-file'>Browse... <input type='file' name='attachment' id='file" + x + "' multiple style='display: none;'/></label><span>&nbsp;</span><span id='selectedfilename" + x + "'>{% trans 'No files selected.' %}</span></div>"); //add input box
+          
+          x++;
+          var idx = x;
+          var $container = $("<div class='file-entry' data-fileindex='" + idx + "'></div>");
+          // hidden native input and visible Browse button
+          var inputId = 'file' + idx;
+          var $input = $("<input type='file' name='attachment' id='" + inputId + "' style='position:absolute;left:0;top:0;opacity:0;width:100%;height:100%;cursor:pointer;' />");
+          var $btn = $("<button type='button' class='btn btn-primary btn-sm browse-file' data-input-id='" + inputId + "' style='position:relative;overflow:hidden;'>{% trans 'Browse...' %}</button>");
+          var $span = $("<span class='selectedfilename' id='selectedfilename" + idx + "'>{% trans 'No files selected.' %}</span>");
+          var $remBtn = $("<button type='button' class='btn btn-danger btn-xs remove-file' style='margin-left:8px;'>&times;</button>").attr('data-fileindex', idx);
+          $btn.append($input);
+          $container.append($btn).append(' ').append($span).append($remBtn);
+          wrapper.append($container);
+          // when input changes, update label and show controls
+          $input.on('change', function(){
+              var label = (this.files && this.files.length) ? this.files[0].name : window.defaultSelectedText;
+              var max = window.HELPDESK_MAX_ATTACHMENT_SIZE || (25*1024*1024);
+              if(this.files && this.files.length && this.files[0].size > max){
+                  alert('File exceeds maximum size of ' + (max/1024/1024) + ' MB');
+                  this.value='';
+                  $span.text(window.defaultSelectedText);
+                  return;
+              }
+              $span.text(label);
+              $remBtn.show();
+              if(add_label.is(':hidden')) add_label.show();
+              $('#remove0').show();
+          });
+          // remove handler
+          $remBtn.on('click', function(ev){ ev.preventDefault(); $container.remove(); try{ syncFileLabels(); }catch(e){} var any=false; $('.add_file_fields_wrap input[type=file]').each(function(){ if(this.files && this.files.length) any=true; }); if(!any) $('#add_file_label').hide(); });
+          // open the file picker immediately (user gesture)
+          try{ document.getElementById(inputId).click(); }catch(err){ try{ document.getElementById(inputId).focus(); }catch(e){} }
+      });
+      
+      // delegated handler for remove buttons (works for initial and dynamically added entries)
+      $(document).on('click', '.remove-file', function(e){
+          e.preventDefault();
+      var idx = $(this).data('fileindex');
+          var $btn = $(this);
+          var $entry = $btn.closest('.file-entry');
+          if(!$entry.length) return;
+          var $input = $entry.find('input[type=file]');
+          if($input.length){
+              // if it's the primary file0, just clear it
+              if($input.attr('id') === 'file0'){
+          console.log('[helpdesk] delegated remove for primary file0');
+                  $input.val('');
+                  $('#selectedfilename0').text(window.defaultSelectedText);
+                  $btn.hide();
+                  // hide add label if no files left
+                  var any = false;
+                  $('.add_file_fields_wrap input[type=file]').each(function(){ if(this.files && this.files.length) any = true; });
+                  if(!any) $('#add_file_label').hide();
+                  return;
+              }
+          }
+      console.log('[helpdesk] delegated remove for dynamic idx=', idx);
+      // remove the whole entry for dynamically added inputs
+      $entry.remove();
+          // if no chosen files remain, hide add label
+          var any2 = false;
+          $('.add_file_fields_wrap input[type=file]').each(function(){ if(this.files && this.files.length) any2 = true; });
+          if(!any2) $('#add_file_label').hide();
       });
   });
 
   // this function listens for changes on any file input, and
   // emits the appropriate event to update the input's text.
   // Needed to have properly styled file input buttons! (this really shouldn't be this hard...)
+  // Generic change listener that dispatches a fileselect event with a robust index value
   $(document).on('change', ':file', function() {
       var input = $(this),
-          inputWidgetNum = $(this).attr('id').split("file")[1],
+          // prefer explicit data attribute, otherwise fall back to id-derived index
+          inputWidgetNum = (input.data('fileindex') !== undefined) ? String(input.data('fileindex')) : ((input.attr('id')||'').replace('file','')),
           numFiles = input.get(0).files ? input.get(0).files.length : 1,
-          label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+          label = (input.get(0).files && input.get(0).files.length) ? input.get(0).files[0].name : (input.val() ? input.val().replace(/\\/g, '/').replace(/.*\//, '') : defaultSelectedText);
       input.trigger('fileselect', [numFiles, label, inputWidgetNum]);
   });
 
+  // Ensure clicking the visible Browse label opens the file picker; don't block native behavior.
+  $(document).on('click', '.btn-file', function(e){
+      var $lbl = $(this);
+      var input = $lbl.find('input[type=file]');
+      if(input && input.length){
+          try{ input[0].click(); }catch(err){ try{ input.trigger('click'); }catch(e){} }
+      }
+      // allow native label->input behavior as well
+  });
+
+  
+
+  // Fallback native listener: update filename label for any file input even if jQuery isn't available
+  document.addEventListener('change', function(e){
+      try{
+          var el = e.target;
+          if(!el || el.type !== 'file') return;
+          var idx = (el.id || '').replace('file','');
+          var label = (el.files && el.files.length) ? el.files[0].name : window.defaultSelectedText;
+          var span = document.getElementById('selectedfilename' + idx);
+          if(span) span.textContent = label;
+      }catch(err){ /* ignore */ }
+  }, true);
+
+  // Robust synchronizer: update all filename labels based on file inputs order (fallback by index)
+  function syncFileLabels(){
+      try{
+          var inputs = document.querySelectorAll('.add_file_fields_wrap input[type=file]');
+          for(var i=0;i<inputs.length;i++){
+              var el = inputs[i];
+              var name = (el.files && el.files.length) ? el.files[0].name : window.defaultSelectedText;
+              // Prefer id-derived span, otherwise fall back to positional span
+              var idx = (el.id || '').replace('file','');
+              var span = document.getElementById('selectedfilename'+idx) || document.getElementById('selectedfilename'+i);
+              if(span) span.textContent = name;
+          }
+      }catch(e){}
+  }
+
+  // Ensure we update labels on any change via jQuery too
+  $(document).on('change', '.add_file_fields_wrap input[type=file]', function(){ syncFileLabels(); });
+
+  // Run once on load so initial state is correct
+  syncFileLabels();
+
+</script>
+<script>
+// Native fallback initializer: ensures UI works even if jQuery wasn't available when earlier handlers ran.
+(function(){
+    if(window.__helpdesk_native_initialized) return; window.__helpdesk_native_initialized = true;
+    function init(){
+        try{ window.defaultSelectedText = window.defaultSelectedText || '{% trans "No files selected." %}'; }catch(e){}
+    var status = null;
+
+        // delegated change listener for any file input
+        document.addEventListener('change', function(e){
+            try{
+                var el = e.target; if(!el || el.type !== 'file') return;
+                var idx = el.dataset.fileindex || (el.id || '').replace('file','');
+                var label = (el.files && el.files.length) ? el.files[0].name : window.defaultSelectedText;
+                var span = document.getElementById('selectedfilename' + idx) || (el.closest && el.closest('.file-entry') && el.closest('.file-entry').querySelector('.selectedfilename'));
+                if(span) span.textContent = label;
+                // show Add label
+                var addLabel = document.getElementById('add_file_label'); if(addLabel && (addLabel.style.display === 'none' || !addLabel.style.display)) addLabel.style.display = 'inline-block';
+                // show remove for this entry
+                var entry = el.closest && el.closest('.file-entry');
+                if(entry){ var rem = entry.querySelector('.remove-file'); if(rem) rem.style.display = 'inline-block'; }
+            }catch(err){ /* ignore */ }
+        }, true);
+
+        // delegated remove handler
+        document.addEventListener('click', function(e){
+            try{
+                var t = e.target; if(!t) return; if(!t.classList || !t.classList.contains('remove-file')) return;
+                e.preventDefault();
+                var entry = t.closest('.file-entry'); if(!entry) return;
+                var inp = entry.querySelector('input[type=file]');
+                if(inp && inp.id === 'file0'){ inp.value = ''; var s = document.getElementById('selectedfilename0'); if(s) s.textContent = window.defaultSelectedText; t.style.display='none'; }
+                else entry.remove();
+                // hide add label if no files remain
+                var any=false; document.querySelectorAll('.add_file_fields_wrap input[type=file]').forEach(function(i){ if(i.files && i.files.length) any=true; });
+                if(!any){ var al = document.getElementById('add_file_label'); if(al) al.style.display='none'; }
+            }catch(err){}
+        }, true);
+
+        // native Add Another File handler (create entry and open its picker)
+        var addLabel = document.getElementById('add_file_label');
+        if(addLabel){
+            addLabel.addEventListener('click', function(e){
+                e.preventDefault();
+                
+                var wrapper = document.querySelector('.add_file_fields_wrap'); if(!wrapper) return;
+                var idx = Date.now(); // unique
+                var container = document.createElement('div'); container.className='file-entry'; container.setAttribute('data-fileindex', String(idx));
+                var btn = document.createElement('button'); btn.type='button'; btn.className='btn btn-primary btn-sm'; btn.style.position='relative'; btn.style.overflow='hidden'; btn.textContent = '{% trans "Browse..." %}';
+                var input = document.createElement('input'); input.type='file'; input.name='attachment'; input.id = 'file' + idx; input.setAttribute('data-fileindex', String(idx)); input.style.position='absolute'; input.style.left='0'; input.style.top='0'; input.style.opacity='0'; input.style.width='100%'; input.style.height='100%'; input.style.cursor='pointer';
+                btn.appendChild(input);
+                var span = document.createElement('span'); span.className='selectedfilename'; span.id = 'selectedfilename' + idx; span.textContent = window.defaultSelectedText;
+                var rem = document.createElement('button'); rem.type='button'; rem.className='btn btn-danger btn-xs remove-file'; rem.style.marginLeft='8px'; rem.textContent='×'; rem.setAttribute('data-fileindex', String(idx)); rem.style.display='none';
+                container.appendChild(btn); container.appendChild(document.createTextNode(' ')); container.appendChild(span); container.appendChild(rem);
+                wrapper.appendChild(container);
+                // when input changes, update span
+                input.addEventListener('change', function(){ if(this.files && this.files.length){ span.textContent = this.files[0].name; if(status) status.textContent = 'Picked: ' + this.files[0].name; rem.style.display='inline-block'; addLabel.style.display='inline-block'; document.getElementById('remove0') && (document.getElementById('remove0').style.display='inline-block'); } });
+                // open picker
+                try{ input.click(); }catch(err){ try{ input.focus(); }catch(e){} }
+            }, false);
+        }
+    }
+    if(document.readyState === 'complete' || document.readyState === 'interactive') init(); else document.addEventListener('DOMContentLoaded', init);
+})();
 </script>
 {% endif %}
 
@@ -214,4 +501,121 @@ try{
     localStorage.setItem('helpdesk_last_public_ticket', JSON.stringify(payload));
 }catch(e){/* ignore */}
 </script>
+<script>
+// Native fallback: attach robust change handlers to file inputs (existing + dynamically added)
+(function(){
+    var defaultText = window.defaultSelectedText || '{% trans "No files selected." %}';
+
+    function attachToInput(inp, idx){
+        if(!inp || inp.__helpdesk_attached) return;
+        inp.__helpdesk_attached = true;
+        if(!inp.dataset.fileindex){
+            inp.dataset.fileindex = inp.id ? inp.id.replace('file','') : String(Math.floor(Math.random()*1000000));
+        }
+        inp.addEventListener('change', function(){
+            try{
+                var name = (inp.files && inp.files.length) ? inp.files[0].name : defaultText;
+                var span = document.getElementById('selectedfilename'+inp.dataset.fileindex) || document.querySelectorAll('.add_file_fields_wrap .selectedfilename')[idx];
+                if(span) span.textContent = name;
+            }catch(e){}
+        }, false);
+    }
+
+    function attachAll(){
+        var inputs = document.querySelectorAll('.add_file_fields_wrap input[type=file]');
+        Array.prototype.forEach.call(inputs, function(inp, i){ attachToInput(inp, i); });
+    }
+
+    // MutationObserver to catch dynamically added file inputs (e.g., Add Another File)
+    var wrapper = document.querySelector('.add_file_fields_wrap');
+    if(wrapper && window.MutationObserver){
+        var mo = new MutationObserver(function(mutations){
+            mutations.forEach(function(m){
+                Array.prototype.forEach.call(m.addedNodes || [], function(node){
+                    if(node.nodeType !== 1) return;
+                    // If the added node itself is a file input
+                    if(node.matches && node.matches('input[type=file]')){
+                        if(!node.dataset.fileindex){
+                            node.dataset.fileindex = String(document.querySelectorAll('.add_file_fields_wrap input[type=file]').length - 1 || 0);
+                        }
+                        attachToInput(node);
+                    }
+                    // Also check descendants
+                    var newInputs = node.querySelectorAll && node.querySelectorAll('input[type=file]');
+                    if(newInputs && newInputs.length){
+                        Array.prototype.forEach.call(newInputs, function(inp){
+                            if(!inp.dataset.fileindex){
+                                inp.dataset.fileindex = String(document.querySelectorAll('.add_file_fields_wrap input[type=file]').length - 1 || 0);
+                            }
+                            attachToInput(inp);
+                        });
+                    }
+                });
+            });
+        });
+        mo.observe(wrapper, { childList: true, subtree: true });
+    }
+
+    // Initial attach + one-time sync
+    attachAll();
+    if(window.syncFileLabels) try{ syncFileLabels(); }catch(e){}
+})();
+</script>
 {% endblock %}
+<script>
+// Delegated handler: remove the specific file row when its X button is clicked.
+// Restores a single empty file row (showing "No files selected.") only when all rows are removed.
+$(document).on('click', '.helpdesk-remove-file, .remove-file, .attachment-remove', function (e) {
+    e.preventDefault();
+    var $btn = $(this);
+
+    // Try to find the closest file-row container using multiple common class names
+    var $row = $btn.closest('.helpdesk-attachment-row, .attachment-row, .helpdesk-attachment, .file-row, .form-group');
+
+    // If nothing found, fallback to parent
+    if (!$row.length) {
+        $row = $btn.parent();
+    }
+
+    // Find a container that holds all attachments (try multiple common IDs/classes)
+    function findAttachmentsContainer($el) {
+        var $c = $el.closest('#attachments-container, #attachments, .attachments, .helpdesk-attachments');
+        if ($c.length) return $c;
+        // fallback to a generic container if nothing matched
+        var $fallback = $('#attachments-container');
+        if ($fallback.length) return $fallback;
+        return $('body');
+    }
+
+    var $container = findAttachmentsContainer($row);
+
+    // Remove the row from DOM
+    $row.remove();
+
+    // After removal, check whether any file inputs remain inside the attachments container
+    var $fileInputs = $container.find('input[type="file"]');
+
+    // If there are no file inputs at all, add a single empty row that shows "No files selected."
+    if ($fileInputs.length === 0) {
+        // Construct a minimal empty row matching the UI pattern used elsewhere
+        var $emptyRow = $(
+            '<div class="helpdesk-attachment-row form-group">' +
+                '<label class="btn btn-primary btn-browse">Browse...<input type="file" name="attachments" style="display:none"></label>' +
+                '<span class="filename">No files selected.</span>' +
+            '</div>'
+        );
+        $container.append($emptyRow);
+    }
+
+    // Update Add Another File button visibility if present (try several selectors)
+    var $addBtn = $('#add-another-file, .add-another-file, #add-file-btn, .btn-add-file');
+    if ($addBtn.length) {
+        // Show add button only if there's at least one file input (empty or filled) — adjust per existing logic
+        if ($container.find('input[type="file"]').length === 0) {
+            $addBtn.hide();
+        } else {
+            $addBtn.show();
+        }
+    }
+});
+</script>

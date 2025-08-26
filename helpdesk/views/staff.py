@@ -22,7 +22,8 @@ from django.core.handlers.wsgi import WSGIRequest
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Q, Case, When
 from django.forms import HiddenInput, inlineformset_factory, TextInput
-from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseBadRequest
+from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -258,6 +259,21 @@ def dashboard(request):
         ],
     )
 
+    # counts for stats cards (preserve before pagination overwrites variables)
+    try:
+        assigned_open_count = tickets.count()
+    except Exception:
+        assigned_open_count = 0
+    try:
+        assigned_closed_count = tickets_closed_resolved.count()
+    except Exception:
+        assigned_closed_count = 0
+    assigned_total = assigned_open_count + assigned_closed_count
+    if assigned_total > 0:
+        assigned_percent_open = int((assigned_open_count * 100) / assigned_total)
+    else:
+        assigned_percent_open = 0
+
     user_queues = huser.get_queues()
 
     unassigned_tickets = active_tickets.filter(
@@ -340,6 +356,9 @@ def dashboard(request):
             "kbitems": kbitems,
             "all_tickets_reported_by_current_user": all_tickets_reported_by_current_user,
             "basic_ticket_stats": basic_ticket_stats,
+            "assigned_tickets_count": assigned_open_count,
+            "assigned_tickets_total": assigned_total,
+            "assigned_tickets_percent_open": assigned_percent_open,
         },
     )
 
@@ -395,10 +414,54 @@ def followup_edit(request, ticket_id, followup_id):
                 "time_spent": format_time_spent(followup.time_spent),
             }
         )
+        # Make title readonly in the form widget so template can render it normally
+        try:
+            form.fields['title'].widget.attrs.update({'class': 'form-control', 'readonly': 'readonly'})
+        except Exception:
+            pass
 
         ticketcc_string = return_ticketccstring_and_show_subscribe(
             request.user, ticket
         )[0]
+        # If AJAX request, return the modal fragment so frontend can display it
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            html = render_to_string(
+                'helpdesk/include/followup_edit_modal.html',
+                {
+                    'followup': followup,
+                    'ticket': ticket,
+                    'form': form,
+                    'ticketcc_string': ticketcc_string,
+                },
+                request=request,
+            )
+            # Also render an attachments fragment in case the client-side
+            # modal scripts don't run when HTML is appended; the client can
+            # inject this fragment into the modal to ensure attachments are visible.
+            attachments_html = render_to_string(
+                'helpdesk/include/followup_attachments_fragment.html',
+                {
+                    'followup': followup,
+                    'ticket': ticket,
+                    'user': request.user,
+                },
+                request=request,
+            )
+            # Also render the full form fragment so the client can replace the modal body
+            # if needed (ensures attachments and the hidden delete form are present).
+            modal_form_html = render_to_string(
+                'helpdesk/include/followup_edit_form.html',
+                {
+                    'followup': followup,
+                    'ticket': ticket,
+                    'form': form,
+                    'ticketcc_string': ticketcc_string,
+                    'user': request.user,
+                },
+                request=request,
+            )
+            has_attachments = bool(followup.followupattachment_set.exists())
+            return JsonResponse({'success': True, 'html': html, 'attachments_html': attachments_html, 'modal_form_html': modal_form_html, 'has_attachments': has_attachments})
 
         return render(
             request,
@@ -412,6 +475,11 @@ def followup_edit(request, ticket_id, followup_id):
         )
     elif request.method == "POST":
         form = EditFollowUpForm(request.POST)
+        # Ensure title is readonly in case template relies on form rendering
+        try:
+            form.fields['title'].widget.attrs.update({'class': 'form-control', 'readonly': 'readonly'})
+        except Exception:
+            pass
         if form.is_valid():
             title = form.cleaned_data["title"]
             _ticket = form.cleaned_data["ticket"]
@@ -434,17 +502,85 @@ def followup_edit(request, ticket_id, followup_id):
             if followup.user:
                 new_followup.user = followup.user
             new_followup.save()
-            # get list of old attachments & link them to new_followup
+            # get list of old attachments & link them to new_followup by default
             attachments = FollowUpAttachment.objects.filter(followup=followup)
             for attachment in attachments:
                 attachment.followup = new_followup
                 attachment.save()
+
+            # Handle replacement of an attachment if requested via modal
+            replace_id = request.POST.get('replace_attachment_id')
+            replacement_file = request.FILES.get('replacement_attachment')
+            if replace_id and replacement_file:
+                try:
+                    old_att = FollowUpAttachment.objects.get(id=int(replace_id), followup=new_followup)
+                except FollowUpAttachment.DoesNotExist:
+                    # try to find on original followup
+                    try:
+                        old_att = FollowUpAttachment.objects.get(id=int(replace_id), followup=followup)
+                    except FollowUpAttachment.DoesNotExist:
+                        old_att = None
+
+                if old_att:
+                    # attach new file as a new FollowUpAttachment and delete old attachment file
+                    new_att = FollowUpAttachment(followup=new_followup, filename=replacement_file.name)
+                    new_att.file.save(replacement_file.name, replacement_file)
+                    new_att.save()
+                    try:
+                        old_att.file.delete(save=False)
+                    except Exception:
+                        pass
+                    old_att.delete()
             # delete old followup
             followup.delete()
         return HttpResponseRedirect(reverse("helpdesk:view", args=[ticket.id]))
 
 
 followup_edit = staff_member_required(followup_edit)
+
+
+@helpdesk_staff_member_required
+def followup_attachments_fragment(request, ticket_id, followup_id):
+    """Return the attachments fragment for a followup as HTML (AJAX)."""
+    followup = get_object_or_404(FollowUp, id=followup_id)
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    ticket_perm_check(request, ticket)
+    html = render_to_string(
+        'helpdesk/include/followup_attachments_fragment.html',
+        {'followup': followup, 'ticket': ticket, 'user': request.user},
+        request=request,
+    )
+    return JsonResponse({'success': True, 'html': html})
+
+followup_attachments_fragment = staff_member_required(followup_attachments_fragment)
+
+
+@helpdesk_staff_member_required
+def followup_attachments_json(request, ticket_id, followup_id):
+    """Return a JSON list of attachments for a followup (AJAX).
+
+    This is used by client-side code to build DOM nodes reliably instead of
+    injecting rendered HTML fragments (avoids parsing/escaping issues).
+    """
+    followup = get_object_or_404(FollowUp, id=followup_id)
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    ticket_perm_check(request, ticket)
+
+    attachments = []
+    for att in followup.followupattachment_set.all():
+        attachments.append({
+            'id': att.id,
+            'filename': att.filename,
+            'url': att.file.url,
+            'mime_type': att.mime_type,
+            'size': att.size,
+            'delete_url': reverse('helpdesk:attachment_del', args=[ticket.id, att.id]) if (request.user.is_staff or request.user.is_superuser) else None,
+        })
+
+    return JsonResponse({'success': True, 'attachments': attachments})
+
+
+followup_attachments_json = staff_member_required(followup_attachments_json)
 
 
 @helpdesk_staff_member_required
@@ -618,6 +754,26 @@ def view_ticket(request, ticket_id):
         if checklist_template:
             checklist.create_tasks_from_template(checklist_template)
 
+        # If this is an AJAX request from the staff modal, return the rendered
+        # checklist card fragment so the frontend can insert it without a full
+        # redirect.
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            from django.template.loader import render_to_string
+            ct = checklist_form.cleaned_data.get("checklist_template")
+            template_id = ct.id if ct else None
+            template_name = ct.name if ct else None
+            html = render_to_string(
+                'helpdesk/include/checklist_card.html',
+                {
+                    'checklist': checklist,
+                    'user': request.user,
+                    'created_from_template_id': template_id,
+                    'created_from_template_name': template_name,
+                },
+                request=request,
+            )
+            return JsonResponse({'success': True, 'html': html, 'checklist_id': checklist.id})
+
         return redirect("helpdesk:edit_ticket_checklist", ticket.id, checklist.id)
 
     # List open tickets on top
@@ -628,10 +784,28 @@ def view_ticket(request, ticket_id):
     # add custom fields to further details panel
     customfields_form = EditTicketCustomFieldForm(None, instance=ticket)
 
-    return render(
-        request,
-        "helpdesk/ticket.html",
-        {
+    # Annotate existing checklist objects with originating template info when possible
+    # so the template id/name are available to the fragment for initial page render.
+    templates = {t.name: t for t in ChecklistTemplate.objects.all()}
+    for cl in ticket.checklists.all():
+        # attempt to match by task list
+        tasks = list(cl.tasks.order_by('position').values_list('description', flat=True))
+        matched = None
+        for tmpl in ChecklistTemplate.objects.all():
+            if list(tmpl.task_list) == tasks:
+                matched = tmpl
+                break
+        if matched:
+            setattr(cl, 'created_from_template_id', matched.id)
+            setattr(cl, 'created_from_template_name', matched.name)
+        else:
+            setattr(cl, 'created_from_template_id', None)
+            setattr(cl, 'created_from_template_name', None)
+
+    # staff_only_view should be True for regular staff, but admins (superusers)
+    # should see the full admin modal (add/manage templates). Set it based on
+    # the current user's superuser status.
+    ctx = {
             "ticket": ticket,
             "dependencies": dependencies,
             "submitter_userprofile_url": submitter_userprofile_url,
@@ -646,9 +820,15 @@ def view_ticket(request, ticket_id):
             "assignable_users": get_assignable_users(
                 helpdesk_settings.HELPDESK_STAFF_ONLY_TICKET_OWNERS
             ),
+            "staff_only_view": (not request.user.is_superuser),
             **extra_context_kwargs,
-        },
-    )
+        }
+
+    # Choose a desc-table template for admin (superuser) vs regular staff
+    if request.user.is_superuser:
+        ctx["ticket_desc_template"] = "helpdesk/ticket_desc_table_admin.html"
+
+    return render(request, "helpdesk/ticket.html", ctx)
 
 
 @helpdesk_staff_member_required
@@ -689,6 +869,64 @@ def edit_ticket_checklist(request, ticket_id, checklist_id):
 
 
 @helpdesk_staff_member_required
+def create_checklist_ajax(request, ticket_id):
+    """AJAX endpoint for staff to create a checklist from a pre-created template.
+
+    Expects POST with 'checklist_template' (id) and optional 'name'. Returns
+    JSON with rendered checklist card HTML on success.
+    """
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    ticket_perm_check(request, ticket)
+
+    if request.method != 'POST' or not request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return HttpResponseBadRequest('Invalid request')
+
+    form = CreateChecklistForm(request.POST or None)
+    if not form.is_valid():
+        return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+
+    # Enforce that staff can only select an existing template (no free-name creation)
+    checklist_template = form.cleaned_data.get('checklist_template')
+    if not checklist_template:
+        return JsonResponse({'success': False, 'errors': {'checklist_template': [_('Please select a template created by an administrator.')] }}, status=400)
+
+    checklist_template = form.cleaned_data.get('checklist_template')
+    # Prevent selecting the same template twice for the same ticket
+    if checklist_template:
+        # refresh ticket to avoid stale state from recent deletes
+        ticket.refresh_from_db()
+        # Compare existing checklists tasks with template task_list to detect duplicates
+        for existing in ticket.checklists.all():
+            existing_tasks = list(existing.tasks.order_by('position').values_list('description', flat=True))
+            if existing_tasks == list(checklist_template.task_list):
+                return JsonResponse({'success': False, 'errors': {'checklist_template': [_('This template has already been applied to this ticket.')] }}, status=400)
+
+    checklist = form.save(commit=False)
+    checklist.ticket = ticket
+    checklist.save()
+
+    if checklist_template:
+        checklist.create_tasks_from_template(checklist_template)
+
+    # Render fragment — include originating template id/name so the fragment
+    # contains data-template-id/data-template-name attributes for client-side
+    # re-add after AJAX delete.
+    template_id = checklist_template.id if checklist_template else None
+    template_name = checklist_template.name if checklist_template else None
+    html = render_to_string(
+        'helpdesk/include/checklist_card.html',
+        {
+            'checklist': checklist,
+            'user': request.user,
+            'created_from_template_id': template_id,
+            'created_from_template_name': template_name,
+        },
+        request=request,
+    )
+    return JsonResponse({'success': True, 'html': html, 'checklist_id': checklist.id})
+
+
+@helpdesk_staff_member_required
 def delete_ticket_checklist(request, ticket_id, checklist_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
     ticket_perm_check(request, ticket)
@@ -696,6 +934,9 @@ def delete_ticket_checklist(request, ticket_id, checklist_id):
 
     if request.method == "POST":
         checklist.delete()
+        # If called via AJAX, return JSON success so frontend can update in-place
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': True})
         return redirect(ticket)
 
     return render(

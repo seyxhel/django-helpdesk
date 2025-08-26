@@ -26,6 +26,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import PasswordChangeView
 from helpdesk import settings as helpdesk_settings
 from helpdesk.decorators import is_helpdesk_staff, protect_view
+from django.http import HttpResponseForbidden, HttpResponseNotAllowed
+from django.shortcuts import redirect
+from django.core.exceptions import PermissionDenied
+from helpdesk.views.staff import get_ticket_from_request_with_authorisation
+from helpdesk.update_ticket import update_ticket
 from helpdesk.lib import text_is_spam
 from helpdesk.models import Queue, Ticket, UserSettings
 from helpdesk.user import huser_from_request
@@ -477,6 +482,46 @@ class ViewTicket(TemplateView):
         elif helpdesk_settings.HELPDESK_NAVIGATION_ENABLED:
             redirect_url = reverse("helpdesk:view", args=[ticket_id])
         return redirect_url
+
+
+def public_update_ticket(request, ticket_id):
+    """Allow authenticated ticket owners (or mail+key holders) to post a public follow-up.
+
+    This verifies ownership via get_ticket_from_request_with_authorisation and then
+    delegates to update_ticket() with minimal parameters (comment, files, public).
+    """
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    try:
+        ticket = get_ticket_from_request_with_authorisation(request, ticket_id, False)
+    except PermissionDenied:
+        return HttpResponseForbidden("Not allowed")
+
+    comment = request.POST.get("comment", "")
+    try:
+        new_status = int(request.POST.get("new_status", ticket.status))
+    except Exception:
+        new_status = ticket.status
+
+    files = request.FILES.getlist("attachment") if hasattr(request, "FILES") else []
+
+    # Call core update logic. Non-staff users will not be set as followup.user
+    update_ticket(
+        request.user if request.user.is_authenticated else None,
+        ticket,
+        comment=comment,
+        files=files,
+        public=True,
+        new_status=new_status,
+    )
+
+    # Prefer returning the user to the referring page (usually the /view/ URL)
+    # so they remain on the same public view and see the new follow-up immediately.
+    referer = request.META.get("HTTP_REFERER")
+    if referer:
+        return redirect(referer)
+    return redirect(ticket.ticket_url)
 
 
 class MyTickets(TemplateView):

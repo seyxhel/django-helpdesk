@@ -75,9 +75,9 @@ def login(request):
                 if next_url:
                     response = redirect(next_url)
                 else:
-                    # Redirect regular users to 'my-tickets', staff/superusers to home
+                    # Redirect regular users to standalone 'my-tickets'; staff/superusers to home
                     if not user.is_staff and not user.is_superuser:
-                        response = redirect('helpdesk:my-assigned-tickets')
+                        response = redirect('helpdesk:my-tickets')
                     else:
                         response = redirect('helpdesk:home')
                 if form.cleaned_data.get('remember_me'):

@@ -1,0 +1,51 @@
+<div class="col-sm-4 col-xs-12" data-checklist-id="{{ checklist.id }}"
+     {% if created_from_template_id %}
+         data-template-id="{{ created_from_template_id }}" data-template-name="{{ created_from_template_name|escape }}"
+     {% elif checklist.created_from_template_id %}
+         data-template-id="{{ checklist.created_from_template_id }}" data-template-name="{{ checklist.created_from_template_name|escape }}"
+     {% endif %}>
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>
+                <span data-toggle="collapse" data-target="#checklist{{ checklist.id }}" onclick="$(this).siblings('button').children('i').toggleClass('fa-caret-down fa-caret-up')">
+                    {{ checklist }}
+                </span>
+                <div class="float-right d-flex align-items-center">
+                    {% if user.is_staff %}
+                    <form method="post" action="{% url 'helpdesk:delete_ticket_checklist' checklist.ticket.id checklist.id %}" class="delete-checklist-form" style="display:inline; margin-right:6px;" data-confirm="Delete this checklist?" data-ajax="true">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm" title="Delete checklist">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                    <button class="btn btn-secondary btn-sm" data-toggle="collapse" data-target="#checklist{{ checklist.id }}" onclick="$(this).children('i').toggleClass('fa-caret-down fa-caret-up')">
+                        <i class="fas fa-caret-down"></i>
+                    </button>
+                </div>
+            </h5>
+        </div>
+        <div class="card-body collapse" id="checklist{{ checklist.id }}">
+            <div class="list-group">
+                {% for task in checklist.tasks.all %}
+                    <div class="list-group-item"{% if task.completion_date %} title="Completed on {{ task.completion_date }}" {% endif %}>
+                        <label class="disabledTask">
+                            <input type="checkbox" disabled{% if task.completion_date %} checked{% endif %}>
+                            {{ task }}
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% if checklist.tasks.completed.count %}
+            <div class="card-footer">
+                <div class="progress">
+                    {% widthratio checklist.tasks.completed.count checklist.tasks.count 100 as width %}
+                    <div class="progress-bar" role="progressbar" style="width: {{ width }}%;" aria-valuenow="{{ width }}" aria-valuemin="0" aria-valuemax="100">
+                        {{ width }}%
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>

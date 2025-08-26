@@ -7,13 +7,19 @@
 <li class="breadcrumb-item">
     <a href="#">{% trans "Dashboard" %}</a>
 </li>
+{% if user.is_superuser %}
 <li class="breadcrumb-item active">{% trans "Overview" %}</li>
+{% endif %}
 {% endblock %}
 
 {% block helpdesk_body %}
 
 <div class="row">
-    {% include 'helpdesk/include/stats.html' %}
+    {% if user.is_staff and not user.is_superuser %}
+        {% include 'helpdesk/include/stats_staff.html' %}
+    {% else %}
+        {% include 'helpdesk/include/stats.html' %}
+    {% endif %}
 </div>
 
 {% if all_tickets_reported_by_current_user %}
@@ -22,17 +28,30 @@
 {% include 'helpdesk/include/tickets.html' with ticket_list=all_tickets_reported_by_current_user ticket_list_empty_message="" page_var=page_var %}
 {% endif %}
 
-{% trans "Open tickets" as ticket_list_caption %}
-{% trans "You have no assigned tickets." as no_assigned_tickets %}
-{% trans "ut_page" as page_var %}
-{% include 'helpdesk/include/tickets.html' with ticket_list=user_tickets ticket_list_empty_message=no_assigned_tickets page_var=page_var %}
+{% if user.is_staff %}
+    {% trans "Assigned Tickets" as ticket_list_caption %}
+    {% trans "You have no assigned tickets." as no_assigned_tickets %}
+    {% trans "ut_page" as page_var %}
+    {# Staff should see the full tickets UI (filters, pagination, footer) like admins #}
+    {# pass a custom border radius for the assigned tickets card container for staff #}
+        {% include 'helpdesk/include/tickets.html' with ticket_list=user_tickets ticket_list_empty_message=no_assigned_tickets page_var=page_var %}
+{% else %}
+    {% trans "Open tickets" as ticket_list_caption %}
+    {% trans "You have no assigned tickets." as no_assigned_tickets %}
+    {% trans "ut_page" as page_var %}
+    {% include 'helpdesk/include/tickets.html' with ticket_list=user_tickets ticket_list_empty_message=no_assigned_tickets page_var=page_var assigned_card=True %}
+{% endif %}
 
-{% include 'helpdesk/include/unassigned.html' %}
+
 
 {% if user_tickets_closed_resolved %}
 {% trans "Closed and resolved tickets you previously worked on" as ticket_list_caption %}
 {% trans "utcr_page" as page_var %}
 {% include 'helpdesk/include/tickets.html' with ticket_list=user_tickets_closed_resolved ticket_list_empty_message="" page_var=page_var %}
+{% endif %}
+
+{% if user.is_superuser %}
+    {% include 'helpdesk/include/unassigned.html' %}
 {% endif %}
 
 {% endblock %}

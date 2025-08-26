@@ -26,7 +26,7 @@
         <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     {% endif %}
 
-    {% include "helpdesk/ticket_desc_table.html" %}
+  {% include ticket_desc_template|default:"helpdesk/ticket_desc_table.html" %}
 
     {% if ticket.merged_to %}
         <div class="card card-body bg-light">
@@ -60,9 +60,7 @@
                                 {% if helpdesk_settings.HELPDESK_ENABLE_ATTACHMENTS %}
                                     {% for attachment in followup.followupattachment_set.all %}{% if forloop.first %}{% trans "Attachments" %}:<div class='attachments'><ul>{% endif %}
                                     <li><a href='{{ attachment.file.url }}'>{{ attachment.filename }}</a> ({{ attachment.mime_type }}, {{ attachment.size|filesizeformat }})
-                                        {% if followup.user and request.user == followup.user %}
-                                    <a href='{% url 'helpdesk:attachment_del' ticket.id attachment.id %}'><button class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button></a>
-                                        {% endif %}
+                                        {# delete button removed - attachments are shown read-only here #}
                                     </li>
                                         {% if forloop.last %}</ul></div>{% endif %}
                                     {% endfor %}
@@ -161,7 +159,7 @@
           <div class="col-lg-4 col-md-12">
             <div class="card card-body p-3 mb-3">
               <div class="mb-2">
-                <label class="d-block font-weight-600">{% trans "New Status" %}</label>
+                <label class="d-block font-weight-600">{% trans "Edit Status" %}</label>
                 {% if not ticket.can_be_resolved %}
                   <small class="d-block text-muted mb-2">{% trans "This ticket cannot be resolved or closed until the tickets it depends on are resolved." %}</small>
                 {% endif %}
@@ -178,6 +176,10 @@
                       {{ status_choice.1 }}
                     </label>
                   {% endfor %}
+                  <label class="btn btn-outline-secondary mb-2 flex-fill {% if ticket.status == 'reopened' %}active{% endif %}">
+                      <input type="radio" name="new_status" value="reopened" id="st_reopened" {% if ticket.status == 'reopened' %} checked="checked"{% endif %}>
+                      {% trans "Reopened" %}
+                  </label>
                 </div>
               </div>
 
@@ -292,32 +294,71 @@
   </div>
 </div>
 
-        <div class="modal fade" id="createChecklistModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="modal-header">
-                            <h5 class="modal-title">{% trans "Add a new checklist" %}</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="{% trans 'Close' %}">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <p>{% trans "You can select a template to generate a checklist with a predefined set of tasks." %}</p>
-                            <p>{% trans "Ignore it and only give a name to create an empty checklist." %}</p>
-                            {{ checklist_form.as_p }}
-                        </div>
-                        <div class="modal-footer">
-                            <a class="btn btn-secondary" href="{% url 'helpdesk:checklist_templates' %}">
-                                {% trans "Manage templates" %}
-                            </a>
-                            <button type="submit" class="btn btn-primary">{% trans "Add" %}</button>
-                        </div>
-                    </form>
-                </div>
+    <div class="modal fade" id="createChecklistModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          {% if staff_only_view %}
+          <form method="post">
+            {% csrf_token %}
+            <div class="modal-header">
+              <h5 class="modal-title">{% trans "Select a checklist" %}</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="{% trans 'Close' %}">
+                <span aria-hidden="true">&times;</span>
+              </button>
             </div>
+            <div class="modal-body">
+              {{ checklist_form.as_p }}
+            </div>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-primary">{% trans "Select" %}</button>
+            </div>
+          </form>
+          {% else %}
+          <form method="post">
+            {% csrf_token %}
+            <div class="modal-header">
+              <h5 class="modal-title">{% trans "Add a new checklist" %}</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="{% trans 'Close' %}">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <p>{% trans "You can select a template to generate a checklist with a predefined set of tasks." %}</p>
+              <p>{% trans "Ignore it and only give a name to create an empty checklist." %}</p>
+              {{ checklist_form.as_p }}
+            </div>
+            <div class="modal-footer">
+              <a class="btn btn-secondary" href="{% url 'helpdesk:checklist_templates' %}">
+                {% trans "Manage templates" %}
+              </a>
+              <button type="submit" class="btn btn-primary">{% trans "Add" %}</button>
+            </div>
+          </form>
+          {% endif %}
         </div>
+      </div>
+    </div>
+    
+    <!-- Delete confirmation modal -->
+    <div class="modal fade" id="deleteChecklistModal" tabindex="-1" role="dialog" aria-labelledby="deleteChecklistModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deleteChecklistModalLabel">Confirm delete</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            Are you sure you want to delete this checklist?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="button" id="deleteChecklistConfirm" class="btn btn-danger">Confirm</button>
+          </div>
+        </div>
+      </div>
+    </div>
     {% endif %}
 {% endblock %}
 
@@ -354,19 +395,559 @@ $( function() {
       });
 
       // Preset name of checklist when a template is selected
-      $('#id_checklist_template').on('change', function() {
-          const nameField = $('#id_name')
-          const selectedTemplate = $(this).children(':selected')
-          if (nameField.val() === '' && selectedTemplate.val()) {
-              nameField.val(selectedTemplate.text())
-          }
-      })
+    $('#id_checklist_template').on('change', function() {
+      const nameField = $('#id_name')
+      const selectedTemplate = $(this).children(':selected')
+      if (selectedTemplate.val()) {
+        // Template chosen: prefill name (if empty) and make it readonly
+        if (nameField.val() === '') {
+          nameField.val(selectedTemplate.text())
+        }
+        nameField.prop('readonly', true).addClass('readonly-template')
+      } else {
+        // No template selected: make name editable again
+        nameField.prop('readonly', false).removeClass('readonly-template')
+      }
+    })
 
-      $('.disabledTask').on('click', function() {
-          var el = document.getElementById('checklist-alert');
-          var msg = (el && el.textContent) ? el.textContent.trim() : 'If you want to update state of checklist tasks, please do a Follow-Up response and click on Update checklists';
-          alert(msg);
+    {% if staff_only_view %}
+    // Change default empty option text for staff users
+    $('#id_checklist_template option:first').text('{% trans "Select Template" %}');
+    // If page loaded with a template already selected, ensure name is readonly
+    if ($('#id_checklist_template').val()) {
+      const nameField = $('#id_name')
+      if (!nameField.val()) {
+        nameField.val($('#id_checklist_template').children(':selected').text())
+      }
+      nameField.prop('readonly', true).addClass('readonly-template')
+    }
+    {% endif %}
+
+    {% if staff_only_view %}
+    // Staff: disable Select button until a template is chosen
+    $('#createChecklistModal .modal-footer button[type=submit]').prop('disabled', true);
+    $('#id_checklist_template').on('change', function(){
+      var has = !!$(this).val();
+      $('#createChecklistModal .modal-footer button[type=submit]').prop('disabled', !has);
+    });
+    {% endif %}
+
+    // JS flag for staff-only view
+  var STAFF_ONLY_VIEW = {% if staff_only_view %}true{% else %}false{% endif %};
+
+    // AJAX submit for staff 'Select' checklist modal
+    $('#createChecklistModal form').on('submit', function(e) {
+      if (!STAFF_ONLY_VIEW) return true; // non-staff use normal submit
+      e.preventDefault();
+      var $form = $(this);
+      var url = "{% url 'helpdesk:create_checklist_ajax' ticket.id %}";
+      var data = $form.serialize();
+      // clear previous inline errors
+      $form.find('.invalid-feedback').remove();
+      $form.find('.is-invalid').removeClass('is-invalid');
+      $.ajax({
+        url: url,
+        method: 'POST',
+        data: data,
+        headers: {'X-Requested-With': 'XMLHttpRequest'},
+        success: function(resp) {
+          if (resp.success) {
+            // Insert the new checklist card before the 'Select checklist' button column
+            $('.col-sm-4.col-xs-12.ml-auto.d-flex.justify-content-end').before(resp.html);
+              // hide the Select button for staff now that a checklist exists
+              $('.col-sm-4.col-xs-12.ml-auto.d-flex.justify-content-end').find('button[data-target="#createChecklistModal"]').hide();
+            // remove the selected option from dropdown so it cannot be reused
+            var selectedVal = $('#id_checklist_template').val();
+            if (selectedVal) {
+              $('#id_checklist_template option[value="' + selectedVal + '"]').remove();
+              $('#id_checklist_template').val('');
+              $('#id_name').prop('readonly', false).removeClass('readonly-template').val('');
+              // disable select button again until another template chosen
+              $('#createChecklistModal .modal-footer button[type=submit]').prop('disabled', true);
+            }
+            $('#createChecklistModal').modal('hide');
+          } else {
+            alert('Failed to create checklist');
+          }
+        },
+        error: function(xhr) {
+          // Show validation errors inline in the modal form if JSON returned
+          try {
+            var json = JSON.parse(xhr.responseText);
+            if (json && json.errors) {
+              Object.keys(json.errors).forEach(function(field){
+                var messages = json.errors[field];
+                var $el = $('#id_' + field);
+                if ($el.length) {
+                  $el.addClass('is-invalid');
+                  messages.forEach(function(msg){
+                    $el.after('<div class="invalid-feedback">' + msg + '</div>');
+                  });
+                } else {
+                  // fallback: alert first message
+                  try { if (messages && messages.length) alert(messages[0]); } catch(_){ }
+                }
+              });
+            }
+          } catch (e) {
+            // ignore parse errors
+          }
+          alert('Error creating checklist');
+        }
+      })
+    })
+
+    // Delegated handler so dynamically inserted checklist cards show the same alert
+    $(document).on('click', '.disabledTask', function() {
+      var el = document.getElementById('checklist-alert');
+      var msg = (el && el.textContent) ? el.textContent.trim() : 'If you want to update state of checklist tasks, please do a Follow-Up response and click on Update checklists';
+      alert(msg);
+    });
+
+    // Replace JS confirm with a Bootstrap modal. When a delete form (may be dynamically inserted)
+    // is submitted, open the modal. If the form has data-ajax=true, perform AJAX delete and
+    // update the UI to remove the card and re-add the template option.
+    var $pendingDeleteForm = null;
+    $(document).on('submit', '.delete-checklist-form', function(e) {
+      e.preventDefault();
+      $pendingDeleteForm = $(this);
+      var msg = $pendingDeleteForm.data('confirm') || 'Are you sure you want to delete this checklist?';
+      $('#deleteChecklistModal .modal-body').text(msg);
+      $('#deleteChecklistModal').modal('show');
+      return false;
+    });
+
+    // Confirm action in modal
+    $(document).on('click', '#deleteChecklistConfirm', function(e) {
+      if (!$pendingDeleteForm) return;
+      var $form = $pendingDeleteForm;
+      $('#deleteChecklistModal').modal('hide');
+      // if form marked for AJAX, submit via AJAX
+      if ($form.data('ajax')) {
+        var action = $form.attr('action');
+        var data = $form.serialize();
+        $.post(action, data).done(function() {
+          // remove the checklist card
+          var $card = $form.closest('[data-checklist-id]');
+          var templateId = $card.data('template-id');
+          var templateName = $card.data('template-name');
+          $card.remove();
+          // if a template id/name present, re-add option to the template select
+          if (templateId && templateName) {
+            // only add if not already present
+            if ($('#id_checklist_template option[value="' + templateId + '"]').length === 0) {
+              // Prefer DOM Option API (works well with select2)
+              try {
+                var newOption = new Option(templateName, templateId, false, false);
+                $('#id_checklist_template')[0].add(newOption);
+              } catch (e) {
+                // fallback to jQuery append
+                $('#id_checklist_template').append($('<option>', {value: templateId, text: templateName}));
+              }
+
+              // If select2 is initialized, trigger change so it notices the new option
+              try {
+                if ($('#id_checklist_template').data('select2')) {
+                  $('#id_checklist_template').trigger('change');
+                }
+              } catch (e) {}
+
+              // If using bootstrap-select, refresh the picker
+              try {
+                if ($('#id_checklist_template').hasClass('selectpicker') && $('#id_checklist_template').selectpicker) {
+                  $('#id_checklist_template').selectpicker('refresh');
+                }
+              } catch (e) {}
+            }
+          }
+          // if no checklists left, show Select button again for staff
+          if ($('[data-checklist-id]').length === 0) {
+            var $selectBtn = $('.col-sm-4.col-xs-12.ml-auto.d-flex.justify-content-end');
+            $selectBtn.find('button[data-target="#createChecklistModal"]').show();
+          }
+        }).fail(function() {
+          alert('Failed to delete checklist');
+        }).always(function() {
+          $pendingDeleteForm = null;
+        });
+      } else {
+        // fallback: normal submit
+        $form.off('submit');
+        $form.submit();
+      }
+    });
+
+    // Attachment delete: use a dedicated modal (so we match checklist UX)
+    // We'll reuse the same pattern: intercept delete form submit and show modal
+    var $pendingAttachmentDeleteForm = null;
+    // Insert delete attachment modal into page if not present
+    if ($('#deleteAttachmentModal').length === 0) {
+      $('body').append('\n<div class="modal fade" id="deleteAttachmentModal" tabindex="-1" role="dialog" aria-labelledby="deleteAttachmentModalLabel" aria-hidden="true">\n  <div class="modal-dialog modal-dialog-centered" role="document">\n    <div class="modal-content">\n      <div class="modal-header">\n        <h5 class="modal-title" id="deleteAttachmentModalLabel">Confirm delete</h5>\n        <button type="button" class="close" data-dismiss="modal" aria-label="Close">\n          <span aria-hidden="true">&times;</span>\n        </button>\n      </div>\n      <div class="modal-body">Delete this attachment?</div>\n      <div class="modal-footer">\n        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>\n        <button type="button" id="deleteAttachmentConfirm" class="btn btn-danger">Confirm</button>\n      </div>\n    </div>\n  </div>\n</div>\n');
+      // Ensure a global hidden delete form exists (so fallback confirm() branches are not needed)
+      if ($('#followup-attachment-delete-form').length === 0) {
+        // try to copy CSRF token from an existing input on the page
+        var _csrf_val = '';
+        var $csrf_input = $('input[name="csrfmiddlewaretoken"]').first();
+        if ($csrf_input.length) _csrf_val = $csrf_input.val();
+        // fallback: try cookie (if available)
+        if (!_csrf_val) {
+          function _getCookie(name){
+            var v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+            return v ? v.pop() : '';
+          }
+          _csrf_val = _getCookie('csrftoken');
+        }
+        var formHtml = '<form id="followup-attachment-delete-form" method="post" style="display:none;">'
+                     + '<input type="hidden" name="csrfmiddlewaretoken" value="' + (_csrf_val||'') + '" />'
+                     + '</form>';
+        $('body').append(formHtml);
+      }
+      // Ensure the delete modal appears above any currently visible modal (fix stacking order)
+      $('#deleteAttachmentModal').on('show.bs.modal', function(){
+        try {
+          // compute a z-index higher than any visible modal
+          var base = 1050;
+          $('.modal:visible').each(function(){
+            var zi = parseInt($(this).css('z-index')) || base;
+            if (zi >= base) base = zi + 2;
+          });
+          $(this).css('z-index', base);
+          // adjust the most recent backdrop after it's created
+          setTimeout(function(){
+            var $backdrop = $('.modal-backdrop').not('.modal-stack-applied').last();
+            if ($backdrop && $backdrop.length) {
+              $backdrop.css('z-index', base - 1).addClass('modal-stack-applied');
+            }
+          }, 0);
+        } catch (e) { console.warn('failed to adjust delete modal z-index', e); }
       });
+    }
+
+  // When any delete-attachment-btn is clicked, open the modal and remember the delete form/action
+  $(document).on('click', '.delete-attachment-btn', function(e){
+      e.preventDefault();
+      var $btn = $(this);
+      // if this button was created inside the modal, it likely has a data-delete-url
+      var deleteUrl = $btn.data('delete-url');
+      // We'll submit the main hidden form (#followup-attachment-delete-form) with this action
+      $pendingAttachmentDeleteForm = $('#followup-attachment-delete-form');
+      if ($pendingAttachmentDeleteForm.length === 0) {
+        // fallback: if there is a form next to the button, use it
+        $pendingAttachmentDeleteForm = $btn.closest('form');
+      }
+      if ($pendingAttachmentDeleteForm.length) {
+        // store url on form for confirm handler
+        $pendingAttachmentDeleteForm.data('delete-url', deleteUrl);
+        $('#deleteAttachmentModal .modal-body').text('Delete this attachment?');
+        $('#deleteAttachmentModal').modal('show');
+      } else {
+        // As fallback, navigate directly to delete URL (no browser confirm)
+        if (deleteUrl) window.location = deleteUrl;
+      }
+    });
+
+    // Confirm action for attachment delete
+    $(document).on('click', '#deleteAttachmentConfirm', function(e){
+      // Prefer the document-scoped pending form, otherwise fall back to a window-level one
+      var $form = $pendingAttachmentDeleteForm || window._pendingAttachmentDeleteForm || $('#followup-attachment-delete-form');
+      if (!$form || $form.length === 0) return;
+      $('#deleteAttachmentModal').modal('hide');
+      var delUrl = $form.data('delete-url');
+      if (delUrl) {
+        $form.attr('action', delUrl);
+      }
+      // submit normally
+      $form.off('submit');
+      $form.submit();
+      // clear both references
+      $pendingAttachmentDeleteForm = null;
+      try { window._pendingAttachmentDeleteForm = null; } catch(e){}
+    });
+
+    // Pencil (edit) button behavior: trigger the hidden replacement file input and set the attachment id
+    // This allows the user to choose a replacement file; the actual save happens when Update Follow Up is submitted.
+    $(document).on('click', '.edit-attachment-btn', function(e){
+      e.preventDefault();
+      var attId = $(this).data('attachment-id');
+      var $modal = $('#followupEditModal');
+      // Set the hidden replacement id
+      if ($modal.length) {
+        $modal.find('#followup_replace_attachment_id').val(attId);
+        // trigger the file input click
+        var $file = $modal.find('#followup_replacement_file');
+        if ($file.length) {
+          console.debug('edit-attachment: found modal file input, attempting to open chooser');
+          // If file input is hidden inside a label (common), clicking the label opens the chooser.
+          var inputEl = $file.get(0);
+          if (window._openHiddenFileInput) { window._openHiddenFileInput(inputEl); }
+          else {
+            var $label = $file.closest('label');
+            if ($label.length) { try { $label.get(0).click(); } catch(e) { try { inputEl.click(); } catch(e2) { $file.trigger('click'); } } }
+            else { try { inputEl.click(); } catch(e) { $file.trigger('click'); } }
+          }
+        } else {
+          // If no modal input present, try a global one (label-first)
+          var $globalFile = $('#followup_replacement_file');
+          if ($globalFile.length) {
+            var $gLabel = $globalFile.closest('label');
+            var inputElG = $globalFile.get(0);
+            if (window._openHiddenFileInput) { window._openHiddenFileInput(inputElG); }
+            else {
+              if ($gLabel.length) { try { $gLabel.get(0).click(); } catch(e) { try { inputElG.click(); } catch(e2) { $globalFile.trigger('click'); } } }
+              else { try { inputElG.click(); } catch(e) { $globalFile.trigger('click'); } }
+            }
+          }
+        }
+      } else {
+        // If not in modal, try to find nearest file input
+        var $nearFile = $(this).closest('.existing-attachments').siblings().find('#followup_replacement_file');
+        if ($nearFile.length) {
+          var inputElN = $nearFile.get(0);
+          if (window._openHiddenFileInput) { window._openHiddenFileInput(inputElN); }
+          else { try { inputElN.click(); } catch(e) { $nearFile.trigger('click'); } }
+        }
+      }
+    });
+
+    // Helper to safely open a file input that may be display:none
+    window._openHiddenFileInput = function(inputEl){
+      try {
+        var el = inputEl;
+        var cs = window.getComputedStyle(el);
+        var wasHidden = (cs && cs.display === 'none');
+        var orig = {display: el.style.display || '', position: el.style.position || '', left: el.style.left || '', opacity: el.style.opacity || '', width: el.style.width || '', height: el.style.height || ''};
+        if (wasHidden) {
+          el.style.display = 'block';
+          el.style.position = 'absolute';
+          el.style.left = '-9999px';
+          el.style.opacity = '0';
+          el.style.width = '1px';
+          el.style.height = '1px';
+        }
+        try { el.click(); } catch(e) { try { $(el).trigger('click'); } catch(e2){} }
+        // restore after a short delay (selection will already be handled)
+        setTimeout(function(){
+          try {
+            el.style.display = orig.display;
+            el.style.position = orig.position;
+            el.style.left = orig.left;
+            el.style.opacity = orig.opacity;
+            el.style.width = orig.width;
+            el.style.height = orig.height;
+          } catch(e){}
+        }, 300);
+      } catch(e) { try { $(inputEl).trigger('click'); } catch(_){} }
+    };
+
+    // Fetch and display followup edit form in a modal via AJAX when clicking the edit button.
+    // Only trigger for the edit action (icons with fa-edit). Delete links (fa-trash) will behave normally.
+    $(document).on('click', 'a.followup-edit', function(e){
+      var $a = $(this);
+      // If this is not the edit button (no edit icon), let it proceed (e.g., delete)
+      if ($a.find('i.fa-edit').length === 0) {
+        return true;
+      }
+      e.preventDefault();
+      var url = $a.attr('href');
+      // Request the modal HTML from the server (view returns JSON {html: ...} for AJAX GET)
+      $.ajax({
+        url: url,
+        method: 'GET',
+        headers: {'X-Requested-With': 'XMLHttpRequest'},
+        success: function(resp){
+          if (resp && resp.html) {
+            // Remove any existing modal to avoid duplicates
+            $('#followupEditModal').remove();
+            // Parse the returned HTML into a temporary container so we can extract the modal element
+            try {
+              var $tmp = $('<div>').html(resp.html);
+              var $modalEl = $tmp.find('#followupEditModal');
+              if ($modalEl.length) {
+                // Append the modal element itself (not the whole HTML string)
+                $('body').append($modalEl);
+                // Execute any inline scripts that live inside the modal (after it's in the DOM)
+                $modalEl.find('script').each(function(){
+                  try { $.globalEval($(this).text()); } catch(e) { console.warn('eval modal script failed', e); }
+                });
+                console.log('Appended modal element and executed inline scripts.');
+              } else {
+                // fallback: append raw HTML
+                $('body').append(resp.html);
+                // attempt to execute scripts from the raw HTML
+                try { $tmp.find('script').each(function(){ $.globalEval($(this).text()); }); } catch(e){}
+              }
+            } catch (e) {
+              console.warn('Failed to parse modal HTML, appending raw HTML', e);
+              $('body').append(resp.html);
+            }
+
+            // Show the modal (now appended)
+            $('#followupEditModal').modal('show');
+
+            // Fetch attachments fragment via AJAX and inject it (works even if inline scripts didn't run)
+            try {
+              var followupId = $('#followupEditModal').data('followup-id');
+              if (followupId) {
+        var attachUrl = '/tickets/{{ ticket.id }}/followup_attachments_fragment/' + followupId + '/';
+        $.ajax({url: attachUrl, method: 'GET', headers: {'X-Requested-With': 'XMLHttpRequest'}}).done(function(aresp){
+                  if (aresp && aresp.html) {
+                    // only inject if modal lacks attachments
+                    var $existing = $('#followupEditModal .existing-attachments');
+                    if ($existing.length === 0 || $existing.children().length === 0) {
+                      // Use attachments JSON endpoint to build DOM reliably
+                      var jsonUrl = '/tickets/{{ ticket.id }}/followup_attachments_json/' + followupId + '/';
+                      $.getJSON(jsonUrl).done(function(jresp){
+                        if (jresp && jresp.attachments && jresp.attachments.length) {
+                          var $wrap = $('<div class="mt-3 followup-attachments-fragment" />');
+                          $wrap.append('<label class="font-weight-600">Attachments (this follow-up)</label>');
+                          var $list = $('<div class="existing-attachments mb-2" />');
+                          jresp.attachments.forEach(function(att){
+                            var $row = $("<div class=\"d-flex align-items-center mb-1 justify-content-between\"></div>");
+                            var left = $('<div />');
+                            left.append($('<a/>',{href: att.url, text: att.filename}));
+                            left.append(' ');
+                            left.append($('<small class="text-muted"/>').text('(' + (att.mime_type||'') + ', ' + (att.size||'0') + ')'));
+                            var right = $('<div class="d-flex align-items-center" />');
+                            right.append($('<button type="button" class="edit-attachment-btn btn btn-sm ml-2" style="background:#ffd84d;border:none;color:#1f1f1f;border-radius:6px;padding:6px 8px;"/>').data('attachment-id', att.id).append($('<i class="fas fa-pencil-alt"></i>')));
+                            if (att.delete_url) {
+                              right.append($('<button type="button" class="delete-attachment-btn btn btn-sm btn-danger ml-2"/>').data('delete-url', att.delete_url).append($('<i class="fas fa-trash"></i>')));
+                            }
+                            $row.append(left).append(right);
+                            $list.append($row);
+                          });
+                          $wrap.append($list);
+                          $('#followupEditModal .modal-body').append($wrap);
+                          console.log('Built and appended attachments DOM via JSON endpoint.');
+                        } else {
+                          console.log('No attachments via JSON endpoint');
+                        }
+                      }).fail(function(){ console.warn('attachments json fetch failed'); });
+                    }
+                    // Rebind handlers to the newly injected content
+                    $('#followupEditModal').find('.edit-attachment-btn').off('click').on('click', function(){
+                      var id = $(this).data('attachment-id');
+                      $('#followupEditModal').find('#followup_replace_attachment_id').val(id);
+                      $('#followupEditModal').find('#followup_replace_file_wrap').show();
+                    });
+                    $('#followupEditModal').find('.delete-attachment-btn').off('click').on('click', function(){
+                      var url = $(this).data('delete-url');
+                      try {
+                        window._pendingAttachmentDeleteForm = $('#followup-attachment-delete-form');
+                        window._pendingAttachmentDeleteForm.data('delete-url', url);
+                        $('#deleteAttachmentModal .modal-body').text('Delete this attachment?');
+                        $('#deleteAttachmentModal').modal('show');
+                      } catch(e) {
+                        // fallback: direct submit
+                        var $form = $('#followup-attachment-delete-form');
+                        if ($form.length) {
+                          $form.attr('action', url);
+                          $form.submit();
+                        } else {
+                          // fallback: navigate directly
+                          if (url) window.location = url;
+                        }
+                      }
+                    });
+                  }
+                }).fail(function(){ console.warn('Failed to fetch followup attachments fragment'); });
+              }
+            } catch (e) { console.warn('attachments fragment injection failed', e); }
+            // Debug: log whether attachments markup exists inside the modal and fallback highlight if missing
+            try {
+              var $existing = $('#followupEditModal .existing-attachments');
+              console.log('followup modal appended, existing-attachments elements:', $existing.length, 'children:', $existing.children().length);
+              if ($existing.length === 0 || $existing.children().length === 0) {
+                console.warn('No attachments found in modal markup. Trying to inject attachments_html from response if present.');
+                // Prefer injecting a full modal form HTML if available (ensures hidden delete form)
+                if (resp.modal_form_html) {
+                  try {
+                    $('#followupEditModal .modal-body').html(resp.modal_form_html);
+                    console.log('Replaced modal body with modal_form_html.');
+                    $existing = $('#followupEditModal .existing-attachments');
+                    console.log('after replace, existing-attachments elements:', $existing.length, 'children:', $existing.children().length);
+                    // If still no attachments present, try appending attachments_html if provided
+                    if (($existing.length === 0 || $existing.children().length === 0) && resp.attachments_html) {
+                      try {
+                        $('#followupEditModal .modal-body').append(resp.attachments_html);
+                        console.log('Appended attachments_html after modal_form_html replace.');
+                        $existing = $('#followupEditModal .existing-attachments');
+                        console.log('after append, existing-attachments elements:', $existing.length, 'children:', $existing.children().length);
+                      } catch (e) { console.warn('failed appending attachments_html after modal_form_html', e); }
+                    }
+                  } catch(e) { console.warn('failed replacing modal body with modal_form_html', e); }
+                } else if (resp.attachments_html) {
+                  try {
+                    $('#followupEditModal .modal-body').append(resp.attachments_html);
+                    console.log('Injected attachments_html into modal body.');
+                    // re-query for existing-attachments
+                    $existing = $('#followupEditModal .existing-attachments');
+                    console.log('after inject, existing-attachments elements:', $existing.length, 'children:', $existing.children().length);
+                  } catch(e) { console.warn('failed injecting attachments_html', e); }
+                } else {
+                  // add a temporary yellow border to help visually spot where modal content is
+                  $('#followupEditModal .modal-body').css({'border': '3px dashed #ffd84d'});
+                  // also dump a short preview of resp.html to console (trimmed)
+                  try { console.log('resp.html preview:', resp.html ? resp.html.substr(0, 1000) : ''); } catch(e){}
+                }
+              }
+            } catch (e) { /* ignore */ }
+
+            // When modal is hidden, remove it from DOM so repeated opens are clean
+            $('#followupEditModal').on('hidden.bs.modal', function(){
+              $(this).remove();
+            });
+
+      // Bind delegated handlers for attachment buttons inside the modal (in case JS from include isn't executed)
+      $(document).off('click', '#followupEditModal .edit-attachment-btn').on('click', '#followupEditModal .edit-attachment-btn', function(e){
+        e.preventDefault();
+        var $m = $('#followupEditModal');
+        var id = $(this).data('attachment-id');
+        $m.find('#followup_replace_attachment_id').val(id);
+        $m.find('#followup_replace_file_wrap').show();
+        // Open the native file chooser so user can immediately pick replacement
+        var $file = $m.find('#followup_replacement_file');
+        if ($file.length) { $file.trigger('click'); }
+      });
+      // When a replacement file is selected inside the modal, update the filename label
+      $(document).off('change', '#followupEditModal #followup_replacement_file').on('change', '#followupEditModal #followup_replacement_file', function(){
+        var input = $(this);
+        var label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+        if (!label) label = 'No files selected.';
+        $('#followupEditModal').find('#followup_replacement_filename').text(label);
+      });
+      $(document).off('click', '#followupEditModal .delete-attachment-btn').on('click', '#followupEditModal .delete-attachment-btn', function(e){
+        e.preventDefault();
+        var url = $(this).data('delete-url');
+        try {
+          // prefer window-level pending form (set by modal-local handler) so confirm modal works
+          window._pendingAttachmentDeleteForm = $('#followup-attachment-delete-form');
+          window._pendingAttachmentDeleteForm.data('delete-url', url);
+          $('#deleteAttachmentModal .modal-body').text('Delete this attachment?');
+          $('#deleteAttachmentModal').modal('show');
+        } catch (err) {
+          var $form = $('#followup-attachment-delete-form');
+          if ($form.length) {
+            $form.attr('action', url);
+            $form.submit();
+          } else {
+            // ultimate fallback: navigate directly
+            if (url) window.location = url;
+          }
+        }
+      });
+
+            // Let the form submit normally (full POST -> redirect). If you want AJAX submit
+            // we can change the view to return JSON on POST and wire up an AJAX submit here.
+          } else {
+            alert('Failed to load edit form');
+          }
+        },
+        error: function() {
+          alert('Failed to load edit form');
+        }
+      });
+      return false;
+    });
 
       $("[data-toggle=tooltip]").tooltip();
 

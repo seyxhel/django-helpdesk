@@ -75,6 +75,12 @@
         <span>{% trans "My Assigned Tickets" %}</span>
       </a>
     </li>
+    <li class="nav-item{% if 'submit_staff' in request.path %} active{% endif %}">
+      <a class="nav-link" href="{% url 'helpdesk:submit_staff' %}">
+        <i class="fas fa-fw fa-plus-circle"></i>
+        <span>{% trans "Submit a Ticket" %}</span>
+      </a>
+    </li>
     <li class="nav-item{% if 'sla_staff' in request.path %} active{% endif %}">
       <a class="nav-link" href="{% url 'helpdesk:sla_staff' %}">
         <i class="fas fa-fw fa-clock"></i>
@@ -98,8 +104,8 @@
     {% else %}
         {# Public menu: remove Homepage and reorder for regular users #}
     {% if user.is_authenticated %}
-    <li class="nav-item{% if 'my-assigned-tickets' in request.path %} active{% endif %}">
-      <a class="nav-link" href="{% url 'helpdesk:my-assigned-tickets' %}">
+    <li class="nav-item{% if 'my-tickets' in request.path %} active{% endif %}">
+      <a class="nav-link" href="{% url 'helpdesk:my-tickets' %}">
         <i class="fas fa-fw fa-tasks"></i>
         <span>{% trans "My Tickets" %}</span>
       </a>

@@ -170,6 +170,11 @@ def process_attachments(followup, attached_files):
                 size=attached.size,
             )
             try:
+                # enforce server-side maximum attachment size
+                max_size = getattr(settings, "HELPDESK_MAX_ATTACHMENT_SIZE", 25 * 1024 * 1024)
+                if attached.size and attached.size > max_size:
+                    raise ValidationError([f"File too large: {filename} (max {max_size} bytes)"])
+
                 att.full_clean()
             except ValidationError as e:
                 errors.add(e)

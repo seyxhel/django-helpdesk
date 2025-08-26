@@ -539,12 +539,14 @@
                                 </div>
                                 <div class='ticket_toolbar'>
                                     <div class="btn-group" style="gap: 8px;">
-                                     <a href="{% url 'helpdesk:edit' ticket.id %}" class="btn btn-warning btn-sm ticket-edit">
-                                         <i class="fas fa-pencil-alt"></i> {% trans "Edit" %}
-                                     </a>
-                                     <a href="{% url 'helpdesk:delete' ticket.id %}" class="btn btn-danger btn-sm ticket-delete">
-                                         <i class="fas fa-trash-alt"></i> {% trans "Delete" %}
-                                     </a>
+                  {% if user.is_superuser %}
+                   <a href="{% url 'helpdesk:edit' ticket.id %}" class="btn btn-warning btn-sm ticket-edit">
+                     <i class="fas fa-pencil-alt"></i> {% trans "Edit" %}
+                   </a>
+                   <a href="{% url 'helpdesk:delete' ticket.id %}" class="btn btn-danger btn-sm ticket-delete">
+                     <i class="fas fa-trash-alt"></i> {% trans "Delete" %}
+                   </a>
+                  {% endif %}
                                     {% if ticket.on_hold %}
                                         <form class="form-inline ticket-hold" method='post' action='unhold/'>
                                             {% csrf_token %}
@@ -597,48 +599,16 @@
                         <td>{{ ticket.created|date:"DATETIME_FORMAT" }} ({{ ticket.created|naturaltime }})</td>
                     </tr>
                     <tr>
-                        <!-- show current Assignee for ticket -->
-                        <th class="table-active">{% trans "Assigned To" %}</th>
-                        <td>
-                            <!-- assignment drop down -->
-                            <form method="post" action="{% url 'helpdesk:update' ticket.id %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="ticket_id" value="{{ ticket.id }}">
-                                <!-- Keep current queue and priority hidden so they're unchanged -->
-                                <input type="hidden" name="queue" value="{{ ticket.queue.id }}">
-                                <input type="hidden" name="priority" value="{{ ticket.priority }}">
-
-                                <!-- Summary / Title hidden to avoid validation error -->
-                                <input type="hidden" name="title" value="{{ ticket.title }}">
-
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="input-group input-group-sm" style="width: auto;">
-                                        <select name="owner" class="form-control">
-                                            <option value="0" {% if not ticket.assigned_to %} disabled selected{% endif %}>
-                                                {% trans "Unassigned" %}
-                                            </option>
-                                            {% for user in assignable_users %}
-                                                <option value="{{ user.id }}" {% if ticket.assigned_to and ticket.assigned_to.id == user.id %}selected{% endif %}>
-                                                    {{ user.get_full_name|default:user.username }}
-                                                </option>
-                                            {% endfor %}
-                                        </select>
-
-                                    </div>
-
-                                    <button class="btn btn-primary btn-sm" type="submit" data-toggle="tooltip"
-                                        title="{% trans 'Save ticket assignment' %}">
-                                        <i class="fas fa-user-check"></i>
-                                    </button>
-
-                                    <!-- self assign hand -->
-                                    <a class="btn btn-primary btn-sm" data-toggle="tooltip" href="?take"
-                                    title="{% trans 'Assign this ticket to ' %}{{ request.user.email }}">
-                                        <i class="fas fa-hand-paper"></i>
-                                    </a>
-                                </div>
-                            </form>
-                        </td>
+            <!-- show current Assignee for ticket (read-only for staff view) -->
+            <th class="table-active">{% trans "Assigned To" %}</th>
+            <td>
+              {% if ticket.assigned_to %}
+                {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                <small class="text-muted">({{ ticket.assigned_to.email }})</small>
+              {% else %}
+                <em class="text-muted">{% trans "Unassigned" %}</em>
+              {% endif %}
+            </td>
                         <th class="table-active">{% trans "Submitter E-Mail" %}</th>
                         <td>
                             {{ ticket.submitter_email }}
@@ -657,24 +627,12 @@
                             {% endif %}
                         </td>
                     </tr>
-                    <tr>
-                        <th class="table-active">{% trans "Priority" %}</th>
-                        <td class="{% if ticket.priority < 3 %}table-warning{% endif %}">
-                            {{ ticket.get_priority_display }}
-                        </td>
-                        <th class="table-active">{% trans "Copies To" %}</th>
-                        <td>
-                            {{ ticketcc_string }}
-                            <a class="btn btn-warning btn-sm float-right" data-toggle='tooltip' href='{% url 'helpdesk:ticket_cc' ticket.id %}' title='{% trans "Click here to add / remove people who should receive an e-mail whenever this ticket is updated." %}'>
-                                <i class="fa fa-share"></i>
-                            </a>
-                            {% if SHOW_SUBSCRIBE %}
-                                <a class="btn btn-warning btn-sm float-right" data-toggle='tooltip' href='?subscribe' title='{% trans "Click here to subscribe yourself to this ticket, if you want to receive an e-mail whenever this ticket is updated." %}'>
-                                    <i class="fas fa-rss-square"></i>
-                                </a>
-                            {% endif %}
-                        </td>
-                    </tr>
+          <tr>
+            <th class="table-active">{% trans "Priority" %}</th>
+            <td class="{% if ticket.priority < 3 %}table-warning{% endif %}" colspan="3">
+              {{ ticket.get_priority_display }}
+            </td>
+          </tr>
 
 		    <tr>
 			<th class="table-active">{% trans "Status" %}</th>
@@ -687,7 +645,7 @@
                                 <td></td>
                             {% endif %}
 		    </tr>
-                    {% if helpdesk_settings.HELPDESK_ENABLE_DEPENDENCIES_ON_TICKET != False %}
+                    {% if helpdesk_settings.HELPDESK_ENABLE_DEPENDENCIES_ON_TICKET != False and user.is_superuser %}
 		    <tr>
 			<th class="table-active">
 			    {% trans "Resolves" %}
@@ -757,22 +715,16 @@
                     <tr>
                         <th class="table-active">{% trans "Attachments" %}</th>
                         <td colspan="3">
-                            <ul>
-                            {% for followup in ticket.followup_set.all %}
-                                {% for attachment in followup.followupattachment_set.all %}
-                                    <li>
-                                        <a href='{{ attachment.file.url }}'>
-                                            {{ attachment.filename }}
-                                        </a> ({{ attachment.mime_type }}, {{ attachment.size|filesizeformat }})
-                                        {% if followup.user and request.user == followup.user %}
-                                            <a class="btn btn-danger btn-sm" href='{% url 'helpdesk:attachment_del' ticket.id attachment.id %}'>
-                                                <i class="fas fa-trash"></i>
-                                            </a>
-                                        {% endif %}
-                                    </li>
-                                {% endfor %}
-                            {% endfor %}
-                            </ul>
+              <ul class="list-unstyled mb-0">
+              {% for followup in ticket.followup_set.all %}
+                {% for attachment in followup.followupattachment_set.all %}
+                  <li class="py-1">
+                    <a href="{{ attachment.file.url }}">{{ attachment.filename }}</a>
+                    <small class="text-muted">&nbsp;({{ attachment.mime_type }}, {{ attachment.size|filesizeformat }})</small>
+                  </li>
+                {% endfor %}
+              {% endfor %}
+              </ul>
                         </td>
                     </tr>
                     {% endif %}
@@ -781,52 +733,24 @@
                         <td colspan="3">
                             <div class="container-fluid">
                                 <div class="row align-items-baseline">
-                                    {% for checklist in ticket.checklists.all %}
-                                        <div class="col-sm-4 col-xs-12">
-                                            <div class="card mb-4">
-                                                <div class="card-header">
-                                                    <h5>
-                                                        <span data-toggle="collapse" data-target="#checklist{{ checklist.id }}" onclick="$(this).siblings('button').children('i').toggleClass('fa-caret-down fa-caret-up')">
-                                                            {{ checklist }}
-                                                        </span>
-                                                        <a class="btn btn-link btn-sm" href="{% url 'helpdesk:edit_ticket_checklist' ticket.id checklist.id %}">
-                                                            <i class="fas fa-edit"></i>
-                                                        </a>
-                                                        <button class="btn btn-secondary btn-sm float-right" data-toggle="collapse" data-target="#checklist{{ checklist.id }}" onclick="$(this).children('i').toggleClass('fa-caret-down fa-caret-up')">
-                                                            <i class="fas fa-caret-down"></i>
-                                                        </button>
-                                                    </h5>
-                                                </div>
-                                                <div class="card-body collapse" id="checklist{{ checklist.id }}">
-                                                    <div class="list-group">
-                                                        {% for task in checklist.tasks.all %}
-                                                            <div class="list-group-item"{% if task.completion_date %} title="{% trans "Completed on" %} {{ task.completion_date }}" {% endif %}>
-                                                                <label class="disabledTask">
-                                                                    <input type="checkbox" disabled{% if task.completion_date %} checked{% endif %}>
-                                                                    {{ task }}
-                                                                </label>
-                                                            </div>
-                                                        {% endfor %}
-                                                    </div>
-                                                </div>
-                                                {% if checklist.tasks.completed.count %}
-                                                    <div class="card-footer">
-                                                        <div class="progress">
-                                                            {% widthratio checklist.tasks.completed.count checklist.tasks.count 100 as width  %}
-                                                            <div class="progress-bar" role="progressbar" style="width: {{ width }}%" aria-valuenow="{{ width }}" aria-valuemin="0" aria-valuemax="100">
-                                                                {{ width }}%
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                    {% endfor %}
+                  {% for checklist in ticket.checklists.all %}
+                    {% include 'helpdesk/include/checklist_card.html' with checklist=checklist %}
+                  {% endfor %}
                                     <div class="col-sm-4 col-xs-12 ml-auto d-flex justify-content-end">
-                                        <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#createChecklistModal">
-                                            <i class="fas fa-plus"></i>
-                                            {% trans "Create new checklist" %}
-                                        </button>
+                    {% if user.is_superuser %}
+                      <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#createChecklistModal">
+                        <i class="fas fa-plus"></i>
+                        {% trans "Select checklist" %}
+                      </button>
+                    {% else %}
+                      {# staff: only show Select button if there are no checklists yet for this ticket #}
+                      {% if not ticket.checklists.exists %}
+                        <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#createChecklistModal">
+                          <i class="fas fa-plus"></i>
+                          {% trans "Select checklist" %}
+                        </button>
+                      {% endif %}
+                    {% endif %}
                                     </div>
                                  </div>
                              </div>
@@ -858,11 +782,7 @@
                     {% endif %}
                 </tbody>
             </table>
-            <a href='#FurtherEditOptions'>
-                <button type="button" class="btn btn-sm btn-warning float-right" onclick="$('#FurtherEditOptions').fadeIn()">
-                    <i class="fas fa-pencil-alt"></i>&nbsp;{% trans "Edit details" %}
-                </button>
-            </a>
+            {# Edit details button removed per request #}
         </div>
         <!-- /.table-responsive -->
     </div>

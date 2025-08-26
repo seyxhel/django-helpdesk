@@ -1,0 +1,72 @@
+{% load i18n %}
+
+<!-- Staff-only: reuse admin stats CSS and classes so cards look identical -->
+<style>
+/* copy of admin stats CSS (trimmed to only what's needed for cards) */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Roboto:wght@300;400;500;700&display=swap');
+ :root{ --pd-blue: #000C7D; --pd-light: #DAE3FF; --card-bg: #FBFBFC; --text-dark: #22282a; --text-muted: #9aa0a6; --pd-green: #16a34a; --pd-red: #ef4444; }
+ .stats-wrapper{ width:100%; max-width:none; padding-left:0.5px; padding-right:0.5px; box-sizing:border-box; }
+ .stats-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); padding-left:12px; padding-right:12px; gap:12px; align-items:stretch; }
+ .stats-grid-item { display:block; }
+ .stats-card{ background:var(--card-bg) !important; color:var(--text-dark) !important; border:1px solid var(--pd-light) !important; border-radius:20px !important; box-shadow:none !important; display:flex; flex-direction:column; min-height:120px; }
+ .stats-card .card-body{ flex:1 1 auto; display:flex; align-items:center; padding:18px; }
+ .stats-count{ font-family: "Poppins", "Roboto", Arial, sans-serif; font-weight:700; font-size:26px; color:var(--pd-blue) !important; }
+ .stats-label{ font-size:13px; color:var(--text-muted); margin-top:6px; }
+
+ /* Tickets (Assigned) - blue */
+ .stats-card.tickets{ background: #eaf3ff !important; border-color: #bcd7ff !important; }
+ .stats-card.tickets .stats-count{ color: #0b57d0 !important; }
+ .stats-card.tickets .stats-label, .stats-card.tickets .card-footer, .stats-card.tickets .dropdown-label { color: #102a44 !important; }
+
+ /* Users (Closed) - purple */
+ .stats-card.users{ background: #f5f0ff !important; border-color: #eadcff !important; }
+ .stats-card.users .stats-count{ color: #7c3aed !important; }
+ .stats-card.users .stats-label, .stats-card.users .card-footer, .stats-card.users .dropdown-label{ color: #351a61 !important; }
+
+ /* KB Dislikes (Escalated) - red */
+ .stats-card.kb-dislikes{ background: #fff4f4 !important; border-color: #ffd1d1 !important; }
+ .stats-card.kb-dislikes .stats-count{ color: #ef4444 !important; }
+ .stats-card.kb-dislikes .stats-label, .stats-card.kb-dislikes .card-footer, .stats-card.kb-dislikes .dropdown-label{ color: #421313 !important; }
+
+ @media (max-width:480px) { .stats-grid{ gap:8px; grid-template-columns: 1fr; } .stats-count{ font-size:22px; } }
+ </style>
+
+ <div class="container-fluid stats-wrapper mb-4">
+     <div class="stats-grid">
+
+         <div class="stats-grid-item">
+             <div class="card stats-card tickets" style="position:relative;">
+                    <div class="card-body d-flex align-items-center">
+                        <div class="w-100">
+                            <div class="stats-count">{{ assigned_tickets_count|default:0 }}</div>
+                            <div class="stats-label">{% trans "Assigned Tickets" %}</div>
+                        </div>
+                    </div>
+                    {# no ratio/progress for staff assigned tickets - removed per request #}
+             </div>
+         </div>
+
+         <div class="stats-grid-item">
+             <div class="card stats-card users" style="position:relative;">
+                 <div class="card-body d-flex align-items-center">
+                     <div class="w-100">
+                         <div class="stats-count">{{ closed_tickets_count|default:0 }}</div>
+                         <div class="stats-label">{% trans "Closed Tickets" %}</div>
+                     </div>
+                 </div>
+             </div>
+         </div>
+
+         <div class="stats-grid-item">
+             <div class="card stats-card kb-dislikes" style="position:relative;">
+                 <div class="card-body d-flex align-items-center">
+                     <div class="w-100">
+                         <div class="stats-count">{{ escalated_tickets_count|default:0 }}</div>
+                         <div class="stats-label">{% trans "Escalated Tickets" %}</div>
+                     </div>
+                 </div>
+             </div>
+         </div>
+
+     </div>
+ </div>

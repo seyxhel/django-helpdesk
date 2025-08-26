@@ -474,10 +474,14 @@ else:
             ".docx",
             ".odt",
             ".jpg",
+            ".jpeg",
             ".png",
             ".eml",
         ],
     )
+
+# Maximum upload size for individual attachments (bytes). Default: 25 MB
+HELPDESK_MAX_ATTACHMENT_SIZE = getattr(settings, "HELPDESK_MAX_ATTACHMENT_SIZE", 25 * 1024 * 1024)
 
 HELPDESK_VALIDATE_ATTACHMENT_TYPES = getattr(
     settings, "HELPDESK_VALIDATE_ATTACHMENT_TYPES", True

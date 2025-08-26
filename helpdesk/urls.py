@@ -82,6 +82,16 @@ urlpatterns += [
         staff.followup_delete,
         name="followup_delete",
     ),
+    path(
+        "tickets/<int:ticket_id>/followup_attachments_fragment/<int:followup_id>/",
+        staff.followup_attachments_fragment,
+        name="followup_attachments_fragment",
+    ),
+    path(
+        "tickets/<int:ticket_id>/followup_attachments_json/<int:followup_id>/",
+        staff.followup_attachments_json,
+        name="followup_attachments_json",
+    ),
     path("tickets/<int:ticket_id>/edit/", staff.edit_ticket, name="edit"),
     path("tickets/<int:ticket_id>/update/", staff.update_ticket_view, name="update"),
     path("tickets/<int:ticket_id>/delete/", staff.delete_ticket, name="delete"),
@@ -123,6 +133,11 @@ urlpatterns += [
         "tickets/<int:ticket_id>/checklists/<int:checklist_id>/",
         staff.edit_ticket_checklist,
         name="edit_ticket_checklist",
+    ),
+    path(
+        "tickets/<int:ticket_id>/checklist-select-ajax/",
+        staff.create_checklist_ajax,
+        name="create_checklist_ajax",
     ),
     path(
         "tickets/<int:ticket_id>/checklists/<int:checklist_id>/delete/",
@@ -185,7 +200,15 @@ if helpdesk_settings.HELPDESK_ENABLE_DEPENDENCIES_ON_TICKET:
         protect_view(public.MyTickets.as_view()),
         name="my-assigned-tickets",
     ),
+    # Public / regular-user standalone tickets page
+    path(
+        "tickets/my-tickets/",
+        protect_view(public.MyTickets.as_view(template_name="helpdesk/my_tickets_public.html")),
+        name="my-tickets",
+    ),
     path("tickets/submit/", public.create_ticket, name="submit"),
+    # Staff-only ticket creation URL (preserves staff-specific fields like case owner)
+    path("tickets/submit_staff/", staff.CreateTicketView.as_view(), name="submit_staff"),
     path(
         "tickets/submit_iframe/",
         protect_view(public.CreateTicketIframeView.as_view()),
@@ -197,6 +220,7 @@ if helpdesk_settings.HELPDESK_ENABLE_DEPENDENCIES_ON_TICKET:
         name="success_iframe",
     ),
     path("view/", protect_view(public.ViewTicket.as_view()), name="public_view"),
+    path("tickets/<int:ticket_id>/public_update/", public.public_update_ticket, name="public_update"),
     path("change_language/", public.change_language, name="public_change_language"),
 ]
 

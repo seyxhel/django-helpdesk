@@ -1,0 +1,53 @@
+{% extends "helpdesk/base.html" %}{% load i18n %}
+
+{% block helpdesk_title %}{% trans "My Tickets" %}{% endblock %}
+
+{% block helpdesk_breadcrumb %}
+<li class="breadcrumb-item active">{% trans "My Tickets" %}</li>
+<li id="last-ticket-breadcrumb" class="breadcrumb-item" style="display:none"></li>
+{% endblock %}
+
+{% block helpdesk_body %}
+<h2 class="sr-only">{% trans "My Tickets" %}</h2>
+
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <input id="queueSearch" class="form-control" placeholder="Search queues or click to see all" autocomplete="off" />
+            <div id="queueDropdown" class="list-group" style="position:absolute;z-index:1000;display:none;max-height:200px;overflow:auto;width:100%;"></div>
+        </div>
+        <div class="col-md-3">
+            <select id="statusFilter" class="form-control">
+                <option value="">All statuses</option>
+                {% for code,label in status_choices %}
+                <option value="{{ code }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-5 text-right">
+        </div>
+    </div>
+
+    <div class="table-responsive">
+    <table class="table table-striped" id="ticketsTable">
+        <thead>
+            <tr>
+                <th>{% trans "Title" %}</th>
+                <th>{% trans "Queue" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "Created" %}</th>
+                <th>{% trans "Last updated" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+    </div>
+    <nav aria-label="{% trans 'Page navigation' %}">
+        <ul class="pagination justify-content-end" id="pagination"></ul>
+    </nav>
+</div>
+
+{% include 'helpdesk/my_tickets_scripts.html' %}
+
+{% endblock %}
