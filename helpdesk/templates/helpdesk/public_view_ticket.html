@@ -4,7 +4,7 @@
 
 {% block helpdesk_breadcrumb %}
 {% if not user.is_staff %}
-<li class="breadcrumb-item"><a href="{% url 'helpdesk:my-tickets' %}">{% trans "My Tickets" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'helpdesk:my-assigned-tickets' %}">{% trans "My Tickets" %}</a></li>
 <li class="breadcrumb-item active">{{ ticket.title }}</li>
 {% endif %}
 {% endblock %}
