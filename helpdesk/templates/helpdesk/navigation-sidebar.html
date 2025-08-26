@@ -2,66 +2,99 @@
 
   <!-- Sidebar -->
   <ul id="helpdesk-sidebar" class="sidebar navbar-nav">
-    {% if helpdesk_settings.HELPDESK_NAVIGATION_ENABLED and user.is_authenticated or user|is_helpdesk_staff %}
-        <li class="nav-item{% if 'dashboard' in request.path %} active{% endif %}">
-          <a class="nav-link" href="{% url 'helpdesk:dashboard' %}">
-            <i class="fas fa-fw fa-tachometer-alt"></i>
-            <span>{% trans "Dashboard" %}</span>
-          </a>
-        </li>
-        <li class="nav-item{% if 'tickets' in request.path and 'submit' not in request.path %} active{% endif %}">
-          <a class="nav-link" href="{% url 'helpdesk:list' %}">
-            <i class="fas fa-fw fa-tasks"></i>
-            <span>{% trans "All Tickets" %}</span>
-          </a>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="ticketsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            <i class="fas fa-fw fa-search"></i>
-            <span>{% trans "Saved Queries" %}</span>
-          </a>
-          <div class="dropdown-menu" aria-labelledby="ticketsDropdown">
-            {% if user_saved_queries_ %}
-            {% for q in user_saved_queries_ %}
-            <a class="dropdown-item small" href="{% url 'helpdesk:list' %}?saved_query={{ q.id }}" style="white-space: normal;">{{ q.title }}
-                {% if q.shared %}
-                (Shared{% if user != q.user %} by {{ q.user.get_username }}{% endif %})
-                {% endif %}
-            </a>
-            {% endfor %}
-            {% else %}
-            <p class="dropdown-item small text-wrap">{% trans "No saved queries currently available. You can create one in the All Tickets page." %}</p>
-            {% endif %}
-          </div>
-        </li>
-        <li class="nav-item{% if 'saved-searches' in request.path %} active{% endif %}">
-          <a class="nav-link" href="{% url 'helpdesk:saved_searches_list' %}">
-            <i class="fas fa-fw fa-save"></i>
-            <span>{% trans "Manage Saved Queries" %}</span>
-          </a>
-        </li>
-        {% if helpdesk_settings.HELPDESK_SHOW_MY_TICKETS_IN_NAV_FOR_STAFF %}
+  {% if user.is_superuser %}
+    <li class="nav-item{% if 'dashboard' in request.path %} active{% endif %}">
+      <a class="nav-link" href="{% url 'helpdesk:dashboard' %}">
+        <i class="fas fa-fw fa-tachometer-alt"></i>
+        <span>{% trans "Dashboard" %}</span>
+      </a>
+    </li>
+    <li class="nav-item{% if 'tickets' in request.path and 'submit' not in request.path %} active{% endif %}">
+      <a class="nav-link" href="{% url 'helpdesk:list' %}">
+        <i class="fas fa-fw fa-tasks"></i>
+        <span>{% trans "All Tickets" %}</span>
+      </a>
+    </li>
+    <li class="nav-item dropdown">
+      <a class="nav-link dropdown-toggle" href="#" id="ticketsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <i class="fas fa-fw fa-search"></i>
+        <span>{% trans "Saved Queries" %}</span>
+      </a>
+      <div class="dropdown-menu" aria-labelledby="ticketsDropdown">
+        {% if user_saved_queries_ %}
+        {% for q in user_saved_queries_ %}
+        <a class="dropdown-item small" href="{% url 'helpdesk:list' %}?saved_query={{ q.id }}" style="white-space: normal;">{{ q.title }}
+          {% if q.shared %}
+          (Shared{% if user != q.user %} by {{ q.user.get_username }}{% endif %})
+          {% endif %}
+        </a>
+        {% endfor %}
+        {% else %}
+        <p class="dropdown-item small text-wrap">{% trans "No saved queries currently available. You can create one in the All Tickets page." %}</p>
         {% endif %}
-        <li class="nav-item{% if 'reports' in request.path %} active{% endif %}">
-          <a class="nav-link" href="{% url 'helpdesk:report_index' %}">
-            <i class="fas fa-fw fa-chart-area"></i>
-            <span>{% trans "Reports" %}</span>
-          </a>
-        </li>
-        <li class="nav-item{% if 'users' in request.path %} active{% endif %}">
-          <a class="nav-link" href="{% url 'helpdesk:user_list' %}">
-            <i class="fas fa-fw fa-users"></i>
-            <span>{% trans "Users" %}</span>
-          </a>
-        </li>
-        {% if helpdesk_settings.HELPDESK_KB_ENABLED %}
-        <li class="nav-item{% if 'kb' in request.path %} active{% endif %}">
-          <a class="nav-link" href="{% url 'helpdesk:kb_index' %}">
-            <i class="fas fa-fw fa-database"></i>
-            <span>{% trans "Knowledgebase" %}</span>
-          </a>
-        </li>
-        {% endif %}
+      </div>
+    </li>
+    <li class="nav-item{% if 'saved-searches' in request.path %} active{% endif %}">
+      <a class="nav-link" href="{% url 'helpdesk:saved_searches_list' %}">
+        <i class="fas fa-fw fa-save"></i>
+        <span>{% trans "Manage Saved Queries" %}</span>
+      </a>
+    </li>
+  {# SLA link only for staff, not admin #}
+    <li class="nav-item{% if 'reports' in request.path %} active{% endif %}">
+      <a class="nav-link" href="{% url 'helpdesk:report_index' %}">
+        <i class="fas fa-fw fa-chart-area"></i>
+        <span>{% trans "Reports" %}</span>
+      </a>
+    </li>
+    <li class="nav-item{% if 'users' in request.path %} active{% endif %}">
+      <a class="nav-link" href="{% url 'helpdesk:user_list' %}">
+        <i class="fas fa-fw fa-users"></i>
+        <span>{% trans "Users" %}</span>
+      </a>
+    </li>
+    {% if helpdesk_settings.HELPDESK_KB_ENABLED %}
+      <li class="nav-item{% if 'kb' in request.path %} active{% endif %}">
+        <a class="nav-link" href="{% url 'helpdesk:kb_index' %}">
+          <i class="fas fa-fw fa-database"></i>
+          <span>{% trans "Knowledgebase" %}</span>
+        </a>
+      </li>
+    {% endif %}
+  {% elif user.is_staff %}
+  {# Only show these once for staff #}
+    <li class="nav-item{% if 'dashboard' in request.path %} active{% endif %}">
+      <a class="nav-link" href="{% url 'helpdesk:dashboard' %}">
+        <i class="fas fa-fw fa-tachometer-alt"></i>
+        <span>{% trans "Dashboard" %}</span>
+      </a>
+    </li>
+    <li class="nav-item{% if 'my-assigned-tickets' in request.path %} active{% endif %}">
+      <a class="nav-link" href="{% url 'helpdesk:my-assigned-tickets' %}">
+        <i class="fas fa-fw fa-user-check"></i>
+        <span>{% trans "My Assigned Tickets" %}</span>
+      </a>
+    </li>
+    <li class="nav-item{% if 'sla_staff' in request.path %} active{% endif %}">
+      <a class="nav-link" href="{% url 'helpdesk:sla_staff' %}">
+        <i class="fas fa-fw fa-clock"></i>
+        <span>{% trans "Service Level Agreement" %}</span>
+      </a>
+    </li>
+    <li class="nav-item{% if 'reports' in request.path %} active{% endif %}">
+      <a class="nav-link" href="{% url 'helpdesk:report_index' %}">
+        <i class="fas fa-fw fa-chart-area"></i>
+        <span>{% trans "Reports" %}</span>
+      </a>
+    </li>
+    {% if helpdesk_settings.HELPDESK_KB_ENABLED %}
+      <li class="nav-item{% if 'kb' in request.path %} active{% endif %}">
+        <a class="nav-link" href="{% url 'helpdesk:kb_index' %}">
+          <i class="fas fa-fw fa-database"></i>
+          <span>{% trans "Knowledgebase" %}</span>
+        </a>
+      </li>
+    {% endif %}
     {% else %}
         {# Public menu: remove Homepage and reorder for regular users #}
     {% if user.is_authenticated %}
