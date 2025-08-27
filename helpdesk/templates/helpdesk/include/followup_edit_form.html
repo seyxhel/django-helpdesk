@@ -51,11 +51,12 @@
                                 {% endfor %}
                             </div>
                             <div id="followup_replace_file_wrap" style="display:none;">
-                                <label class="btn btn-primary btn-sm btn-file">
+                                <label class="btn btn-primary btn-sm btn-file followup-replacement-trigger" id="followup_replacement_label">
                                     {% trans "Choose replacement file" %} <input type="file" name="replacement_attachment" id="followup_replacement_file" style="display:none;" />
                                 </label>
                                 <span class="ml-2" id="followup_replacement_filename">{% trans 'No files selected.' %}</span>
                                 <input type="hidden" name="replace_attachment_id" id="followup_replace_attachment_id" value="" />
+                                <button type="button" id="test_followup_chooser" class="btn btn-sm btn-secondary ml-2">Test chooser</button>
                             </div>
                         </div>
                         {% endif %}
@@ -91,19 +92,21 @@
                                             {% trans "Reopened" %}
                                         </label>
                                     {% endwith %}
-                                </div>
-                            </div>
-
+    
+{# Hidden form used to submit attachment delete POSTs from the modal #}
+<form id="followup-attachment-delete-form" method="post" style="display:none;">
+    {% csrf_token %}
+</form>
+                            
                             {% if helpdesk_settings.HELPDESK_UPDATE_PUBLIC_DEFAULT %}
                                 <input type="hidden" name="public" value="1">
                             {% else %}
-                                <div class="form-group form-check mb-2 d-flex align-items-center gap-2">
+                                <div class="form-group form-check mb-2">
                                     {{ form.public }}
-                                    <label class="mb-0">{% trans "Yes, make this update public." %}</label>
+                                    <small class="form-text text-muted">{% trans "If this is public, the submitter will be e-mailed your comment or resolution." %}</small>
                                 </div>
                             {% endif %}
 
-                            {# Render time_spent when the form contains it so the field appears between the public checkbox and the submit button #}
                             {% if form.time_spent %}
                             <div class="form-group mb-2">
                                 <label for="id_time_spent" class="font-weight-600">{% trans "Time spent" %} <small class="text-muted">({% trans "Optional" %})</small></label>
@@ -112,72 +115,13 @@
                             {% endif %}
 
                             <div class="d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary">{% trans "Update Follow Up" %}</button>
+                                <button type="submit" class="btn btn-primary">{% trans "Update this follow up" %}</button>
                             </div>
                         </div>
                     </div>
                 </div> <!-- /.form-row -->
             </fieldset>
-        </div>
+            {% csrf_token %}
+        </form>
     </div>
-    {% csrf_token %}
-</form>
-
-{% comment %} Modal-local JS to handle file button and filename display for the modal's file input. {% endcomment %}
-<script>
-    (function(){
-        try {
-            var $modal = $('#followupEditModal');
-            // Edit attachment button toggles replacement file chooser
-            $modal.on('click', '.edit-attachment-btn', function(e){
-                e.preventDefault();
-                var id = $(this).data('attachment-id');
-                $modal.find('#followup_replace_attachment_id').val(id);
-                $modal.find('#followup_replace_file_wrap').show();
-                // open native chooser immediately
-                var $file = $modal.find('#followup_replacement_file');
-                console.debug('modal edit-attachment: triggering replacement chooser for id', id, 'found?', $file.length);
-                if ($file.length) {
-                    var $lbl = $file.closest('label');
-                    if ($lbl.length) { try { $lbl.get(0).click(); } catch(e) { try { $file.get(0).click(); } catch(e2) { $file.trigger('click'); } } }
-                    else { try { $file.get(0).click(); } catch(e) { $file.trigger('click'); } }
-                }
-            });
-
-            // Update replacement filename
-            $modal.on('change', '#followup_replacement_file', function(){
-                var input = $(this);
-                var label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
-                if (!label) label = '{% trans "No files selected." %}';
-                $modal.find('#followup_replacement_filename').text(label);
-            });
-
-            // Delete attachment: use the centralized deleteAttachmentModal so UX matches checklist delete
-            $modal.on('click', '.delete-attachment-btn', function(){
-                var url = $(this).data('delete-url');
-                // store pending delete form and url on window so the modal confirm can access it
-                try {
-                    window._pendingAttachmentDeleteForm = $('#followup-attachment-delete-form');
-                    window._pendingAttachmentDeleteForm.data('delete-url', url);
-                    $('#deleteAttachmentModal .modal-body').text('{% trans "Delete this attachment?" %}');
-                    $('#deleteAttachmentModal').modal('show');
-                } catch (e) {
-                    // fallback to direct submit
-                    var $form = $('#followup-attachment-delete-form');
-                    if ($form.length) {
-                        $form.attr('action', url);
-                        $form.submit();
-                    } else {
-                        // fallback: navigate directly
-                        if (url) window.location = url;
-                    }
-                }
-            });
-        } catch (e) { /* ignore */ }
-    })();
-</script>
-
-{# Hidden form used to submit attachment delete POSTs from the modal #}
-<form id="followup-attachment-delete-form" method="post" style="display:none;">
-    {% csrf_token %}
-</form>
+</div>

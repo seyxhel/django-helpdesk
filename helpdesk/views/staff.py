@@ -511,6 +511,11 @@ def followup_edit(request, ticket_id, followup_id):
             # Handle replacement of an attachment if requested via modal
             replace_id = request.POST.get('replace_attachment_id')
             replacement_file = request.FILES.get('replacement_attachment')
+            # DEBUG: temporary logging to verify replacement upload reached server
+            try:
+                print('[DEBUG followup_edit] replace_attachment_id=', replace_id, 'replacement_attachment present=', bool(replacement_file))
+            except Exception:
+                pass
             if replace_id and replacement_file:
                 try:
                     old_att = FollowUpAttachment.objects.get(id=int(replace_id), followup=new_followup)

@@ -664,50 +664,7 @@ $( function() {
       try { window._pendingAttachmentDeleteForm = null; } catch(e){}
     });
 
-    // Pencil (edit) button behavior: trigger the hidden replacement file input and set the attachment id
-    // This allows the user to choose a replacement file; the actual save happens when Update Follow Up is submitted.
-    $(document).on('click', '.edit-attachment-btn', function(e){
-      e.preventDefault();
-      var attId = $(this).data('attachment-id');
-      var $modal = $('#followupEditModal');
-      // Set the hidden replacement id
-      if ($modal.length) {
-        $modal.find('#followup_replace_attachment_id').val(attId);
-        // trigger the file input click
-        var $file = $modal.find('#followup_replacement_file');
-        if ($file.length) {
-          console.debug('edit-attachment: found modal file input, attempting to open chooser');
-          // If file input is hidden inside a label (common), clicking the label opens the chooser.
-          var inputEl = $file.get(0);
-          if (window._openHiddenFileInput) { window._openHiddenFileInput(inputEl); }
-          else {
-            var $label = $file.closest('label');
-            if ($label.length) { try { $label.get(0).click(); } catch(e) { try { inputEl.click(); } catch(e2) { $file.trigger('click'); } } }
-            else { try { inputEl.click(); } catch(e) { $file.trigger('click'); } }
-          }
-        } else {
-          // If no modal input present, try a global one (label-first)
-          var $globalFile = $('#followup_replacement_file');
-          if ($globalFile.length) {
-            var $gLabel = $globalFile.closest('label');
-            var inputElG = $globalFile.get(0);
-            if (window._openHiddenFileInput) { window._openHiddenFileInput(inputElG); }
-            else {
-              if ($gLabel.length) { try { $gLabel.get(0).click(); } catch(e) { try { inputElG.click(); } catch(e2) { $globalFile.trigger('click'); } } }
-              else { try { inputElG.click(); } catch(e) { $globalFile.trigger('click'); } }
-            }
-          }
-        }
-      } else {
-        // If not in modal, try to find nearest file input
-        var $nearFile = $(this).closest('.existing-attachments').siblings().find('#followup_replacement_file');
-        if ($nearFile.length) {
-          var inputElN = $nearFile.get(0);
-          if (window._openHiddenFileInput) { window._openHiddenFileInput(inputElN); }
-          else { try { inputElN.click(); } catch(e) { $nearFile.trigger('click'); } }
-        }
-      }
-    });
+  // Pencil (edit) button behavior has been consolidated into the modal-local script
 
     // Helper to safely open a file input that may be display:none
     window._openHiddenFileInput = function(inputEl){
@@ -739,6 +696,160 @@ $( function() {
       } catch(e) { try { $(inputEl).trigger('click'); } catch(_){} }
     };
 
+    // Consolidated modal-local handlers for attachment edit/change/delete
+    try {
+      var $modalGlobal = $('#followupEditModal');
+      // edit -> set replace id, show wrapper, click replacement label
+      $modalGlobal.on('click', '.edit-attachment-btn', function(e){
+        e.preventDefault();
+        var id = $(this).data('attachment-id');
+        $modalGlobal.find('#followup_replace_attachment_id').val(id);
+        $modalGlobal.find('#followup_replace_file_wrap').show();
+        var lbl = $modalGlobal.find('#followup_replacement_label');
+        if (lbl && lbl.length) { try { lbl.get(0).click(); return; } catch(e) {} }
+        var $file = $modalGlobal.find('#followup_replacement_file');
+        if ($file.length) { try { $file.get(0).click(); } catch(e) { $file.trigger('click'); } }
+      });
+
+      // update filename label
+      $modalGlobal.on('change', '#followup_replacement_file', function(){
+        var input = $(this);
+        var label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+        if (!label) label = '{% trans "No files selected." %}';
+        $modalGlobal.find('#followup_replacement_filename').text(label);
+      });
+
+      // delete attachment -> open centralized confirm modal
+      $modalGlobal.on('click', '.delete-attachment-btn', function(){
+        var url = $(this).data('delete-url');
+        try {
+          window._pendingAttachmentDeleteForm = $('#followup-attachment-delete-form');
+          window._pendingAttachmentDeleteForm.data('delete-url', url);
+          $('#deleteAttachmentModal .modal-body').text('{% trans "Delete this attachment?" %}');
+          $('#deleteAttachmentModal').modal('show');
+        } catch(e) {
+          var $form = $('#followup-attachment-delete-form'); if ($form.length) { $form.attr('action', url); $form.submit(); } else { if (url) window.location = url; }
+        }
+      });
+    } catch(e) { /* ignore */ }
+
+    // Robust helper: create a temporary visible file input, open chooser, then copy selected files
+    // into the provided real input element (if possible). Calls optional callback with the files.
+    window._openFileChooserAndCopy = function(realInputEl, cb) {
+      try {
+        // create a temporary input (not display:none) so most browsers will open chooser
+        var temp = document.createElement('input');
+        temp.type = 'file';
+        // Allow multiple selection if the real input supports it
+        try { if (realInputEl && realInputEl.multiple) temp.multiple = true; } catch(e){}
+        // position offscreen but visible to layout (not display:none)
+        temp.style.position = 'absolute';
+        temp.style.left = '-9999px';
+        temp.style.top = '0px';
+        temp.style.opacity = '0';
+        temp.style.width = '1px';
+        temp.style.height = '1px';
+        document.body.appendChild(temp);
+
+        var cleanup = function(){ try { document.body.removeChild(temp); } catch(e){} };
+
+        temp.addEventListener('change', function _tempChange(ev){
+          try {
+            var files = temp.files;
+            if (files && files.length) {
+              var assigned = false;
+              // Try DataTransfer assignment to real input
+              if (realInputEl) {
+                try {
+                  var dt = new DataTransfer();
+                  for (var i=0;i<files.length;i++) dt.items.add(files[i]);
+                  realInputEl.files = dt.files;
+                  assigned = true;
+                } catch(eAssign) {
+                  assigned = false;
+                }
+              }
+
+              // If assignment failed, move the temp input into the real input's form so the file will be submitted
+              if (!assigned && realInputEl) {
+                try {
+                  // find the closest form of the real input (modal form)
+                  var form = realInputEl.form || (function(el){ var p=el; while(p && p.nodeName.toLowerCase()!=='form') p=p.parentNode; return p; })(realInputEl);
+                  if (form) {
+                    // ensure temp has the same name as the real input so server receives it
+                    try { temp.name = realInputEl.name || temp.name; } catch(_){}
+                    // disable the real input so server only gets the temp file
+                    try { realInputEl.disabled = true; } catch(_){}
+                    // give the temp a related id and store real id for cleanup
+                    try { temp.id = (realInputEl.id || realInputEl.name || 'followup_replacement') + '_tmp'; } catch(_){}
+                    window._tempReplacementRealInputId = realInputEl.id || realInputEl.name || null;
+                    // move temp into the form so it will be uploaded
+                    form.appendChild(temp);
+                    // store reference to temp so cleanup can find it
+                    window._tempReplacementInput = temp;
+                    // wire a change handler to update filename label in modal if present
+                    try {
+                      temp.addEventListener('change', function(){
+                        try {
+                          var labelEl = document.querySelector('#followupEditModal #followup_replacement_filename') || document.getElementById('followup_replacement_filename');
+                          var label = temp.files && temp.files.length ? temp.files[0].name : '';
+                          if (labelEl) labelEl.textContent = label || '{% trans "No files selected." %}';
+                        } catch(e){ }
+                      });
+                    } catch(e){}
+                    assigned = true; // consider as handled
+                  } else {
+                    // fallback: keep files in global store
+                    window._lastPickedFiles = files;
+                  }
+                } catch(eMove) {
+                  window._lastPickedFiles = files;
+                }
+              }
+
+              // Trigger change on the real input so UI updates if assignment succeeded
+              try { if (realInputEl) realInputEl.dispatchEvent(new Event('change', {bubbles:true})); } catch(e) { try { $(realInputEl).trigger('change'); } catch(_){} }
+            }
+
+            if (cb) try { cb(files); } catch(_){ }
+          } finally {
+            // If we moved the temp into the form, don't remove it here; wait for modal hide or form submit to cleanup.
+            if (!window._tempReplacementInput || window._tempReplacementInput !== temp) {
+              setTimeout(cleanup, 200);
+            }
+          }
+        }, {once:true});
+
+        // opening the chooser
+        try { temp.click(); } catch(eClick) {
+          // worst-case use the old fallback
+          try { if (realInputEl) realInputEl.click(); } catch(e2) { try { $(realInputEl).trigger('click'); } catch(_){} }
+        }
+      } catch(e) {
+        // last fallback: try clicking the real input directly
+        try { if (realInputEl) realInputEl.click(); } catch(e2) { try { $(realInputEl).trigger('click'); } catch(_){} }
+      }
+    };
+
+    // Ensure the followup replacement wrapper exists inside the modal. Safe to call multiple times.
+    window._ensureReplacementWrapper = function(){
+      try {
+        var $m = $('#followupEditModal');
+        if ($m.length === 0) return false;
+        if ($m.find('#followup_replace_file_wrap').length) return true;
+  var $replaceWrap = $('<div>', {id: 'followup_replace_file_wrap', style: 'display:none;'});
+  var $label = $('<label>', {class: 'btn btn-primary btn-sm btn-file followup-replacement-trigger', id: 'followup_replacement_label'});
+  $label.append('{% trans "Choose replacement file" %} ');
+  $label.append($('<input>', {type: 'file', name: 'replacement_attachment', id: 'followup_replacement_file', style: 'display:none;'}));
+        $replaceWrap.append($label);
+        $replaceWrap.append($('<span>', {class: 'ml-2', id: 'followup_replacement_filename'}).text('{% trans "No files selected." %}'));
+        $replaceWrap.append($('<input>', {type: 'hidden', name: 'replace_attachment_id', id: 'followup_replace_attachment_id', value: ''}));
+  var $formTargetEnsure = $m.find('form').first();
+  if ($formTargetEnsure.length) { $formTargetEnsure.append($replaceWrap); } else { $m.find('.modal-body').append($replaceWrap); }
+        return true;
+      } catch(e) { console.warn('ensureReplacementWrapper error', e); return false; }
+    };
+
     // Fetch and display followup edit form in a modal via AJAX when clicking the edit button.
     // Only trigger for the edit action (icons with fa-edit). Delete links (fa-trash) will behave normally.
     $(document).on('click', 'a.followup-edit', function(e){
@@ -765,6 +876,22 @@ $( function() {
               if ($modalEl.length) {
                 // Append the modal element itself (not the whole HTML string)
                 $('body').append($modalEl);
+                // Ensure the modal contains the replacement file wrapper so file chooser can be triggered
+                try {
+                  var $m = $('#followupEditModal');
+                    if ($m.length && $m.find('#followup_replace_file_wrap').length === 0) {
+                    var $replaceWrap = $('<div>', {id: 'followup_replace_file_wrap', style: 'display:none;'});
+                    var $label = $('<label>', {class: 'btn btn-primary btn-sm btn-file'});
+                    $label.append('{% trans "Choose replacement file" %} ');
+                    $label.append($('<input>', {type: 'file', name: 'replacement_attachment', id: 'followup_replacement_file', style: 'display:none;'}));
+                    $replaceWrap.append($label);
+                    $replaceWrap.append($('<span>', {class: 'ml-2', id: 'followup_replacement_filename'}).text('{% trans "No files selected." %}'));
+                    $replaceWrap.append($('<input>', {type: 'hidden', name: 'replace_attachment_id', id: 'followup_replace_attachment_id', value: ''}));
+                    // Prefer appending into the modal's form so the input is inside the form and will be uploaded
+                    var $formTarget = $m.find('form').first();
+                    if ($formTarget.length) { $formTarget.append($replaceWrap); } else { $m.find('.modal-body').append($replaceWrap); }
+                  }
+                } catch(e) { console.warn('failed to ensure replacement wrapper on appended modal', e); }
                 // Execute any inline scripts that live inside the modal (after it's in the DOM)
                 $modalEl.find('script').each(function(){
                   try { $.globalEval($(this).text()); } catch(e) { console.warn('eval modal script failed', e); }
@@ -784,6 +911,26 @@ $( function() {
             // Show the modal (now appended)
             $('#followupEditModal').modal('show');
 
+            // Ensure replacement wrapper is present (covers raw-html and other branches)
+            try {
+              (function ensureReplacementWrapper(){
+                try {
+                  var $mchk = $('#followupEditModal');
+                  if ($mchk.length && $mchk.find('#followup_replace_file_wrap').length === 0) {
+                    var $replaceWrap = $('<div>', {id: 'followup_replace_file_wrap', style: 'display:none;'});
+                    var $label = $('<label>', {class: 'btn btn-primary btn-sm btn-file'});
+                    $label.append('{% trans "Choose replacement file" %} ');
+                    $label.append($('<input>', {type: 'file', name: 'replacement_attachment', id: 'followup_replacement_file', style: 'display:none;'}));
+                    $replaceWrap.append($label);
+                    $replaceWrap.append($('<span>', {class: 'ml-2', id: 'followup_replacement_filename'}).text('{% trans "No files selected." %}'));
+                    $replaceWrap.append($('<input>', {type: 'hidden', name: 'replace_attachment_id', id: 'followup_replace_attachment_id', value: ''}));
+                    var $formTargetChk = $mchk.find('form').first();
+                    if ($formTargetChk.length) { $formTargetChk.append($replaceWrap); } else { $mchk.find('.modal-body').append($replaceWrap); }
+                  }
+                } catch(e) { console.warn('ensureReplacementWrapper inner failed', e); }
+              })();
+            } catch(e) { console.warn('ensureReplacementWrapper failed', e); }
+
             // Fetch attachments fragment via AJAX and inject it (works even if inline scripts didn't run)
             try {
               var followupId = $('#followupEditModal').data('followup-id');
@@ -801,7 +948,11 @@ $( function() {
                           var $wrap = $('<div class="mt-3 followup-attachments-fragment" />');
                           $wrap.append('<label class="font-weight-600">Attachments (this follow-up)</label>');
                           var $list = $('<div class="existing-attachments mb-2" />');
+                          // Dedupe attachments already present in modal
                           jresp.attachments.forEach(function(att){
+                            try {
+                              if ($('#followupEditModal').find('[data-attachment-id="'+att.id+'"]').length) return;
+                            } catch(e) {}
                             var $row = $("<div class=\"d-flex align-items-center mb-1 justify-content-between\"></div>");
                             var left = $('<div />');
                             left.append($('<a/>',{href: att.url, text: att.filename}));
@@ -816,18 +967,39 @@ $( function() {
                             $list.append($row);
                           });
                           $wrap.append($list);
-                          $('#followupEditModal .modal-body').append($wrap);
+                          // Ensure the modal contains the replacement file wrapper (hidden input + filename + hidden id)
+                          try {
+                            if ($('#followupEditModal #followup_replace_file_wrap').length === 0) {
+                              var $replaceWrap = $('<div>', {id: 'followup_replace_file_wrap', style: 'display:none;'});
+                              var $label = $('<label>', {class: 'btn btn-primary btn-sm btn-file'});
+                              // Add translation text and the hidden file input
+                              $label.append('{% trans "Choose replacement file" %} ');
+                              $label.append($('<input>', {type: 'file', name: 'replacement_attachment', id: 'followup_replacement_file', style: 'display:none;'}));
+                              $replaceWrap.append($label);
+                              $replaceWrap.append($('<span>', {class: 'ml-2', id: 'followup_replacement_filename'}).text('{% trans "No files selected." %}'));
+                              $replaceWrap.append($('<input>', {type: 'hidden', name: 'replace_attachment_id', id: 'followup_replace_attachment_id', value: ''}));
+                              $wrap.append($replaceWrap);
+                            }
+                          } catch(e) { console.warn('failed appending replacement file wrapper', e); }
+                          var $formTargetWrap = $('#followupEditModal').find('form').first();
+                          if ($formTargetWrap.length) { $formTargetWrap.append($wrap); } else { $('#followupEditModal .modal-body').append($wrap); }
                           console.log('Built and appended attachments DOM via JSON endpoint.');
                         } else {
                           console.log('No attachments via JSON endpoint');
                         }
                       }).fail(function(){ console.warn('attachments json fetch failed'); });
                     }
-                    // Rebind handlers to the newly injected content
+                    // Rebind handlers to the newly injected content (click replacement label first)
                     $('#followupEditModal').find('.edit-attachment-btn').off('click').on('click', function(){
                       var id = $(this).data('attachment-id');
-                      $('#followupEditModal').find('#followup_replace_attachment_id').val(id);
-                      $('#followupEditModal').find('#followup_replace_file_wrap').show();
+                      var $m = $('#followupEditModal');
+                      $m.find('#followup_replace_attachment_id').val(id);
+                      $m.find('#followup_replace_file_wrap').show();
+                      try { if (window._ensureReplacementWrapper) window._ensureReplacementWrapper(); } catch(e) {}
+                      var lbl = $m.find('#followup_replacement_label');
+                      if (lbl && lbl.length) { try { lbl.get(0).click(); return; } catch(e) {} }
+                      var inputEl = $m.find('#followup_replacement_file').get(0);
+                      if (inputEl) try { inputEl.click(); } catch(e) { $m.find('#followup_replacement_file').trigger('click'); }
                     });
                     $('#followupEditModal').find('.delete-attachment-btn').off('click').on('click', function(){
                       var url = $(this).data('delete-url');
@@ -868,8 +1040,9 @@ $( function() {
                     // If still no attachments present, try appending attachments_html if provided
                     if (($existing.length === 0 || $existing.children().length === 0) && resp.attachments_html) {
                       try {
-                        $('#followupEditModal .modal-body').append(resp.attachments_html);
-                        console.log('Appended attachments_html after modal_form_html replace.');
+                        var $formTargetAfter = $('#followupEditModal').find('form').first();
+                        if ($formTargetAfter.length) { $formTargetAfter.append(resp.attachments_html); } else { $('#followupEditModal .modal-body').append(resp.attachments_html); }
+                        console.log('Appended attachments_html after modal_form_html replace (prefer form).');
                         $existing = $('#followupEditModal .existing-attachments');
                         console.log('after append, existing-attachments elements:', $existing.length, 'children:', $existing.children().length);
                       } catch (e) { console.warn('failed appending attachments_html after modal_form_html', e); }
@@ -877,8 +1050,9 @@ $( function() {
                   } catch(e) { console.warn('failed replacing modal body with modal_form_html', e); }
                 } else if (resp.attachments_html) {
                   try {
-                    $('#followupEditModal .modal-body').append(resp.attachments_html);
-                    console.log('Injected attachments_html into modal body.');
+                    var $formTargetInject = $('#followupEditModal').find('form').first();
+                    if ($formTargetInject.length) { $formTargetInject.append(resp.attachments_html); } else { $('#followupEditModal .modal-body').append(resp.attachments_html); }
+                    console.log('Injected attachments_html into modal (prefer form).');
                     // re-query for existing-attachments
                     $existing = $('#followupEditModal .existing-attachments');
                     console.log('after inject, existing-attachments elements:', $existing.length, 'children:', $existing.children().length);
@@ -894,7 +1068,70 @@ $( function() {
 
             // When modal is hidden, remove it from DOM so repeated opens are clean
             $('#followupEditModal').on('hidden.bs.modal', function(){
+              // cleanup any temp replacement input that was moved into the form
+              try {
+                if (window._tempReplacementInput) { try { window._tempReplacementInput.parentNode.removeChild(window._tempReplacementInput); } catch(e){}; window._tempReplacementInput = null; }
+              } catch(e){}
               $(this).remove();
+            });
+
+            // When modal is shown, ensure replacement wrapper exists (no global fallbacks)
+            $('#followupEditModal').on('shown.bs.modal', function(){
+              try { if (window._ensureReplacementWrapper) window._ensureReplacementWrapper(); } catch(e){}
+            });
+
+            // Cleanup temp replacement input on form submit as well (if present)
+            $(document).on('submit', '#followupEditModal form', function(e){
+              e.preventDefault();
+              try {
+                var formEl = this;
+                var $formEl = $(formEl);
+                var fd = new FormData(formEl);
+
+                // If FormData lacks replacement_attachment files, try to supply them from temp or lastPickedFiles
+                try {
+                  var hasReplacement = false;
+                  try { hasReplacement = fd.get('replacement_attachment') !== null; } catch(_) { hasReplacement = false; }
+                  if (!hasReplacement) {
+                    if (window._tempReplacementInput && window._tempReplacementInput.files && window._tempReplacementInput.files.length) {
+                      for (var i=0;i<window._tempReplacementInput.files.length;i++) {
+                        fd.append('replacement_attachment', window._tempReplacementInput.files[i]);
+                      }
+                    } else if (window._lastPickedFiles && window._lastPickedFiles.length) {
+                      for (var j=0;j<window._lastPickedFiles.length;j++) fd.append('replacement_attachment', window._lastPickedFiles[j]);
+                    }
+                  }
+                } catch(eFiles) { console.warn('followupEdit append files to FormData failed', eFiles); }
+
+                // Ensure replace_attachment_id is present
+                try {
+                  if (!fd.get('replace_attachment_id')) {
+                    var ridFallback = $('#followupEditModal').find('#followup_replace_attachment_id').val() || $('#followup_replace_attachment_id').val();
+                    if (ridFallback) fd.append('replace_attachment_id', ridFallback);
+                  }
+                } catch(eRid) { console.warn('followupEdit ensure rid into FormData failed', eRid); }
+
+                // Include CSRF token header if available inside the form
+                var actionUrl = formEl.getAttribute('action') || window.location.href;
+                // Send via AJAX so we can guarantee files go through
+                $.ajax({
+                  url: actionUrl,
+                  method: 'POST',
+                  data: fd,
+                  processData: false,
+                  contentType: false,
+                  headers: {'X-Requested-With': 'XMLHttpRequest'},
+                  success: function(resp) {
+                    // On success, reload the page to reflect the update
+                    try { window.location.reload(true); } catch(e) { window.location.reload(); }
+                  },
+                  error: function(xhr, status, err) {
+                    console.error('followupEdit AJAX submit failed', status, err);
+                    alert('Failed to submit followup edit. See console for details.');
+                  }
+                });
+              } catch(eAll) { console.warn('followupEdit AJAX submit handler error', eAll); }
+              return false;
             });
 
       // Bind delegated handlers for attachment buttons inside the modal (in case JS from include isn't executed)
@@ -904,9 +1141,16 @@ $( function() {
         var id = $(this).data('attachment-id');
         $m.find('#followup_replace_attachment_id').val(id);
         $m.find('#followup_replace_file_wrap').show();
-        // Open the native file chooser so user can immediately pick replacement
+        try { if (window._ensureReplacementWrapper) window._ensureReplacementWrapper(); } catch(e) {}
+        var lbl = $m.find('#followup_replacement_label');
+        if (lbl && lbl.length) {
+          try { lbl.get(0).click(); return; } catch(e) {}
+        }
         var $file = $m.find('#followup_replacement_file');
-        if ($file.length) { $file.trigger('click'); }
+        if ($file.length) {
+          var inputEl = $file.get(0);
+          try { inputEl.click(); } catch(e) { $file.trigger('click'); }
+        }
       });
       // When a replacement file is selected inside the modal, update the filename label
       $(document).off('change', '#followupEditModal #followup_replacement_file').on('change', '#followupEditModal #followup_replacement_file', function(){
@@ -914,6 +1158,20 @@ $( function() {
         var label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
         if (!label) label = 'No files selected.';
         $('#followupEditModal').find('#followup_replacement_filename').text(label);
+      });
+      // Test chooser button (delegated) - useful for debugging in various browsers
+      $(document).off('click', '#followupEditModal #test_followup_chooser').on('click', '#followupEditModal #test_followup_chooser', function(e){
+        e.preventDefault();
+        var $m = $('#followupEditModal');
+        var inputEl = $m.find('#followup_replacement_file').get(0);
+        if (!inputEl) return console.error('No replacement input found in modal');
+        if (window._openFileChooserAndCopy) {
+          window._openFileChooserAndCopy(inputEl, function(files){ console.log('test chooser callback files:', files ? files.length : 0); });
+        } else if (window._openHiddenFileInput) {
+          window._openHiddenFileInput(inputEl);
+        } else {
+          try { inputEl.click(); } catch(e) { $(inputEl).trigger('click'); }
+        }
       });
       $(document).off('click', '#followupEditModal .delete-attachment-btn').on('click', '#followupEditModal .delete-attachment-btn', function(e){
         e.preventDefault();
