@@ -12,7 +12,8 @@
   <a class="navbar-brand" href="{% url 'helpdesk:dashboard' %}" style="color: white; text-decoration: none; font-size: 16px; font-weight: 700; font-family: 'Montserrat', sans-serif; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; pointer-events: none; margin-left: 5px;">{% trans 'PrimeDesk Technologies' %}</a>
   </div>
   <div class="ml-auto d-flex align-items-center">
-  <!-- Navbar Search (always rendered) -->
+  {% if user.is_authenticated %}
+  <!-- Navbar Search -->
   <form class="d-none d-md-inline-block form-inline ml-2 my-2 my-md-0" id="searchform" method="get" action="{% url 'helpdesk:list' %}" role="search" aria-label="{% trans 'Search tickets' %}">
         <label for="search_query" class="sr-only">{% trans "Search tickets" %}</label>
         <div class="input-group search-pill align-items-center">
@@ -37,6 +38,7 @@
         </div>
         {% csrf_token %}
       </form>
+  {% endif %}
 
       
   <!-- Navbar -->
