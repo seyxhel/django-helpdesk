@@ -27,7 +27,6 @@
 		border-radius: var(--card-radius);
 		border: 1px solid var(--card-border);
 		background: var(--bg-gradient);
-		box-shadow: 0 8px 30px rgba(15,23,42,0.04);
 		overflow: hidden;
 		font-family: var(--font-base);    /* make Roboto the default inside the card */
 		color: #0f2b44;
@@ -46,10 +45,8 @@
 	/* Table container: subtle inset panel with rounded corners */
 	.card.mb-3 .table-responsive {
 		background: #ffffff;
-		border: 1px solid rgba(15,43,68,0.03);
 		border-radius: 10px;
 		padding: 12px;            /* a little more breathing room */
-		box-shadow: 0 2px 10px rgba(15,23,42,0.03);
 		overflow: auto;
 		font-family: var(--font-base); /* ensure consistent font inside the table panel */
 	}
@@ -80,7 +77,6 @@
 	.card.mb-3 h4 {
 		font-family: var(--font-heading);
 		font-size: 15px;
-		margin-bottom: 8px;
 	}
 
 	/* Table headers */
@@ -196,7 +192,6 @@
 		background: var(--accent);
 		border-color: var(--accent);
 		color: #fff;
-		box-shadow: 0 6px 18px rgba(11,87,208,0.06);
 	}
 	.card.mb-3 .btn-warning {
 		background: #f6c84c;
@@ -854,11 +849,6 @@
 										{% endif %}
 								</tbody>
 						</table>
-						<a href='#FurtherEditOptions'>
-							<button type="button" class="btn btn-sm btn-warning float-right" onclick="$('#FurtherEditOptions').fadeIn()">
-								<i class="fas fa-pencil-alt"></i>&nbsp;{% trans "Edit details" %}
-							</button>
-						</a>
 				</div>
 				<!-- /.table-responsive -->
 		</div>

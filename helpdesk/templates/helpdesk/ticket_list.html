@@ -220,21 +220,6 @@
                     <a href="{% url 'helpdesk:list' %}" class="btn btn-outline-secondary btn-sm" title="{% trans 'Reset filters' %}">{% trans "Reset" %}</a>
                 </div>
 
-                <div class="add-filter">
-                    <label class="sr-only" for="filterBuilderSelect">{% trans "Add filter" %}</label>
-                    {# use IDs so the helper can reveal the right advanced control #}
-                    <select class="custom-select custom-select-sm" name="select" id="filterBuilderSelect" onChange="onFilterChange(this.value)">
-                        <option value="">{% trans "Add filter" %}</option>
-                        <option value="filterBoxSort" {% if query_params.sorting %} disabled{% endif %}>{% trans "Sorting" %}</option>
-                        <option value="filterBoxPriority" {% if query_params.filtering.priority__in %} disabled{% endif %}>{% trans "Priority" %}</option>
-                        <option value="filterBoxOwner" {% if query_params.filtering.assigned_to__id__in or query_params.filtering_null.assigned_to__id__isnull %} disabled{% endif %}>{% trans "Owner" %}</option>
-                        <option value="filterBoxQueue" {% if query_params.filtering.queue__id__in or query_params.filtering_null.queue__id__isnull %} disabled{% endif %}>{% trans "Queue" %}</option>
-                        <option value="filterBoxStatus" {% if query_params.filtering.status__in %} disabled{% endif %}>{% trans "Status" %}</option>
-                        <option value="filterBoxKeywords" {% if query_params.search_string %} disabled{% endif %}>{% trans "Keywords" %}</option>
-                        <option value="filterBoxDates" {% if query_params.filtering.created__gte or query_params.filtering.created__lte %} disabled{% endif %}>{% trans "Date Range" %}</option>
-                        <option value="filterBoxKBItems" {% if query_params.filtering.kbitem__in or query_params.filtering_null.kbitem__isnull %} disabled{% endif %}>{% trans "KB items" %}</option>
-                    </select>
-                </div>
             </form>
 
             <script>
@@ -255,41 +240,6 @@
                 document.getElementById('filterBuilderSelect').value='';
               }
             </script>
-
-            {% comment %} include expanded filter boxes if user adds advanced filters (keeps existing includes) {% endcomment %}
-            <div class="mt-3">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="filter-grid row">
-                            {% comment %} keep advanced filter cards hidden/shown by JS (existing includes) {% endcomment %}
-                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.sorting %} filterBoxShow{% endif %}" id="filterBoxSort">
-                                {% include 'helpdesk/filters/sorting.html' %}
-                            </div>
-                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.priority__in %} filterBoxShow{% endif %}" id="filterBoxPriority">
-                                {% include 'helpdesk/filters/priority.html' %}
-                            </div>
-                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.assigned_to__id__in or query_params.filtering_null.assigned_to__id__isnull %} filterBoxShow{% endif %}" id="filterBoxOwner">
-                                {% include 'helpdesk/filters/owner.html' %}
-                            </div>
-                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.queue__id__in or query_params.filtering_null.queue__id__isnull %} filterBoxShow{% endif %}" id="filterBoxQueue">
-                                {% include 'helpdesk/filters/queue.html' %}
-                            </div>
-                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.status__in %} filterBoxShow{% endif %}" id="filterBoxStatus">
-                                {% include 'helpdesk/filters/status.html' %}
-                            </div>
-                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.created__gte or query_params.filtering.created__lte %} filterBoxShow{% endif %}" id="filterBoxDates">
-                                {% include 'helpdesk/filters/date.html' %}
-                            </div>
-                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.search_string %} filterBoxShow{% endif %}" id="filterBoxKeywords">
-                                {% include 'helpdesk/filters/keywords.html' %}
-                            </div>
-                            <div class="col-md-6 mb-3 filter-card filterBox{% if query_params.filtering.kbitem__in or query_params.filtering_null.kbitem__isnull %} filterBoxShow{% endif %}" id="filterBoxKBItems">
-                                {% include 'helpdesk/filters/kbitems.html' %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
     <!-- end top card -->

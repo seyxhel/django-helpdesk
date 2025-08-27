@@ -1,19 +1,128 @@
 {% load i18n humanize %}
 
-<!-- Professional tickets table with clear filtering UI -->
+<style>
+/* -------- General card / compact styles (existing) -------- */
+.tickets-card-compact {
+  margin: 8px auto 12px;           /* less top/bottom and side margin */
+  max-width: 1100px;               /* keep a comfortable max width */
+}
+.tickets-card-compact .card-body {
+  padding: 12px 14px;              /* tighter padding inside card */
+}
+.tickets-card-compact .tickets-filters {
+  margin-bottom: 8px;
+}
+.tickets-card-compact .table-responsive-professional {
+  margin: 0;
+}
+.tickets-card-compact .professional-table th,
+.tickets-card-compact .professional-table td {
+  padding: .45rem .6rem;           /* reduce cell padding for denser table */
+  vertical-align: middle;
+}
+.tickets-card-compact .card-header { padding: .75rem 14px; }
+.tickets-card-compact .card-footer { padding: .5rem 14px; font-size: .85rem; }
+
+/* Reduce vertical gap between header text and the table */
+.card-header {
+  padding-bottom: 6px; /* tighten space under header */
+}
+.card-header .small.text-muted {
+  margin-bottom: 0;
+  line-height: 1.1;
+  font-size: .85rem;
+}
+.card-body {
+  padding-top: 8px; /* reduce space above card body */
+}
+.tickets-filters {
+  margin: 0 0 6px 0 !important; /* remove large bottom margin from empty/compact filters */
+}
+
+/* -------- Professional table container & look -------- */
+.table-responsive-professional {
+  margin-top: 0;
+  border: 1px solid rgba(15,23,42,0.06);   /* subtle outer border */
+  border-radius: 10px;                      /* rounded container */
+  overflow: hidden;
+  background: #fff;
+}
+
+/* Base table behavior */
+.professional-table {
+  width: 100%;
+  margin-bottom: 0;
+  border-collapse: collapse; /* keep cells tight inside wrapper */
+  background: transparent;
+  font-size: 0.95rem;
+}
+
+/* Header style */
+.professional-table thead th {
+  background: linear-gradient(180deg, #f8f9fb 0%, #f4f6f8 100%);
+  color: #0f1724;
+  font-weight: 600;
+  padding: 0.65rem 0.9rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(15,23,42,0.06);
+  vertical-align: middle;
+}
+
+/* Table cells */
+.professional-table tbody td {
+  padding: 0.55rem 0.9rem;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(15,23,42,0.04);
+  color: #111827;
+}
+
+/* Remove final row divider for a cleaner bottom edge */
+.professional-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Row hover and stripe */
+.professional-table tbody tr:hover {
+  background: rgba(11,94,215,0.03);
+}
+.professional-table.table-striped tbody tr:nth-of-type(odd) {
+  background: rgba(0,0,0,0.02);
+}
+
+/* Ticket title link */
+.tickettitle a { color: #0b5ed7; text-decoration: none; }
+.tickettitle a:hover { text-decoration: underline; }
+
+/* Compact table adjustments (used when compact_layout=True) */
+.tickets-card-compact .professional-table thead th {
+  padding: .45rem .6rem;
+}
+.tickets-card-compact .professional-table tbody td {
+  padding: .45rem .6rem;
+}
+
+/* Small screens */
+@media (max-width: 576px) {
+  .professional-table thead th,
+  .professional-table tbody td { padding: .5rem .6rem; }
+}
+</style>
+
 {# allow callers to request a rounded card for staff assigned tickets #}
-  {# if this is the staff 'Assigned Tickets' card, apply same border radius as stats cards #}
-  {% if assigned_card %}
-    <style>
-      .card.card-assigned-rounded { border-radius: 20px !important; }
-      /* ensure inner header/footer match rounded corners */
-      .card-assigned-rounded .card-header { border-top-left-radius: 20px; border-top-right-radius: 20px; }
-      .card-assigned-rounded .card-footer { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
-    </style>
+{# add an optional compact layout by passing compact_layout=True #}
+{% if assigned_card %}
+  {% if compact_layout %}
+    <div class="card mb-3 card-assigned-rounded tickets-card-compact">
+  {% else %}
     <div class="card mb-3 card-assigned-rounded">
+  {% endif %}
+{% else %}
+  {% if compact_layout %}
+    <div class="card mb-3 tickets-card-compact">
   {% else %}
     <div class="card mb-3">
   {% endif %}
+{% endif %}
   <div class="card-header d-flex justify-content-between align-items-center">
     <div>
       <i class="fas fa-table"></i>
@@ -24,87 +133,45 @@
     </div>
   </div>
  
-   <div class="card-body">
+  <div class="card-body">
     <!-- Consolidated filter bar: appears before the table for clarity -->
     <div class="tickets-filters mb-3">
-      <form class="d-flex flex-wrap align-items-center gap-2" method="get" aria-label="{% trans 'Ticket filters' %}">
-        <div class="form-group mb-0">
-          <label class="sr-only" for="q">{% trans "Search" %}</label>
-          <input id="q" name="q" type="search" class="form-control form-control-sm" placeholder="{% trans 'Search by ID, title or ticket ID' %}" value="{{ request.GET.q|default:'' }}">
-        </div>
-
-        <div class="form-group mb-0">
-          <label class="sr-only" for="status">{% trans "Status" %}</label>
-          <select id="status" name="status" class="form-control form-control-sm">
-            <option value="">{% trans "All statuses" %}</option>
-            <option value="open" {% if request.GET.status == 'open' %}selected{% endif %}>{% trans "Open" %}</option>
-            <option value="closed" {% if request.GET.status == 'closed' %}selected{% endif %}>{% trans "Closed" %}</option>
-          </select>
-        </div>
-
-        <div class="form-group mb-0">
-          <label class="sr-only" for="priority">{% trans "Priority" %}</label>
-          <select id="priority" name="priority" class="form-control form-control-sm">
-            <option value="">{% trans "All priorities" %}</option>
-            <option value="low" {% if request.GET.priority == 'low' %}selected{% endif %}>{% trans "Low" %}</option>
-            <option value="medium" {% if request.GET.priority == 'medium' %}selected{% endif %}>{% trans "Medium" %}</option>
-            <option value="high" {% if request.GET.priority == 'high' %}selected{% endif %}>{% trans "High" %}</option>
-          </select>
-        </div>
-
-        <div class="form-group mb-0">
-          <label class="sr-only" for="queue">{% trans "Queue" %}</label>
-          <select id="queue" name="queue" class="form-control form-control-sm">
-            <option value="">{% trans "All queues" %}</option>
-            {% if queues %}
-              {% for q in queues %}
-                <option value="{{ q.slug }}" {% if request.GET.queue == q.slug %}selected{% endif %}>{{ q.title }}</option>
-              {% endfor %}
-            {% endif %}
-          </select>
-        </div>
-
-        <div class="form-group mb-0 d-flex gap-2">
-          <button type="submit" class="btn btn-primary btn-sm" title="{% trans 'Apply filters' %}">{% trans "Apply" %}</button>
-          <a href="?" class="btn btn-link btn-sm" title="{% trans 'Reset filters' %}">{% trans "Reset" %}</a>
-        </div>
-      </form>
     </div>
  
-     <div class="table-responsive-professional">
-       <table class="professional-table table-sm table-striped" id="dataTable" width="100%" cellspacing="0" role="table" aria-label="{% trans 'Tickets table' %}">
-         <thead>
-           <tr>
-             <th>{% trans "Ticket" %}</th>
-             <th>{% trans "Priority" %}</th>
-             <th>{% trans "Queue" %}</th>
-             <th>{% trans "Status" %}</th>
-             <th>{% trans "Last Update" %}</th>
-           </tr>
-         </thead>
-         <tbody>
-           {% for ticket in ticket_list %}
-           <tr class="{{ ticket.get_priority_css_class }}">
-             <td class="tickettitle">
-               <a href="{{ ticket.get_absolute_url }}">{{ ticket.id }}. {{ ticket.title }}</a>
-             </td>
-             <td>{{ ticket.priority }}</td>
-             <td>{{ ticket.queue }}</td>
-             <td>{{ ticket.get_status }}</td>
-             <td>
-               <span title="{{ ticket.modified|date:'DATETIME_FORMAT' }}">{{ ticket.modified|naturaltime }}</span>
-             </td>
-           </tr>
-           {% empty %}
-           <tr>
-             <td colspan="5" class="text-muted small">
-               {% if ticket_list_empty_message %}{{ ticket_list_empty_message }}{% else %}{% trans "No tickets found for the selected filters." %}{% endif %}
-             </td>
-           </tr>
-           {% endfor %}
-         </tbody>
-       </table>
-     </div>
+    <div class="table-responsive-professional">
+      <table class="professional-table table-sm table-striped" id="dataTable" width="100%" cellspacing="0" role="table" aria-label="{% trans 'Tickets table' %}">
+        <thead>
+          <tr>
+            <th>{% trans "Ticket" %}</th>
+            <th>{% trans "Priority" %}</th>
+            <th>{% trans "Queue" %}</th>
+            <th>{% trans "Status" %}</th>
+            <th>{% trans "Last Update" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ticket in ticket_list %}
+          <tr class="{{ ticket.get_priority_css_class }}">
+            <td class="tickettitle">
+              <a href="{{ ticket.get_absolute_url }}">{{ ticket.id }}. {{ ticket.title }}</a>
+            </td>
+            <td>{{ ticket.priority }}</td>
+            <td>{{ ticket.queue }}</td>
+            <td>{{ ticket.get_status }}</td>
+            <td>
+              <span title="{{ ticket.modified|date:'DATETIME_FORMAT' }}">{{ ticket.modified|naturaltime }}</span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-muted small">
+              {% if ticket_list_empty_message %}{{ ticket_list_empty_message }}{% else %}{% trans "No tickets found for the selected filters." %}{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
     <!-- /.table-responsive -->
     {% if ticket_list.has_other_pages %}

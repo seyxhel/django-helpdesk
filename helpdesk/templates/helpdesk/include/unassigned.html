@@ -1,67 +1,53 @@
 {% load i18n humanize %}
 
 <style>
-  /* Large rounded card corners for this partial */
+  /* Keep large rounded card corners for this partial */
   .card.mb-3 {
-    border-radius: 25px !important;
+    border-radius: 16px !important;
     overflow: hidden;
   }
-  /* Ensure header/footer respect rounding */
-  .card.mb-3 .card-header { border-top-left-radius: 25px; border-top-right-radius: 25px; }
-  .card.mb-3 .card-footer { border-bottom-left-radius: 25px; border-bottom-right-radius: 25px; }
-  /* Prevent inner tables from overflowing the rounded corners */
-  .card.mb-3 .table-responsive { border-radius: inherit; overflow: hidden; }
+  .card.mb-3 .card-header { border-top-left-radius: 16px; border-top-right-radius: 16px; }
+  .card.mb-3 .card-footer { border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }
 
-  /* Themed table styling to match the dashboard (professional, readable) */
-  .card.mb-3 .table {
-    border: 1px solid #e6eefc;
-    border-collapse: separate;
-    border-spacing: 0;
+  /* Reuse the professional table wrapper used elsewhere */
+  .table-responsive-professional {
+    margin-top: 0;
+    border: 1px solid rgba(15,23,42,0.06);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  /* Professional table styles (consistent with tickets include) */
+  .professional-table {
     width: 100%;
+    margin-bottom: 0;
+    border-collapse: collapse;
     background: transparent;
+    font-size: 0.95rem;
   }
-  /* Header */
-  .card.mb-3 .table thead th {
-    background: #f4f8ff;
-    color: #102a44;
+  .professional-table thead th {
+    background: linear-gradient(180deg, #f8f9fb 0%, #f4f6f8 100%);
+    color: #0f1724;
     font-weight: 600;
-    /* vertical padding set to 3px, horizontal padding preserved */
-    padding: 7px 14px;
-    border-bottom: 1px solid #e6eefc;
-  }
-  /* Round the top corners of the table inside the card */
-  .card.mb-3 .table thead th:first-child { border-top-left-radius: 12px; }
-  .card.mb-3 .table thead th:last-child  { border-top-right-radius: 12px; }
-
-  /* Body cells */
-  /* Body cells — reduced vertical padding (top/bottom = 2px), horizontal padding unchanged */
-  .card.mb-3 .table tbody td {
-    padding: 5px 14px;
-    border-top: 1px solid #f1f5fb;
-    background: #ffffff;
-    color: #22282a;
+    padding: 0.65rem 0.9rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(15,23,42,0.06);
     vertical-align: middle;
   }
-  /* Subtle striped rows */
-  .card.mb-3 .table.table-striped tbody tr:nth-of-type(odd) td {
-    background: #fbfdff;
+  .professional-table tbody td {
+    padding: 0.55rem 0.9rem;
+    vertical-align: middle;
+    border-bottom: 1px solid rgba(15,23,42,0.04);
+    color: #111827;
   }
-  /* Hover state */
-  .card.mb-3 .table tbody tr:hover td {
-    background: #f1f6ff;
-  }
+  .professional-table tbody tr:last-child td { border-bottom: none; }
+  .professional-table tbody tr:hover { background: rgba(11,94,215,0.03); }
+  .professional-table.table-striped tbody tr:nth-of-type(odd) { background: rgba(0,0,0,0.02); }
 
-  /* Round bottom corners of the last row */
-  .card.mb-3 .table tbody tr:last-child td:first-child  { border-bottom-left-radius: 12px; }
-  .card.mb-3 .table tbody tr:last-child td:last-child   { border-bottom-right-radius: 12px; }
-
-  /* Links and ticket titles */
-  .card.mb-3 .tickettitle a {
-    color: #0b57d0;
-    text-decoration: none;
-    font-weight: 500;
-  }
-  .card.mb-3 .tickettitle a:hover { text-decoration: underline; }
+  /* Ticket title link */
+  .tickettitle a { color: #0b5ed7; text-decoration: none; font-weight: 500; }
+  .tickettitle a:hover { text-decoration: underline; }
 
   /* Buttons inside cards follow the theme */
   .card.mb-3 .btn-primary {
@@ -77,8 +63,7 @@
   }
   .card.mb-3 .btn-danger:hover { background-color: #d83636; border-color: #c02f2f; }
 
-  /* Small text / footer */
-  .card.mb-3 .card-footer { background: transparent; color: #6b7280; }
+  .card.mb-3 .card-footer { background: transparent; color: #6b7280; font-size: .85rem; padding: .5rem 1rem; }
 </style>
 
 <div class="card mb-3">
@@ -87,31 +72,31 @@
         {% trans "Unassigned Tickets" %}
     </div>
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered table-sm table-striped" id="dataTable" width="100%" cellspacing="0">
-                <thead class="thead-light">
+        <div class="table-responsive-professional">
+            <table class="professional-table table-sm table-striped" id="dataTable" width="100%" cellspacing="0" role="table" aria-label="{% trans 'Unassigned tickets' %}">
+                <thead>
                     <tr>
                       <th>{% trans "Ticket" %}</th>
                       <th>{% trans "Priority" %}</th>
                       <th>{% trans "Queue" %}</th>
                       <th>{% trans "Created" %}</th>
-                      <th>{% trans "Actions" %}</th>
+                      <th class="text-center">{% trans "Actions" %}</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for ticket in unassigned_tickets %}
                     <tr class="{{ ticket.get_priority_css_class }}">
-                        <td class="tickettitle"><a href='{{ ticket.get_absolute_url }}'>{{ ticket.id }}. {{ ticket.title }} </a></td>
+                        <td class="tickettitle"><a href="{{ ticket.get_absolute_url }}">{{ ticket.id }}. {{ ticket.title }}</a></td>
                         <td>{{ ticket.priority }}</td>
                         <td>{{ ticket.queue }}</td>
-                        <td><span title='{{ ticket.created|date:"DATETIME_FORMAT" }}'>{{ ticket.created|naturaltime }}</span></td>
+                        <td><span title="{{ ticket.created|date:'DATETIME_FORMAT' }}">{{ ticket.created|naturaltime }}</span></td>
                         <td class="text-center">
-                          <a href='{{ ticket.get_absolute_url }}?take'><button class='btn btn-primary btn-sm'><i class="fas fa-hand-paper"></i>&nbsp;{% trans "Take" %}</button></a>
-                          <a href='{% url 'helpdesk:delete' ticket.id %}?next=dashboard'><button class='btn btn-danger btn-sm'><i class="fas fa-trash"></i>&nbsp;{% trans "Delete" %}</button></a>
+                          <a href="{{ ticket.get_absolute_url }}?take" class="d-inline-block"><button class="btn btn-primary btn-sm" type="button"><i class="fas fa-hand-paper"></i>&nbsp;{% trans "Take" %}</button></a>
+                          <a href="{% url 'helpdesk:delete' ticket.id %}?next=dashboard" class="d-inline-block"><button class="btn btn-danger btn-sm" type="button"><i class="fas fa-trash"></i>&nbsp;{% trans "Delete" %}</button></a>
                         </td>
                     </tr>
                 {% empty %}
-                    <tr><td colspan='6'>{% trans "There are no unassigned tickets." %}</td></tr>
+                    <tr><td colspan="5" class="text-muted small">{% trans "There are no unassigned tickets." %}</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
@@ -128,31 +113,31 @@
         {% trans "KBItem:" %} {{kbitem.title}} {% trans "Team:" %} {{kbitem.get_team.name}} {% trans "(pick up a ticket if you start to work on it)" %}
     </div>
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered table-sm table-striped" id="dataTable" width="100%" cellspacing="0">
-                <thead class="thead-light">
+        <div class="table-responsive-professional">
+            <table class="professional-table table-sm table-striped" id="dataTable" width="100%" cellspacing="0" role="table" aria-label="{% trans 'KB unassigned tickets' %}">
+                <thead>
                     <tr>
                       <th>{% trans "Ticket" %}</th>
                       <th>{% trans "Priority" %}</th>
                       <th>{% trans "Queue" %}</th>
                       <th>{% trans "Created" %}</th>
-                      <th>{% trans "Actions" %}</th>
+                      <th class="text-center">{% trans "Actions" %}</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for ticket in kbitem.unassigned_tickets %}
                     <tr class="{{ ticket.get_priority_css_class }}">
-                        <td class="tickettitle"><a href='{{ ticket.get_absolute_url }}'>{{ ticket.id }}. {{ ticket.title }} </a></td>
+                        <td class="tickettitle"><a href="{{ ticket.get_absolute_url }}">{{ ticket.id }}. {{ ticket.title }}</a></td>
                         <td>{{ ticket.priority }}</td>
                         <td>{{ ticket.queue }}</td>
-                        <td><span title='{{ ticket.created|date:"DATETIME_FORMAT" }}'>{{ ticket.created|naturaltime }}</span></td>
+                        <td><span title="{{ ticket.created|date:'DATETIME_FORMAT' }}">{{ ticket.created|naturaltime }}</span></td>
                         <td class="text-center">
-                          <a href='{{ ticket.get_absolute_url }}?take'><button class='btn btn-primary btn-sm'><i class="fas fa-hand-paper"></i>&nbsp;{% trans "Take" %}</button></a>
-                          <a href='{% url 'helpdesk:delete' ticket.id %}?next=dashboard'><button class='btn btn-danger btn-sm'><i class="fas fa-trash"></i>&nbsp;{% trans "Delete" %}</button></a>
+                          <a href="{{ ticket.get_absolute_url }}?take" class="d-inline-block"><button class="btn btn-primary btn-sm" type="button"><i class="fas fa-hand-paper"></i>&nbsp;{% trans "Take" %}</button></a>
+                          <a href="{% url 'helpdesk:delete' ticket.id %}?next=dashboard" class="d-inline-block"><button class="btn btn-danger btn-sm" type="button"><i class="fas fa-trash"></i>&nbsp;{% trans "Delete" %}</button></a>
                         </td>
                     </tr>
                 {% empty %}
-                    <tr><td colspan='6'>{% trans "There are no unassigned tickets." %}</td></tr>
+                    <tr><td colspan="5" class="text-muted small">{% trans "There are no unassigned tickets." %}</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
