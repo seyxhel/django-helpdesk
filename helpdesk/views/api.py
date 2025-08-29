@@ -114,10 +114,21 @@ class QueueViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Simple read-only viewset to list public queues for autocomplete on the public UI.
     """
-    queryset = Queue.objects.filter(allow_public_submission=True).order_by('title')
     serializer_class = QueueSerializer
     permission_classes = []
     pagination_class = None
+
+    def get_queryset(self):
+        # If the requester is authenticated (internal/my-tickets view), return
+        # all queues so the authenticated search UI can list and filter by any queue.
+        # Otherwise, for anonymous/public use, return only queues that allow public submission.
+        try:
+            user = getattr(self.request, 'user', None)
+            if user and user.is_authenticated:
+                return Queue.objects.order_by('title')
+        except Exception:
+            pass
+        return Queue.objects.filter(allow_public_submission=True).order_by('title')
 
 
 class FollowUpViewSet(viewsets.ModelViewSet):

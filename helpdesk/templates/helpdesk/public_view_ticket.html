@@ -119,21 +119,17 @@
 
         <dt><label for='commentBox'>{% trans "Comment / Resolution" %}</label></dt>
         <dd><textarea rows='8' cols='70' name='comment' id='commentBox'></textarea></dd>
-	{% url "helpdesk:help_context" as context_help_url %}
-	{% blocktrans %}
-        <dd class='form_help_text'>You can insert ticket and queue details in your message. For more information, see the <a href='{{ context_help_url }}'>context help page</a>.</dd>
-	{% endblocktrans %}
+
 
         {% if not ticket.can_be_resolved %}<dd>{% trans "This ticket cannot be resolved or closed until the tickets it depends on are resolved." %}</dd>{% endif %}
-        {% if ticket.status == 1 %}
-            <input type="hidden" name="new_status" value="{{ ticket.status }}" />
-        {% else %}
         <dd><div class="form-group">
         {% for status_choice in ticket.get_allowed_status_flow %}
-            <label for='st_{{ status_choice.1|lower }}' class='{% if ticket.status == status_choice.0 %}active {% endif %}radio-inline'><input type='radio' name='new_status' value='{{ status_choice.0 }}' id='st_{{ status_choice.1|lower }}'{% if not ticket.can_be_resolved %} disabled='disabled'{% endif %}{% if ticket.status == status_choice.0 %} checked='checked'{% endif %}>{{ status_choice.1 }}{% if forloop.last %}{% else %} &raquo;{% endif %}</label>
+            <label for='st_{{ status_choice.1|lower }}' class='{% if ticket.status == status_choice.0 %}active {% endif %}radio-inline'>
+                <input type='radio' name='new_status' value='{{ status_choice.0 }}' id='st_{{ status_choice.1|lower }}' {% if not ticket.can_be_resolved %} disabled='disabled'{% endif %} {% if ticket.status == status_choice.0 %} checked='checked'{% endif %}>
+                {{ status_choice.1 }}{% if forloop.last %}{% else %} &raquo;{% endif %}
+            </label>
         {% endfor %}
         </div></dd>
-        {% endif %}
 
         <input type='hidden' name='public' value='1'>
 

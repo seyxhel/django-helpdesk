@@ -504,6 +504,23 @@ def public_update_ticket(request, ticket_id):
     except Exception:
         new_status = ticket.status
 
+    # Validate new_status against allowed flow for this ticket to prevent
+    # crafted POSTs from setting arbitrary status values. The template
+    # shows choices from ticket.get_allowed_status_flow; enforce the same rule
+    # here. Also prevent resolving/closing when ticket dependencies block it.
+    try:
+        allowed_statuses = [s[0] for s in ticket.get_allowed_status_flow]
+    except Exception:
+        allowed_statuses = []
+
+    if allowed_statuses and new_status not in allowed_statuses:
+        # fallback to current status if posted status is not allowed
+        new_status = ticket.status
+
+    # Prevent setting resolved/closed when ticket cannot be resolved
+    if (new_status in (helpdesk_settings.RESOLVED_STATUS, helpdesk_settings.CLOSED_STATUS)) and (not ticket.can_be_resolved):
+        new_status = ticket.status
+
     files = request.FILES.getlist("attachment") if hasattr(request, "FILES") else []
 
     # Call core update logic. Non-staff users will not be set as followup.user

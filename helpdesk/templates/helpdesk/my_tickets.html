@@ -72,18 +72,46 @@
 window.addEventListener('load', function()
  {
     let cachedQueues = [];
+    // Map of status code -> label for strict client-side filtering when needed
+    const statusMap = {
+        {% for code,label in status_choices %}
+        "{{ code }}": "{{ label }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
 
     function fetchQueues(q = ''){
-        // Try common mount points for the API so this works if helpdesk is included at root or under /helpdesk/
-        const candidates = ['/api/queues/', '/helpdesk/api/queues/'];
-        function tryIndex(i){
-            if(i >= candidates.length){ cachedQueues = []; renderQueueDropdown(q); return; }
-            $.get(candidates[i], function(data){
-                cachedQueues = data;
+        // Try the router-backed URL first, then fall back to common paths.
+        const candidates = [
+            '{% url "helpdesk:queue-list" %}',
+            '/api/queues/',
+            '/helpdesk/api/queues/'
+        ];
+        let tried = 0;
+        function tryOne(){
+            if(tried >= candidates.length){
+                console.warn('fetchQueues: no endpoint succeeded');
+                cachedQueues = [];
                 renderQueueDropdown(q);
-            }).fail(function(){ tryIndex(i+1); });
+                return;
+            }
+            const url = candidates[tried++];
+            $.get(url)
+                .done(function(data){
+                    // If the server returned HTML (login page), detect and abort
+                    if(typeof data === 'string' && data.trim().startsWith('<')){
+                        console.warn('fetchQueues: got HTML response from', url);
+                        tryOne();
+                        return;
+                    }
+                    cachedQueues = data;
+                    renderQueueDropdown(q);
+                })
+                .fail(function(xhr, status, err){
+                    console.warn('fetchQueues failed for', url, status, err, xhr.status);
+                    tryOne();
+                });
         }
-        tryIndex(0);
+        tryOne();
     }
 
     function renderQueueDropdown(filter){
@@ -109,10 +137,30 @@ window.addEventListener('load', function()
         const status = $('#statusFilter').val() || '';
         const queueId = $('#queueSearch').data('queue-id') || '';
         const endpoint = '{% url "helpdesk:user_tickets-list" %}?page=' + page + '&ordering=' + ordering + '&page_size=8' + (status ? '&status=' + status : '') + (queueId ? '&queue=' + queueId : '');
+        console.debug('fetchTickets endpoint', endpoint);
 
-        $.get(endpoint, function(data) {
-            $('#ticketsTable tbody').empty();
-            data.results.forEach(function(ticket) {
+        $.get(endpoint)
+            .done(function(data){
+                // Detect HTML responses (likely a login redirect) and log useful info
+                if(typeof data === 'string' && data.trim().startsWith('<')){
+                    console.error('fetchTickets: received HTML (probably unauthenticated). Check network tab for', endpoint);
+                    return;
+                }
+                $('#ticketsTable tbody').empty();
+                console.debug('fetchTickets response', data);
+                // If a status is selected, apply a strict client-side filter by label
+                const selectedStatus = $('#statusFilter').val() || '';
+                let results = data.results || [];
+                if(selectedStatus){
+                    const label = statusMap[selectedStatus] || null;
+                    if(label){
+                        results = results.filter(function(ticket){
+                            // ticket.status from the public serializer is the label (e.g. "Open")
+                            return String(ticket.status) === String(label);
+                        });
+                    }
+                }
+                results.forEach(function(ticket) {
                 ticket.title = $('<div>').html(ticket.title).html();
                 $('#ticketsTable tbody').append(`
                     <tr>
@@ -128,9 +176,23 @@ window.addEventListener('load', function()
             });
 
             $('#pagination').empty();
-            // compute total pages from DRF count; use requested `page` as current
+            // compute total pages; prefer server-side count when server applied the
+            // status filter. If we applied client-side filtering and the server did
+            // not, derive the total from the filtered results to avoid empty pages.
             const pageSize = 8;
-            const totalPages = Math.max(1, Math.ceil((data.count || 0) / pageSize));
+            let totalCount = data.count || 0;
+            if(selectedStatus){
+                const label = statusMap[selectedStatus] || null;
+                if(label){
+                    // Check whether server already returned only matching-status items
+                    const allMatch = (data.results || []).every(function(t){ return String(t.status) === String(label); });
+                    if(!allMatch){
+                        // server didn't filter; use client-side result count
+                        totalCount = (results || []).length;
+                    }
+                }
+            }
+            const totalPages = Math.max(1, Math.ceil((totalCount || 0) / pageSize));
             const currentPage = parseInt(page) || 1;
             for (let i = 1; i <= totalPages; i++) {
                 $('#pagination').append(`
@@ -140,7 +202,10 @@ window.addEventListener('load', function()
                 `);
             }
 
-        });
+            })
+            .fail(function(xhr, status, err){
+                console.error('fetchTickets failed', status, err, xhr.status, xhr.responseText && xhr.responseText.substring(0,200));
+            });
     }
 
     // Load last viewed ticket from localStorage (set by public view)
@@ -162,10 +227,10 @@ window.addEventListener('load', function()
     });
 
     // Queue search interactions
-    $('#queueSearch').on('focus', function(){
-        // show all queues on focus
-        if(cachedQueues.length === 0){ fetchQueues(''); }
-        else { renderQueueDropdown(''); }
+    // Always fetch queues when the user clicks or focuses the input so they
+    // reliably see the full list on demand.
+    $('#queueSearch').on('focus click', function(){
+        fetchQueues('');
     });
     $('#queueSearch').on('input', function(){
         const v = $(this).val();
