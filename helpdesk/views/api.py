@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from helpdesk.models import FollowUp, FollowUpAttachment, Ticket
+from django.db.models import Q
 from helpdesk.serializers import (
     FollowUpAttachmentSerializer,
     FollowUpSerializer,
@@ -65,6 +66,59 @@ class UserTicketViewSet(viewsets.ReadOnlyModelViewSet):
             tickets = tickets.order_by("created")
         else:
             tickets = tickets.order_by("-created")
+        for ticket in tickets:
+            ticket.set_custom_field_values()
+        return tickets
+
+
+class AssignedTicketViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    A list of all the tickets assigned to or worked on by the current staff user.
+
+    Excludes tickets submitted by the user (their own public submissions).
+    """
+
+    serializer_class = PublicTicketListingSerializer
+    pagination_class = SmallPagination
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Tickets assigned to the user or where the user authored followups
+        tickets = Ticket.objects.filter(Q(assigned_to=user) | Q(followup__user=user)).distinct()
+        # Exclude tickets the user submitted (staff may submit tickets too)
+        try:
+            if getattr(user, 'email', None):
+                tickets = tickets.exclude(submitter_email__iexact=user.email)
+        except Exception:
+            pass
+
+        # Filter by queue id if provided
+        queue_id = self.request.query_params.get('queue', None)
+        if queue_id:
+            try:
+                tickets = tickets.filter(queue__id=int(queue_id))
+            except Exception:
+                pass
+
+        # Filter by status (single or comma-separated numeric codes)
+        status = self.request.query_params.get('status', None)
+        if status:
+            statuses = status.split(',')
+            try:
+                statuses = [int(s) for s in statuses if s.isdigit()]
+                if statuses:
+                    tickets = tickets.filter(status__in=statuses)
+            except Exception:
+                pass
+
+        # Support ascending/descending ordering from the UI via ?ordering=asc|desc
+        ordering = self.request.query_params.get("ordering", "desc")
+        if ordering == "asc":
+            tickets = tickets.order_by("created")
+        else:
+            tickets = tickets.order_by("-created")
+
         for ticket in tickets:
             ticket.set_custom_field_values()
         return tickets

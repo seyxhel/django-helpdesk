@@ -75,24 +75,14 @@
         <span>{% trans "My Assigned Tickets" %}</span>
       </a>
     </li>
-    <li class="nav-item{% if 'submit_staff' in request.path %} active{% endif %}">
-      <a class="nav-link" href="{% url 'helpdesk:submit_staff' %}">
-        <i class="fas fa-fw fa-plus-circle"></i>
-        <span>{% trans "Submit a Ticket" %}</span>
-      </a>
-    </li>
+  {# 'Submit a Ticket' removed for staff sidebar (page remains accessible by direct URL) #}
     <li class="nav-item{% if 'sla_staff' in request.path %} active{% endif %}">
       <a class="nav-link" href="{% url 'helpdesk:sla_staff' %}">
         <i class="fas fa-fw fa-clock"></i>
         <span>{% trans "Service Level Agreement" %}</span>
       </a>
     </li>
-    <li class="nav-item{% if 'reports' in request.path %} active{% endif %}">
-      <a class="nav-link" href="{% url 'helpdesk:report_index' %}">
-        <i class="fas fa-fw fa-chart-area"></i>
-        <span>{% trans "Reports" %}</span>
-      </a>
-    </li>
+  {# Reports are only shown for superusers; hidden from regular staff #}
     {% if helpdesk_settings.HELPDESK_KB_ENABLED %}
       <li class="nav-item{% if 'kb' in request.path %} active{% endif %}">
         <a class="nav-link" href="{% url 'helpdesk:kb_index' %}">

@@ -10,10 +10,14 @@
 
 {% block helpdesk_breadcrumb %}
 <li class="breadcrumb-item">
+  {% if breadcrumb_label and breadcrumb_url %}
+    <a href="{{ breadcrumb_url }}">{{ breadcrumb_label }}</a>
+  {% else %}
     <a href="{% url 'helpdesk:list' %}">{% trans "Tickets" %}</a>
+  {% endif %}
 </li>
 <li class="breadcrumb-item active">
-    {{ ticket.queue.slug }}-{{ ticket.id }}
+  {{ ticket.queue.slug }}-{{ ticket.id }}
 </li>
 {% endblock %}
 

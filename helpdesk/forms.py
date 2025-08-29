@@ -1062,9 +1062,33 @@ class PublicUserProfileForm(forms.ModelForm):
             if f in self.fields:
                 self.fields[f].error_messages = getattr(self.fields[f], "error_messages", {})
                 self.fields[f].error_messages["required"] = req_msg
+                # Make username and email readonly in the UI so public users cannot edit them
+                # while still submitting the form (readonly fields are submitted, disabled are not).
+                try:
+                    self.fields[f].widget.attrs.setdefault('readonly', 'readonly')
+                    self.fields[f].widget.attrs.setdefault('aria-readonly', 'true')
+                except Exception:
+                    pass
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
         if email and User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
             raise ValidationError("A user with that email address already exists.")
         return email
+
+    def save(self, commit=True):
+        """Prevent public users from changing username/email regardless of submitted values.
+
+        The form widgets are readonly in the browser, but to be safe we explicitly
+        preserve the instance values for username and email on save.
+        """
+        user = super().save(commit=False)
+        # Preserve original username and email
+        try:
+            user.username = self.instance.username
+            user.email = self.instance.email
+        except Exception:
+            pass
+        if commit:
+            user.save()
+        return user

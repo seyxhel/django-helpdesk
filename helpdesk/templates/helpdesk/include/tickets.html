@@ -1,4 +1,4 @@
-{% load i18n humanize %}
+{% load i18n humanize ticket_extras query_filters %}
 
 <style>
 /* -------- General card / compact styles (existing) -------- */
@@ -106,6 +106,10 @@
   .professional-table thead th,
   .professional-table tbody td { padding: .5rem .6rem; }
 }
+/* ensure number input spinner arrows are visible */
+input[type=number].helpdesk-show-spinner::-webkit-inner-spin-button,
+input[type=number].helpdesk-show-spinner::-webkit-outer-spin-button { -webkit-appearance: auto; display: inline-block; }
+input[type=number].helpdesk-show-spinner { appearance: auto; -webkit-appearance: auto; -moz-appearance: textfield; }
 </style>
 
 {# allow callers to request a rounded card for staff assigned tickets #}
@@ -123,6 +127,7 @@
     <div class="card mb-3">
   {% endif %}
 {% endif %}
+  
   <div class="card-header d-flex justify-content-between align-items-center">
     <div>
       <i class="fas fa-table"></i>
@@ -135,9 +140,89 @@
  
   <div class="card-body">
     <!-- Consolidated filter bar: appears before the table for clarity -->
+    {% with page_size|default:ut_shown|default:utcr_shown|default:5 as page_size %}
     <div class="tickets-filters mb-3">
+      {% if show_filters %}
+        {# filter_namespace defaults to 'atrbcu' if not provided #}
+        {% with filter_namespace|default:'atrbcu' as filter_namespace %}
+  <form method="get" class="form-inline" aria-label="Ticket filters">
+          <div class="form-row w-100">
+            <div class="col-auto pr-2">
+                <select name="{{ filter_namespace }}_queue" class="form-control form-control-sm">
+                <option value="">All queues</option>
+                {% if queues %}
+                  {% for q in queues %}
+                      {% with key=filter_namespace|stringformat:"s"|add:'_queue' %}
+                        <option value="{{ q.id }}"{% if request.GET|get_param:key == q.id|stringformat:"s" %} selected{% endif %}>{{ q.title }}</option>
+                      {% endwith %}
+                  {% endfor %}
+                {% endif %}
+              </select>
+            </div>
+            <div class="col-auto pr-2">
+                <select name="{{ filter_namespace }}_status" class="form-control form-control-sm">
+                <option value="">All statuses</option>
+                  {% for code,label in status_choices %}
+                    {# for assigned (ut) exclude closed/resolved, for closed-resolved (utcr) show only closed/resolved if closed_status_only provided #}
+                    {% if filter_namespace == 'ut' %}
+                      {% if not assigned_status_exclude or not code in assigned_status_exclude %}
+                        {% with key=filter_namespace|stringformat:"s"|add:'_status' %}
+                          <option value="{{ code }}"{% if request.GET|get_param:key == code|stringformat:"s" %} selected{% endif %}>{{ label }}</option>
+                        {% endwith %}
+                      {% endif %}
+                    {% elif filter_namespace == 'utcr' and closed_status_only %}
+                      {% if code in closed_status_only %}
+                        {% with key=filter_namespace|stringformat:"s"|add:'_status' %}
+                          <option value="{{ code }}"{% if request.GET|get_param:key == code|stringformat:"s" %} selected{% endif %}>{{ label }}</option>
+                        {% endwith %}
+                      {% endif %}
+                    {% else %}
+                      {% with key=filter_namespace|stringformat:"s"|add:'_status' %}
+                        <option value="{{ code }}"{% if request.GET|get_param:key == code|stringformat:"s" %} selected{% endif %}>{{ label }}</option>
+                      {% endwith %}
+                    {% endif %}
+                  {% endfor %}
+              </select>
+            </div>
+            <div class="col-auto pr-2">
+                {% with key=filter_namespace|stringformat:"s"|add:'_order' %}
+                <select name="{{ filter_namespace }}_order" class="form-control form-control-sm">
+                  <option value="desc"{% if request.GET|get_param:key != 'asc' %} selected{% endif %}>{% trans "Newest" %}</option>
+                  <option value="asc"{% if request.GET|get_param:key == 'asc' %} selected{% endif %}>{% trans "Oldest" %}</option>
+                </select>
+                {% endwith %}
+            </div>
+            {# numeric control to choose how many tickets to show (will auto-submit) #}
+            {# hidden 'shown' control: visible control is rendered beneath the table for better UX #}
+            <div class="col-auto sr-only">
+              <input id="{{ filter_namespace }}_shown" name="{{ filter_namespace }}_shown" type="hidden" value="{{ page_size }}" />
+            </div>
+            <div class="col-auto sr-only">
+              <button type="submit" class="btn btn-sm btn-primary visually-hidden">{% trans "Apply" %}</button>
+            </div>
+          </div>
+        </form>
+        {% endwith %}
+      {% endif %}
     </div>
+    {% endwith %}
  
+    {# Auto-submit filters when changed for a smoother experience. Keep a hidden submit for accessibility. #}
+    <script>
+    (function(){
+      if(window.__helpdesk_filters_attached) return; window.__helpdesk_filters_attached = true;
+      document.addEventListener('change', function(e){
+        try{
+          var f = e.target.closest('form.form-inline');
+          if(!f) return;
+          // ensure this is a ticket filters form by checking container
+          if(!f.closest('.tickets-filters')) return;
+          // submit the form (GET) to apply filters immediately
+          f.submit();
+        }catch(err){ /* fail silently */ }
+      });
+    })();
+    </script>
     <div class="table-responsive-professional">
       <table class="professional-table table-sm table-striped" id="dataTable" width="100%" cellspacing="0" role="table" aria-label="{% trans 'Tickets table' %}">
         <thead>
@@ -149,7 +234,7 @@
             <th>{% trans "Last Update" %}</th>
           </tr>
         </thead>
-        <tbody>
+  <tbody data-pagesize="{{ page_size|default:5 }}">
           {% for ticket in ticket_list %}
           <tr class="{{ ticket.get_priority_css_class }}">
             <td class="tickettitle">
@@ -172,39 +257,149 @@
         </tbody>
       </table>
     </div>
+    <script>
+      (function(){
+        try{
+          var tb = document.querySelector('.professional-table tbody[data-pagesize]');
+          if(tb){
+            var ps = parseInt(tb.getAttribute('data-pagesize')||5,10)||5;
+            var h = (ps * 48) + 'px';
+            tb.style.minHeight = h;
+            var container = tb.closest('.table-responsive-professional');
+            if(container) container.style.minHeight = h;
+          }
+        }catch(e){/*silent*/}
+      })();
+    </script>
+    <script>
+    (function(){
+  })();
+    </script>
 
     <!-- /.table-responsive -->
-    {% if ticket_list.has_other_pages %}
-      <nav aria-label="{% trans 'Ticket pagination' %}" class="mt-3">
-        <ul class="pagination">
-          {% if ticket_list.has_previous %}
-            <li class="page-item"><a class="page-link" href="?{{ page_var }}=1">&laquo;&laquo;</a></li>
-            <li class="page-item"><a class="page-link" href="?{{ page_var }}={{ ticket_list.previous_page_number }}">&laquo;</a></li>
-          {% else %}
-            <li class="page-item disabled"><span class="page-link">&laquo;&laquo;</span></li>
-            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
-          {% endif %}
-
-          {% with 5 as thresh %}
-          {% for i in ticket_list.paginator.page_range %}
-            {% if ticket_list.number == i %}
-              <li class="page-item active" aria-current="page"><span class="page-link">{{ i }}</span></li>
-            {% elif i <= ticket_list.number|add:5 and i >= ticket_list.number|add:-5 %}
-              <li class="page-item"><a class="page-link" href="?{{ page_var }}={{ i }}">{{ i }}</a></li>
+    {% with filter_namespace|default:'atrbcu' as filter_namespace %}
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <div class="text-left">
+        <label class="small text-muted mr-2" for="{{ filter_namespace }}_shown_bottom">{% trans "Show" %}</label>
+  <input id="{{ filter_namespace }}_shown_bottom" type="number" min="1" max="100" value="{{ page_size }}" data-default="{{ page_size }}" data-ls-key="helpdesk_{{ filter_namespace }}_shown" data-ls-saved-key="helpdesk_{{ filter_namespace }}_shown_saved" class="form-control form-control-sm d-inline-block helpdesk-show-spinner" style="width:6rem;" />
+      </div>
+      <div class="text-right">
+      {% if ticket_list.has_other_pages %}
+        <nav aria-label="{% trans 'Ticket pagination' %}" class="mt-0">
+          <ul class="pagination mb-0">
+            {% if ticket_list.has_previous %}
+              <li class="page-item"><a class="page-link" href="?{% qs_with page_var=1 %}">&laquo;&laquo;</a></li>
+              <li class="page-item"><a class="page-link" href="?{% qs_with_var page_var ticket_list.previous_page_number %}">&laquo;</a></li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">&laquo;&laquo;</span></li>
+              <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
             {% endif %}
-          {% endfor %}
-          {% endwith %}
 
-          {% if ticket_list.has_next %}
-            <li class="page-item"><a class="page-link" href="?{{ page_var }}={{ ticket_list.next_page_number }}">&raquo;</a></li>
-            <li class="page-item"><a class="page-link" href="?{{ page_var }}={{ ticket_list.paginator.num_pages }}">&raquo;&raquo;</a></li>
-          {% else %}
-            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
-            <li class="page-item disabled"><span class="page-link">&raquo;&raquo;</span></li>
-          {% endif %}
-        </ul>
-      </nav>
-    {% endif %}
+            {% with 5 as thresh %}
+            {% for i in ticket_list.paginator.page_range %}
+                {% if ticket_list.number == i %}
+                <li class="page-item active" aria-current="page"><span class="page-link">{{ i }}</span></li>
+              {% elif i <= ticket_list.number|add:5 and i >= ticket_list.number|add:-5 %}
+                <li class="page-item"><a class="page-link" href="?{% qs_with_var page_var i %}">{{ i }}</a></li>
+              {% endif %}
+            {% endfor %}
+            {% endwith %}
+
+            {% if ticket_list.has_next %}
+              <li class="page-item"><a class="page-link" href="?{% qs_with_var page_var ticket_list.next_page_number %}">&raquo;</a></li>
+              <li class="page-item"><a class="page-link" href="?{% qs_with_var page_var ticket_list.paginator.num_pages %}">&raquo;&raquo;</a></li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+              <li class="page-item disabled"><span class="page-link">&raquo;&raquo;</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+      </div>
+    </div>
+    <script>
+      (function(){
+        try{
+          var bottom = document.getElementById('{{ filter_namespace }}_shown_bottom');
+          if(!bottom) return;
+          var topHidden = document.getElementById('{{ filter_namespace }}_shown');
+          var filtersForm = document.querySelector('.tickets-filters form.form-inline');
+          (function(){
+            var lsKey = bottom.getAttribute('data-ls-key');
+            var paramName = '{{ filter_namespace }}_shown';
+            try{
+              // If URL param is absent but we have a saved value and a saved-flag, populate the bottom input and top hidden input
+              var urlParams = new URLSearchParams(window.location.search);
+              var savedFlagKey = bottom.getAttribute('data-ls-saved-key');
+              if(!urlParams.has(paramName) && lsKey && savedFlagKey){
+                var savedFlag = localStorage.getItem(savedFlagKey);
+                if(savedFlag){
+                  var saved = localStorage.getItem(lsKey);
+                  if(saved){
+                    bottom.value = saved;
+                    if(topHidden){ topHidden.value = saved; }
+                  }
+                }
+              }
+            }catch(e){/*silent*/}
+
+            bottom.addEventListener('change', function(){
+              try{
+                var defaultVal = parseInt(bottom.getAttribute('data-default')||5,10) || 5;
+                var v = parseInt(this.value,10) || defaultVal;
+                if(lsKey){ localStorage.setItem(lsKey, String(v)); }
+                if(bottom.getAttribute('data-ls-saved-key')){
+                  localStorage.setItem(bottom.getAttribute('data-ls-saved-key'),'1');
+                }
+                if(topHidden){ topHidden.value = v; }
+
+                // Prefer submitting the specific filters form that contains the
+                // hidden top input for this namespace. This ensures the correct
+                // table is updated when multiple ticket tables exist on the page.
+                var targetForm = null;
+                try{
+                  if(topHidden && typeof topHidden.closest === 'function'){
+                    targetForm = topHidden.closest('form');
+                  }
+                }catch(_){}
+                if(!targetForm){
+                  // fallback to the first filters form on the page
+                  targetForm = document.querySelector('.tickets-filters form.form-inline');
+                }
+                if(targetForm){
+                  targetForm.submit();
+                }else{
+                  // final fallback: reload current URL while setting the shown param
+                  try{
+                    var url = new URL(window.location.href);
+                    url.searchParams.set(paramName, String(v));
+                    window.location.href = url.toString();
+                  }catch(e){ /* silent */ }
+                }
+              }catch(e){/*silent*/}
+            });
+            // also handle Enter key so the value persists when user presses Enter
+            bottom.addEventListener('keydown', function(e){
+              try{
+                if(e.key === 'Enter' || e.keyCode === 13){
+                  e.preventDefault();
+                  // mark saved flag and trigger change handler logic
+                  if(bottom.getAttribute('data-ls-saved-key')){
+                    localStorage.setItem(bottom.getAttribute('data-ls-saved-key'),'1');
+                  }
+                  // If topHidden exists, focus it first so its form can be found
+                  // consistently, then dispatch change on bottom to reuse handler.
+                  if(topHidden){ try{ topHidden.focus(); }catch(_){ } }
+                  var ev = new Event('change', { bubbles: true });
+                  bottom.dispatchEvent(ev);
+                }
+              }catch(err){/*silent*/}
+            });
+          })();
+        }catch(e){/*silent*/}
+      })();
+    </script>
+    {% endwith %}
   </div>
 
   <div class="card-footer small text-muted">
@@ -214,6 +409,6 @@
       Listing {{ count }} tickets.
     {% endblocktrans %}
   </div>
-</div>
+  </div>
 
 

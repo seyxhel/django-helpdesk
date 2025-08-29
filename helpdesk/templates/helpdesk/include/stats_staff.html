@@ -46,16 +46,19 @@
              </div>
          </div>
 
-         <div class="stats-grid-item">
-             <div class="card stats-card users" style="position:relative;">
-                 <div class="card-body d-flex align-items-center">
-                     <div class="w-100">
-                         <div class="stats-count">{{ closed_tickets_count|default:0 }}</div>
-                         <div class="stats-label">{% trans "Closed Tickets" %}</div>
-                     </div>
-                 </div>
-             </div>
-         </div>
+        <div class="stats-grid-item">
+            <!-- Make the closed tickets card clickable: jump to the closed tickets list on the dashboard -->
+            <a href="#closed-tickets" class="text-decoration-none" style="color:inherit;">
+            <div class="card stats-card users" style="position:relative;">
+                <div class="card-body d-flex align-items-center">
+                    <div class="w-100">
+                        <div class="stats-count">{{ closed_tickets_count|default:0 }}</div>
+                        <div class="stats-label">{% trans "Closed Tickets" %}</div>
+                    </div>
+                </div>
+            </div>
+            </a>
+        </div>
 
          <div class="stats-grid-item">
              <div class="card stats-card kb-dislikes" style="position:relative;">

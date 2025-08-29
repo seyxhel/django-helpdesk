@@ -11,6 +11,11 @@
 <h2 class="sr-only">{% trans "My Tickets" %}</h2>
 
 <div class="container mt-4">
+    <div class="d-flex justify-content-end mb-2">
+        <div class="btn-group" role="group" aria-label="Ordering">
+            <button id="orderToggle" class="btn btn-secondary" data-order="desc">Order: Newest</button>
+        </div>
+    </div>
     <div class="row mb-3">
         <div class="col-md-4">
             <input id="queueSearch" class="form-control" placeholder="Search queues or click to see all" autocomplete="off" />
@@ -48,6 +53,80 @@
     </nav>
 </div>
 
-{% include 'helpdesk/my_tickets_scripts.html' %}
+<script>
+// replicate the enhanced my-tickets script so public users get the same
+// queue search, status dropdown, and ordering interactions as staff.
+window.addEventListener('load', function()
+ {
+    let cachedQueues = [];
+    const statusMap = {
+        {% for code,label in status_choices %}
+        "{{ code }}": "{{ label }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    function fetchQueues(q = ''){
+        const candidates = [
+            '{% url "helpdesk:queue-list" %}',
+            '/api/queues/',
+            '/helpdesk/api/queues/'
+        ];
+        let tried = 0;
+        function tryOne(){
+            if(tried >= candidates.length){ cachedQueues = []; renderQueueDropdown(q); return; }
+            const url = candidates[tried++];
+            $.get(url).done(function(data){
+                if(typeof data === 'string' && data.trim().startsWith('<')){ tryOne(); return; }
+                cachedQueues = data; renderQueueDropdown(q);
+            }).fail(function(){ tryOne(); });
+        }
+        tryOne();
+    }
+
+    function renderQueueDropdown(filter){
+        const container = $('#queueDropdown'); container.empty();
+        const f = (filter || '').toLowerCase(); let shown = 0;
+        cachedQueues.forEach(function(q){ if(!f || q.title.toLowerCase().indexOf(f) !== -1){ shown++; container.append(`<a href="#" class="list-group-item list-group-item-action" data-id="${q.id}">${q.title}</a>`); } });
+        if(shown>0) container.show(); else container.hide();
+    }
+
+    function fetchTickets(page = 1){
+        const ordering = $('#orderToggle').data('order') || 'desc';
+        const status = $('#statusFilter').val() || '';
+        const queueId = $('#queueSearch').data('queue-id') || '';
+        const endpoint = '{% url "helpdesk:user_tickets-list" %}?page=' + page + '&ordering=' + ordering + '&page_size=8' + (status ? '&status=' + status : '') + (queueId ? '&queue=' + queueId : '');
+        $.get(endpoint).done(function(data){
+            if(typeof data === 'string' && data.trim().startsWith('<')){ console.error('fetchTickets: received HTML (probably unauthenticated). Check network tab for', endpoint); return; }
+            $('#ticketsTable tbody').empty();
+            const selectedStatus = $('#statusFilter').val() || '';
+            let results = data.results || [];
+            if(selectedStatus){ const label = statusMap[selectedStatus] || null; if(label){ results = results.filter(function(ticket){ return String(ticket.status) === String(label); }); } }
+            results.forEach(function(ticket){ ticket.title = $('<div>').html(ticket.title).html(); $('#ticketsTable tbody').append(`<tr><td><a href='/view/?ticket=${ticket.id}&email=${ticket.submitter}&key=${ticket.secret_key}'>${ticket.title}</a></td><td>${ticket.queue.title}</td><td>${ticket.status}</td><td>${ticket.created}</td><td>${ticket.last_followup || ''}</td></tr>`); });
+            $('#pagination').empty(); const pageSize=8; let totalCount = data.count || 0;
+            if(selectedStatus){ const label = statusMap[selectedStatus] || null; if(label){ const allMatch = (data.results || []).every(function(t){ return String(t.status) === String(label); }); if(!allMatch){ totalCount = (results || []).length; } } }
+            const totalPages = Math.max(1, Math.ceil((totalCount || 0) / pageSize)); const currentPage = parseInt(page) || 1;
+            for (let i=1;i<=totalPages;i++){ $('#pagination').append(`<li class="page-item ${i===currentPage? 'active':''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`); }
+        }).fail(function(xhr, status, err){ console.error('fetchTickets failed', status, err, xhr && xhr.status); });
+    }
+
+    // Toggle ordering
+    $('#orderToggle').on('click', function(){ const current = $(this).data('order') === 'asc' ? 'desc' : 'asc'; $(this).data('order', current); $(this).text(current === 'asc' ? 'Order: Oldest' : 'Order: Newest'); fetchTickets(1); });
+
+    // Queue interactions
+    $('#queueSearch').on('focus click', function(){ fetchQueues(''); });
+    $('#queueSearch').on('input', function(){ const v = $(this).val(); if(cachedQueues.length === 0){ fetchQueues(v); } else { renderQueueDropdown(v); } });
+    $(document).on('click', '#queueDropdown a', function(e){ e.preventDefault(); const id = $(this).data('id'); const title = $(this).text(); $('#queueSearch').val(title).data('queue-id', id); $('#queueDropdown').hide(); fetchTickets(1); });
+    $('#queueSearch').on('keydown', function(e){ if(e.key === 'Backspace' && $(this).val().length <= 1){ $(this).data('queue-id', ''); } });
+
+    $(document).on('click', function(e){ if(!$(e.target).closest('#queueSearch, #queueDropdown').length){ $('#queueDropdown').hide(); } });
+    $(document).on('keydown', function(e){ if(e.key === 'Escape'){ $('#queueDropdown').hide(); $('#queueSearch').blur(); } });
+
+    $('#statusFilter').on('change', function(){ fetchTickets(1); });
+    $(document).on('click', '#pagination a', function(e){ e.preventDefault(); const page = parseInt($(this).data('page')) || 1; fetchTickets(page); });
+
+    // initial load
+    fetchTickets();
+});
+</script>
 
 {% endblock %}

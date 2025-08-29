@@ -22,6 +22,7 @@ from helpdesk.views.api import (
     FollowUpViewSet,
     TicketViewSet,
     UserTicketViewSet,
+    AssignedTicketViewSet,
     QueueViewSet,
 )
 from rest_framework.routers import DefaultRouter
@@ -256,6 +257,7 @@ urlpatterns += [
 router = DefaultRouter()
 router.register(r"tickets", TicketViewSet, basename="ticket")
 router.register(r"user_tickets", UserTicketViewSet, basename="user_tickets")
+router.register(r"assigned_tickets", AssignedTicketViewSet, basename="assigned_tickets")
 router.register(r"queues", QueueViewSet, basename="queue")
 router.register(r"followups", FollowUpViewSet, basename="followups")
 router.register(

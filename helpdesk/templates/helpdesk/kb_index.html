@@ -7,7 +7,9 @@
 <li class="breadcrumb-item">
     <a href="{% url 'helpdesk:kb_index' %}">{% trans "Knowledgebase" %}</a>
 </li>
+{% if user.is_staff %}
 <li class="breadcrumb-item active">{% trans "Overview" %}</li>
+{% endif %}
 {% endblock %}
 
 {% block helpdesk_body %}

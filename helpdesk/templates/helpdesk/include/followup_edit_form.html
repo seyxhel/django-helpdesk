@@ -1,5 +1,5 @@
 {% load i18n %}
-<form action="." method="POST" name="edit_followup_form" enctype="multipart/form-data">
+<form action="{{ request.path }}" method="POST" name="edit_followup_form" enctype="multipart/form-data">
     {{ form.non_field_errors }}
     <div class="card mb-3">
         <div class="card-body">

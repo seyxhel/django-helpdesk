@@ -4,9 +4,7 @@
 {% block helpdesk_title %}{% trans "Helpdesk Dashboard" %}{% endblock %}
 
 {% block helpdesk_breadcrumb %}
-<li class="breadcrumb-item">
-    <a href="#">{% trans "Dashboard" %}</a>
-</li>
+<li class="breadcrumb-item active">{% trans "Dashboard" %}</li>
 {% if user.is_superuser %}
 <li class="breadcrumb-item active">{% trans "Overview" %}</li>
 {% endif %}
@@ -22,11 +20,7 @@
     {% endif %}
 </div>
 
-{% if all_tickets_reported_by_current_user %}
-{% trans "Tickets submitted by you" as ticket_list_caption %}
-{% trans "atrbcu_page" as page_var %}
-{% include 'helpdesk/include/tickets.html' with ticket_list=all_tickets_reported_by_current_user ticket_list_empty_message="" page_var=page_var %}
-{% endif %}
+{# 'Tickets submitted by you' table removed for staff dashboard per request #}
 
 {% if user.is_staff %}
     {% trans "Assigned Tickets" as ticket_list_caption %}
@@ -34,7 +28,7 @@
     {% trans "ut_page" as page_var %}
     {# Staff should see the full tickets UI (filters, pagination, footer) like admins #}
     {# pass a custom border radius for the assigned tickets card container for staff #}
-        {% include 'helpdesk/include/tickets.html' with ticket_list=user_tickets ticket_list_empty_message=no_assigned_tickets page_var=page_var %}
+    {% include 'helpdesk/include/tickets.html' with ticket_list=user_tickets ticket_list_empty_message=no_assigned_tickets page_var=page_var show_filters=True filter_namespace='ut' %}
 {% else %}
     {% trans "Open tickets" as ticket_list_caption %}
     {% trans "You have no assigned tickets." as no_assigned_tickets %}
@@ -44,14 +38,28 @@
 
 
 
-{% if user_tickets_closed_resolved %}
 {% trans "Closed and resolved tickets you previously worked on" as ticket_list_caption %}
 {% trans "utcr_page" as page_var %}
-{% include 'helpdesk/include/tickets.html' with ticket_list=user_tickets_closed_resolved ticket_list_empty_message="" page_var=page_var %}
-{% endif %}
+<div id="closed-tickets">
+{% include 'helpdesk/include/tickets.html' with ticket_list=user_tickets_closed_resolved ticket_list_empty_message="" page_var=page_var show_filters=True filter_namespace='utcr' %}
+</div>
 
 {% if user.is_superuser %}
     {% include 'helpdesk/include/unassigned.html' %}
 {% endif %}
+
+{% comment %} Smooth scroll for anchor links on the dashboard (closed tickets card) {% endcomment %}
+{% block helpdesk_js %}
+<script>
+document.addEventListener('click', function(e){
+    var t = e.target.closest('a[href="#closed-tickets"]');
+    if(t){
+        e.preventDefault();
+        var el = document.getElementById('closed-tickets');
+        if(el){ el.scrollIntoView({behavior:'smooth'}); }
+    }
+});
+</script>
+{% endblock %}
 
 {% endblock %}

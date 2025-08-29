@@ -245,30 +245,78 @@ def dashboard(request):
     )
 
     # open & reopened tickets, assigned to current user
-    tickets = active_tickets.filter(
-        assigned_to=request.user,
-    )
+    tickets = active_tickets.filter(assigned_to=request.user)
 
-    # closed & resolved tickets, assigned to current user
-    tickets_closed_resolved = Ticket.objects.select_related("queue").filter(
-        assigned_to=request.user,
-        status__in=[
-            Ticket.CLOSED_STATUS,
-            Ticket.RESOLVED_STATUS,
-            Ticket.DUPLICATE_STATUS,
-        ],
-    )
-
-    # counts for stats cards (preserve before pagination overwrites variables)
+    # compute assigned open count from the unfiltered assigned queryset so
+    # the stats card shows the total assigned tickets regardless of filter UI
     try:
         assigned_open_count = tickets.count()
     except Exception:
         assigned_open_count = 0
+
+    # Apply optional server-side filters for assigned tickets (namespace: ut_*)
+    ut_status = request.GET.get('ut_status', '')
+    ut_queue = request.GET.get('ut_queue', '')
+    ut_order = request.GET.get('ut_order', 'desc')
+    if ut_status:
+        try:
+            tickets = tickets.filter(status=int(ut_status))
+        except Exception:
+            pass
+    if ut_queue:
+        try:
+            tickets = tickets.filter(queue__id=int(ut_queue))
+        except Exception:
+            pass
+    if ut_order == 'asc':
+        tickets = tickets.order_by('created')
+    else:
+        tickets = tickets.order_by('-created')
+
+    # closed & resolved tickets previously worked on by current user
+    # include tickets the user is/was assigned to or where the user authored followups
+    tickets_closed_resolved = (
+        Ticket.objects.select_related("queue")
+        .filter(status__in=[
+                Ticket.CLOSED_STATUS,
+                Ticket.RESOLVED_STATUS,
+                Ticket.DUPLICATE_STATUS,
+            ])
+        .filter(Q(assigned_to=request.user) | Q(followup__user=request.user))
+        .distinct()
+    )
+
+    # compute assigned closed/resolved count from the unfiltered queryset so
+    # the stats card shows the total closed/resolved tickets the user worked on
     try:
         assigned_closed_count = tickets_closed_resolved.count()
     except Exception:
         assigned_closed_count = 0
-    assigned_total = assigned_open_count + assigned_closed_count
+
+    # Apply optional server-side filters for closed/resolved tickets (namespace: utcr_*)
+    utcr_status = request.GET.get('utcr_status', '')
+    utcr_queue = request.GET.get('utcr_queue', '')
+    utcr_order = request.GET.get('utcr_order', 'desc')
+    if utcr_status:
+        try:
+            tickets_closed_resolved = tickets_closed_resolved.filter(status=int(utcr_status))
+        except Exception:
+            pass
+    if utcr_queue:
+        try:
+            tickets_closed_resolved = tickets_closed_resolved.filter(queue__id=int(utcr_queue))
+        except Exception:
+            pass
+    if utcr_order == 'asc':
+        tickets_closed_resolved = tickets_closed_resolved.order_by('created')
+    else:
+        tickets_closed_resolved = tickets_closed_resolved.order_by('-created')
+
+    # counts for stats cards: use the unfiltered counts computed earlier so stats
+    # reflect database totals, not the currently filtered/paginated tables.
+    # (assigned_open_count and assigned_closed_count were computed from the
+    # unfiltered querysets above.)
+    assigned_total = (assigned_open_count or 0) + (assigned_closed_count or 0)
     if assigned_total > 0:
         assigned_percent_open = int((assigned_open_count * 100) / assigned_total)
     else:
@@ -285,17 +333,7 @@ def dashboard(request):
         unassigned_tickets = unassigned_tickets.filter(kbitem__isnull=True)
         kbitems = huser.get_assigned_kb_items()
 
-    # all tickets, reported by current user
-    all_tickets_reported_by_current_user = ""
-    email_current_user = request.user.email
-    if email_current_user:
-        all_tickets_reported_by_current_user = (
-            Ticket.objects.select_related("queue")
-            .filter(
-                submitter_email=email_current_user,
-            )
-            .order_by("status")
-        )
+    # 'Tickets submitted by you' section removed from dashboard; do not compute list to save queries
 
     tickets_in_queues = Ticket.objects.filter(
         queue__in=user_queues,
@@ -317,8 +355,18 @@ def dashboard(request):
     # else:
     #     where_clause = """WHERE   q.id = t.queue_id"""
 
+    # determine per-table page sizes (default small for dashboard compactness)
+    DEFAULT_DASHBOARD_PAGE_SIZE = 5
+    # assigned tickets page size (ns: ut_shown)
+    try:
+        ut_page_size = int(request.GET.get('ut_shown', DEFAULT_DASHBOARD_PAGE_SIZE))
+        if ut_page_size <= 0:
+            ut_page_size = DEFAULT_DASHBOARD_PAGE_SIZE
+    except Exception:
+        ut_page_size = DEFAULT_DASHBOARD_PAGE_SIZE
+
     # get user assigned tickets page
-    paginator = Paginator(tickets, tickets_per_page)
+    paginator = Paginator(tickets, ut_page_size)
     try:
         tickets = paginator.page(user_tickets_page)
     except PageNotAnInteger:
@@ -326,8 +374,16 @@ def dashboard(request):
     except EmptyPage:
         tickets = paginator.page(paginator.num_pages)
 
+    # closed/resolved tickets page size (ns: utcr_shown)
+    try:
+        utcr_page_size = int(request.GET.get('utcr_shown', DEFAULT_DASHBOARD_PAGE_SIZE))
+        if utcr_page_size <= 0:
+            utcr_page_size = DEFAULT_DASHBOARD_PAGE_SIZE
+    except Exception:
+        utcr_page_size = DEFAULT_DASHBOARD_PAGE_SIZE
+
     # get user completed tickets page
-    paginator = Paginator(tickets_closed_resolved, tickets_per_page)
+    paginator = Paginator(tickets_closed_resolved, utcr_page_size)
     try:
         tickets_closed_resolved = paginator.page(user_tickets_closed_resolved_page)
     except PageNotAnInteger:
@@ -335,16 +391,7 @@ def dashboard(request):
     except EmptyPage:
         tickets_closed_resolved = paginator.page(paginator.num_pages)
 
-    # get user submitted tickets page
-    paginator = Paginator(all_tickets_reported_by_current_user, tickets_per_page)
-    try:
-        all_tickets_reported_by_current_user = paginator.page(
-            all_tickets_reported_by_current_user_page
-        )
-    except PageNotAnInteger:
-        all_tickets_reported_by_current_user = paginator.page(1)
-    except EmptyPage:
-        all_tickets_reported_by_current_user = paginator.page(paginator.num_pages)
+    # submitted-by list intentionally not computed for dashboard
 
     return render(
         request,
@@ -354,11 +401,21 @@ def dashboard(request):
             "user_tickets_closed_resolved": tickets_closed_resolved,
             "unassigned_tickets": unassigned_tickets,
             "kbitems": kbitems,
-            "all_tickets_reported_by_current_user": all_tickets_reported_by_current_user,
+            # 'all_tickets_reported_by_current_user' removed from context
             "basic_ticket_stats": basic_ticket_stats,
             "assigned_tickets_count": assigned_open_count,
             "assigned_tickets_total": assigned_total,
             "assigned_tickets_percent_open": assigned_percent_open,
+            "closed_tickets_count": assigned_closed_count,
+            # placeholder for escalated tickets - computed elsewhere if needed
+            "escalated_tickets_count": 0,
+            "status_choices": Ticket.STATUS_CHOICES,
+            "queues": list(user_queues),
+            "ut_shown": ut_page_size,
+            "utcr_shown": utcr_page_size,
+                # for assigned tickets filters, hide resolved/closed statuses in the dropdown
+                "assigned_status_exclude": [Ticket.RESOLVED_STATUS, Ticket.CLOSED_STATUS],
+                "closed_status_only": [Ticket.RESOLVED_STATUS, Ticket.CLOSED_STATUS],
         },
     )
 
@@ -810,6 +867,27 @@ def view_ticket(request, ticket_id):
     # staff_only_view should be True for regular staff, but admins (superusers)
     # should see the full admin modal (add/manage templates). Set it based on
     # the current user's superuser status.
+    # Build dynamic breadcrumb info based on referer so the ticket page can
+    # show the originating list (Dashboard or My Assigned Tickets) when the
+    # user navigated from those pages.
+    try:
+        referer = request.META.get('HTTP_REFERER', '') or ''
+    except Exception:
+        referer = ''
+    try:
+        if '/dashboard' in referer:
+            breadcrumb_label = _('Dashboard')
+            breadcrumb_url = reverse('helpdesk:dashboard')
+        elif 'my-assigned-tickets' in referer:
+            breadcrumb_label = _('My Assigned Tickets')
+            breadcrumb_url = reverse('helpdesk:my-assigned-tickets')
+        else:
+            breadcrumb_label = _('Tickets')
+            breadcrumb_url = reverse('helpdesk:list')
+    except Exception:
+        breadcrumb_label = _('Tickets')
+        breadcrumb_url = reverse('helpdesk:list')
+
     ctx = {
             "ticket": ticket,
             "dependencies": dependencies,
@@ -826,6 +904,8 @@ def view_ticket(request, ticket_id):
                 helpdesk_settings.HELPDESK_STAFF_ONLY_TICKET_OWNERS
             ),
             "staff_only_view": (not request.user.is_superuser),
+            "breadcrumb_label": breadcrumb_label,
+            "breadcrumb_url": breadcrumb_url,
             **extra_context_kwargs,
         }
 

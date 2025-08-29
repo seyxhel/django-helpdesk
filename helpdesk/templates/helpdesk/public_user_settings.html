@@ -2,6 +2,7 @@
 
 {% block title %}User settings{% endblock %}
 
+{% block helpdesk_breadcrumb %}{% endblock %}
 {% block helpdesk_head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -29,6 +30,8 @@
     body, .reset-card, .form-group, .form-text { font-family: 'Roboto', sans-serif; font-size: 13px; }
     .btn { font-family: 'Poppins', sans-serif; }
     @media (max-width: 480px) { .reset-actions { flex-direction: column; } .btn-primary, .btn-secondary { width: 90% !important; display: block; } }
+  /* Hide breadcrumb placeholder for this page (settings) */
+  .breadcrumb { display: none !important; }
 </style>
 {% endblock %}
 

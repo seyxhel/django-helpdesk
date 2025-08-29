@@ -28,7 +28,7 @@
                {{ item.get_markdown }}
             </div>
             <div class="row">
-                {% if request.user.pk %}
+                {% if request.user.pk and not staff %}
                 <div class="col-sm">
                     <form method="post" action="{% url "helpdesk:kb_vote" item.pk "up" %}" style="display: inline">{% csrf_token %}
                     <button type="submit" class="btn btn-success btn-circle btn-xl"><i class="fa fa-thumbs-up fa-lg"></i></button></form>
@@ -36,13 +36,7 @@
                     <button type="submit" class="btn btn-danger btn-circle btn-xl"><i class="fa fa-thumbs-down fa-lg"></i></submit></form>
                 </div>
                 {% endif %}
-                {% if staff %}
-                <a href='{% url 'helpdesk:list' %}?kbitem={{item.id}}' class="col-sm">
-                    <div class="btn btn-success btn-circle btn-xl float-right"><i class="fa fa-search fa-lg"></i> {{item.num_open_tickets}} {% trans 'open tickets' %}</div>
-                </a>
-
-                {% endif %}
-                {% if item.allow_ticket_creation %}
+                {% if item.allow_ticket_creation and not staff %}
                 <a href='{% if iframe %}{% url 'helpdesk:submit_iframe' %}{% else %}{% url 'helpdesk:submit' %}{%endif%}?{% if category.queue %}queue={{category.queue.pk}}&_readonly_fields_=queue&{%endif%}kbitem={{item.id}}&{{query_param_string}}' class="col-sm">
                     {% if iframe %}
                     <div class="btn btn-success btn-circle btn-xl float-right"><i  class="fa fa-envelope fa-lg"></i> {% trans 'Contact a human' %}</div>

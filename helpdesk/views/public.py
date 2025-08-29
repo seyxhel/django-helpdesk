@@ -547,8 +547,14 @@ class MyTickets(TemplateView):
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return HttpResponseRedirect(reverse("helpdesk:login"))
-
         context = self.get_context_data(**kwargs)
+        # Detect if this view was reached via the staff 'my-assigned-tickets' URL
+        # and expose a flag so templates/JS can use an assigned-tickets API.
+        try:
+            path = request.path or ''
+            context['staff_assigned_view'] = 'my-assigned-tickets' in path
+        except Exception:
+            context['staff_assigned_view'] = False
         # Provide status choices to populate the status filter dropdown
         try:
             from helpdesk import settings as helpdesk_settings

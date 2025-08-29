@@ -28,7 +28,7 @@
 <div class="card mb-3">
     <div class="card-header">{% trans "Edit FollowUp" %}</div>
     <div class="card-body">
-        <form action="." method="POST" name="edit_followup_form">
+    <form action="." method="POST" name="edit_followup_form" enctype="multipart/form-data">
             {{ form.non_field_errors }}
             <fieldset>
                 <div class="form-row">

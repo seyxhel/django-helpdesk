@@ -1,14 +1,14 @@
 {% extends "helpdesk/base.html" %}{% load i18n %}
 
-{% block helpdesk_title %}{% trans "My Tickets" %}{% endblock %}
+{% block helpdesk_title %}{% if staff_assigned_view %}{% trans "My Assigned Tickets" %}{% else %}{% trans "My Tickets" %}{% endif %}{% endblock %}
 
 {% block helpdesk_breadcrumb %}
-<li class="breadcrumb-item active">{% trans "My Tickets" %}</li>
+<li class="breadcrumb-item active">{% if staff_assigned_view %}{% trans "My Assigned Tickets" %}{% else %}{% trans "My Tickets" %}{% endif %}</li>
 <li id="last-ticket-breadcrumb" class="breadcrumb-item" style="display:none"></li>
 {% endblock %}
 
 {% block helpdesk_body %}
-<h2 class="sr-only">{% trans "My Tickets" %}</h2>
+<h2 class="sr-only">{% if staff_assigned_view %}{% trans "My Assigned Tickets" %}{% else %}{% trans "My Tickets" %}{% endif %}</h2>
 
 <style>
     /* Ensure the main content sits nicely next to the sidebar when present */
@@ -78,6 +78,8 @@ window.addEventListener('load', function()
         "{{ code }}": "{{ label }}"{% if not forloop.last %},{% endif %}
         {% endfor %}
     };
+    // Whether this page is the staff-assigned view (server-provided)
+    const STAFF_ASSIGNED_VIEW = {{ staff_assigned_view|yesno:"true,false" }};
 
     function fetchQueues(q = ''){
         // Try the router-backed URL first, then fall back to common paths.
@@ -136,7 +138,9 @@ window.addEventListener('load', function()
         const ordering = $('#orderToggle').data('order') || 'desc';
         const status = $('#statusFilter').val() || '';
         const queueId = $('#queueSearch').data('queue-id') || '';
-        const endpoint = '{% url "helpdesk:user_tickets-list" %}?page=' + page + '&ordering=' + ordering + '&page_size=8' + (status ? '&status=' + status : '') + (queueId ? '&queue=' + queueId : '');
+    const baseAssigned = '/api/assigned_tickets/?';
+    const baseUserTickets = '{% url "helpdesk:user_tickets-list" %}?';
+    const endpoint = (STAFF_ASSIGNED_VIEW ? baseAssigned : baseUserTickets) + 'page=' + page + '&ordering=' + ordering + '&page_size=8' + (status ? '&status=' + status : '') + (queueId ? '&queue=' + queueId : '');
         console.debug('fetchTickets endpoint', endpoint);
 
         $.get(endpoint)
@@ -162,10 +166,12 @@ window.addEventListener('load', function()
                 }
                 results.forEach(function(ticket) {
                 ticket.title = $('<div>').html(ticket.title).html();
+                // Choose correct URL: staff assigned view should link to staff detail
+                var ticketUrl = STAFF_ASSIGNED_VIEW ? ('/tickets/' + ticket.id + '/') : ('/view/?ticket=' + ticket.id + '&email=' + encodeURIComponent(ticket.submitter || '') + '&key=' + encodeURIComponent(ticket.secret_key || ''));
                 $('#ticketsTable tbody').append(`
                     <tr>
                         <td>
-                            <a href='/view/?ticket=${ticket.id}&email=${ticket.submitter}&key=${ticket.secret_key}'>${ticket.title}</a>
+                            <a href="${ticketUrl}">${ticket.title}</a>
                         </td>
                         <td>${ticket.queue.title}</td>
                         <td>${ticket.status}</td>
