@@ -34,138 +34,329 @@
 {% block helpdesk_body %}
 <!-- Corporate UI: clean, neutral palette, clear hierarchy -->
 <style>
-  /* Aesthetic minimal / balanced filter row */
   :root{
     --bg: #ffffff;
     --muted: #6c7783;
     --ink: #0f2b44;
     --accent: #0b57d0;
-    --soft: #f5f8fb;
+    --soft: #f6f9fc;
     --border: #e6eef6;
     --radius: 8px;
-    --height: 44px;
-    --gap: 14px;
+    --control-height: 40px;
+    --gap: 12px;
   }
 
-  /* container */
-  .card.mb-3 { border-radius: var(--radius); border: 1px solid var(--border); background: linear-gradient(180deg,#fff,#fbfeff); box-shadow:0 6px 20px rgba(15,23,42,0.04); }
+  /* Card surface */
+  .card.mb-3 {
+    background: #ffffff;
+  }
 
-  /* Filters bar: equal horizontal rhythm */
+  /* Filters bar: compact, wraps on small screens (no horizontal scroll) */
   .filters-bar {
     display: flex;
     gap: var(--gap);
     align-items: center;
     width: 100%;
-    padding: 12px;
+    padding: 10px;
     box-sizing: border-box;
     background: transparent;
-    white-space: nowrap;
-    overflow-x: auto;
+    white-space: normal;    /* allow wrap */
+    overflow-x: visible;
+    flex-wrap: wrap;
   }
 
-  /* equal-aligned layout:
-     - search is slightly larger
-     - every other control shares same visual width rhythm
-  */
-  .filters-bar > * { box-sizing: border-box; flex: 1 1 0; min-width: 120px; }
-  .filters-bar .f-search { flex: 2 1 360px; min-width: 240px; }
+  /* Rhythm for children */
+  .filters-bar > * { box-sizing: border-box; flex: 1 1 0; min-width: 140px; }
+  .filters-bar .f-search { flex: 2 1 360px; min-width: 220px; }
   .filters-bar .f-control { flex: 1 1 160px; min-width: 140px; }
-  .filters-bar .f-actions { flex: 1 1 160px; min-width: 140px; display: flex; gap: 10px; justify-content: flex-start; align-items: center; }
-  .filters-bar .add-filter { flex: 0 0 140px; min-width: 120px; display: flex; justify-content: flex-end; align-items: center; }
+  .filters-bar .f-actions { flex: 0 0 auto; display:flex; gap:8px; align-items:center; justify-content:flex-start; }
 
-  /* Overrides: filters font 12px, top/bottom padding 10px, center-aligned text */
-  .filters-bar {
-    padding-top: 10px;
-    padding-bottom: 10px;
-  }
-
-  /* Ensure all children share the same small font and vertical centering */
-  .filters-bar,
-  .filters-bar > * {
-    font-size: 12px;
-    align-items: center;
-    text-align: left; /* left-align text for all filter controls */
-  }
-
-  /* Controls: 10px vertical padding, left-aligned text, flexible height */
-  .form-control,
-  .custom-select {
-    font-size: 12px;
-    padding: 10px 12px;        /* top/bottom = 10px, left/right = 12px */
-    height: auto;              /* allow padding to control height */
-    line-height: 1;            /* prevent extra line-height spacing */
-    text-align: left;         /* left align text */
+  /* Inputs & selects (applies broadly on page controls) */
+  .filters-bar .form-control,
+  .filters-bar .custom-select,
+  select,
+  input[type="search"] {
+    font-size: 13px;
+    padding: 8px 12px;
+    height: var(--control-height);
+    min-height: var(--control-height);
+    border-radius: 8px;
+    border: 1px solid rgba(15,23,42,0.06);
+    background: #fff;
+    color: var(--ink);
+    box-shadow: none;
+    box-sizing: border-box;
+    transition: border-color .12s ease, box-shadow .12s ease, transform .06s ease;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-    border-radius: var(--radius);
   }
-  /* Force selects to left-align the selected option in most browsers */
-  .custom-select { text-align-last: left; }
 
-  /* Buttons match control sizing and left-align their labels */
-  .filters-bar .btn,
-  .filters-bar .btn.btn-primary,
-  .filters-bar .btn-outline-secondary {
-    font-size: 12px;
-    padding: 7px 14px;
-    height: auto;
+  .filters-bar .form-control:focus,
+  .filters-bar .custom-select:focus,
+  input[type="search"]:focus {
+    outline: none;
+    border-color: rgba(11,87,208,0.18);
+    box-shadow: 0 6px 18px rgba(11,87,208,0.06);
+    transform: translateY(-1px);
+  }
+
+  /* Buttons in the filters area */
+  .filters-bar .btn {
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
-    justify-content: flex-start;
-    border-radius: var(--radius); /* make buttons match inputs/cards */
-    cursor: pointer;
+    gap: 8px;
   }
-  
-  /* Add-filter: compact, icon-like select */
-  .add-filter select.custom-select {
-    background: linear-gradient(180deg,#fff,#fbfdff);
-    padding-right: 28px;
-    text-align-last: center;
+  .filters-bar .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(11,87,208,0.06);
   }
-  /* Add small chevron using pseudo element on container (works for modern browsers) */
-  .add-filter { position: relative; }
-  .add-filter::after {
-    content: '▾';
-    position: absolute;
-    right: 12px;
-    font-size: 14px;
-    color: var(--muted);
-    pointer-events: none;
-    top: 50%;
-    transform: translateY(-50%);
+  .filters-bar .btn-outline-secondary {
+    background: transparent;
+    border: 1px solid rgba(15,23,42,0.06);
+    color: var(--ink);
   }
 
-  /* Advanced filter cards: minimal */
-  .filter-grid .filter-card {
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
+  /* Top table controls wrapper (DataTables buttons + mass actions) */
+  #topTableControls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  /* DataTables buttons placeholder */
+  .dt-buttons-placeholder {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex: 0 1 auto;
+  }
+  .dt-buttons .dt-button {
     background: #fff;
-    padding: 10px 12px;
+    border: 1px solid rgba(15,23,42,0.06);
+    color: var(--ink);
+    padding: 8px 10px;
+    border-radius: 8px;
+    box-shadow: none;
+    font-size: 13px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+  }
+  .dt-button:hover { border-color: rgba(11,87,208,0.12); color:var(--accent); }
+
+  /* Mass-action group (right side) */
+  #topTableControls .mass-action-group {
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex: 0 0 auto;
+  }
+  /* make the mass action select readable and fixed width */
+  #topTableControls select.form-control.form-control-sm {
+    min-width: 260px;
+    max-width: 420px;
+    padding: 8px 12px;
+    height: var(--control-height);
+  }
+  #topTableControls .btn-sm { padding: 6px 12px; }
+
+  /* Ensure check/select buttons are compact */
+  #topTableControls .btn-group .btn { padding: 6px 10px; }
+
+  /* responsive behavior */
+  @media (max-width: 900px) {
+    .filters-bar > * { flex: 1 1 100%; min-width: 120px; }
+    #topTableControls { gap:10px; }
+    .dt-buttons-placeholder { order: -1; width: 100%; justify-content: flex-start; }
+    #topTableControls .mass-action-group { width: 100%; justify-content: flex-start; }
+    #topTableControls select.form-control.form-control-sm { width: 100%; min-width: auto; max-width: none; }
+  }
+
+  /* Ensure the tickets table becomes horizontally scrollable instead of overlapping */
+  #ticketTable_wrapper {
+    overflow-x: auto;                      /* allow horizontal scroll when columns grow */
+    -webkit-overflow-scrolling: touch;     /* smooth scrolling on touch devices */
+    position: relative;                    /* avoid absolute overlap with siblings */
+  }
+
+  /* Let the table expand to fit its columns (don't force it to squeeze) */
+  #ticketTable {
+    width: auto !important;
+    min-width: max-content; /* grow to content width so wrapper scrolls */
+    table-layout: auto;     /* let cells size naturally */
+    white-space: nowrap;    /* keep rows on a single line so horizontal scroll is used */
+  }
+
+  /* Prevent TH/TD contents from wrapping and breaking layout */
+  #ticketTable th,
+  #ticketTable td {
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  /* Make sure the DataTables generated controls / wrapper don't collapse on small screens */
+  #ticketTable_wrapper .dataTables_length,
+  #ticketTable_wrapper .dataTables_filter,
+  #ticketTable_wrapper .dataTables_info,
+  #ticketTable_wrapper .dataTables_paginate {
+    flex-shrink: 0;
+  }
+
+  /* Optional: small padding so scrollbar doesn't touch content */
+  #ticketTable_wrapper { padding-bottom: 6px; }
+
+  /* Mobile: allow the collection to be full width, but still scroll horizontally if needed */
+  @media (max-width: 640px) {
+    #ticketTable_wrapper { width: 100%; overflow-x: auto; }
+    #ticketTable { min-width: 800px; } /* fallback minimum for very small screens */
+  }
+
+  /* Mass-action group: pin to right and visually join select + button */
+  .mass-action-group {
+    margin-left: auto;             /* push group to the right of the flex row */
+    display: inline-flex;
+    gap: 0;                        /* no gap so controls sit flush */
+    align-items: center;
+  }
+  .mass-action-group select.form-control {
+    border-radius: 8px 0 0 8px;
+    border-right: none;
+    min-width: 220px;
+  }
+  .mass-action-group .btn-go {
+    border-radius: 0 8px 8px 0;
+    padding: 0 14px;
+    height: var(--control-height);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Mass-action group: unified border so select + Go look like one control */
+  .mass-action-group {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid rgba(15,23,42,0.08);   /* outer border */
+    border-radius: 8px;
+    overflow: hidden;
+    background: #ffffff;
     box-shadow: none;
   }
-  /* hide by default, reveal when filterBoxShow applied */
-  .filterBox { display: none; opacity: 0; transition: opacity .18s ease; }
-  .filterBox.filterBoxShow { display: block; opacity: 1; }
 
-  /* Sorting box micro-style */
-  #filterBoxSort { display: flex; gap: 12px; align-items: center; }
-  #filterBoxSort .sort-label { min-width: 82px; color: var(--ink); font-weight: 600; }
-  #filterBoxSort .btn-delete {
+  /* remove individual control borders so outer border is visible */
+  .mass-action-group select.form-control {
+    border: none;
+    border-radius: 0;
+    padding: 8px 12px;
+    height: var(--control-height);
+    min-width: 220px;
+    box-shadow: none;
     background: transparent;
-    border: 1px solid rgba(15,43,68,0.06);
-    color: #d44;
-    width: 36px; height: 36px;
-    border-radius: var(--radius);
-    display: inline-flex; align-items: center; justify-content: center;
   }
 
-  /* Responsiveness: keep single-row until narrow */
-  @media (max-width: 900px) {
-    .filters-bar { flex-wrap: wrap; gap: 10px; }
-    .filters-bar > * { flex: 1 1 100%; min-width: 140px; }
-    .filters-bar .f-search { order: -1; }
-    .add-filter { justify-content: flex-start; }
+  /* separator line between select and button */
+  .mass-action-group .btn-go {
+    border: none;
+    border-left: 1px solid rgba(15,23,42,0.06);
+    height: var(--control-height);
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* keep the button look consistent when using btn-primary class */
+  .mass-action-group .btn-go.btn-primary {
+    background: var(--accent);
+    border-color: transparent;
+    color: #fff;
+  }
+
+  /* focus state for accessibility */
+  .mass-action-group:focus-within {
+    box-shadow: 0 0 0 3px rgba(11,87,208,0.08);
+    border-color: rgba(11,87,208,0.18);
+  }
+
+  /* stacked (mobile) behavior: outer border remains and children full-width */
+  @media (max-width: 640px) {
+    .mass-action-group {
+      margin-left: 0;
+      width: 100%;
+      gap: 8px;
+      flex-direction: column;
+      border-radius: 8px;
+    }
+    .mass-action-group select.form-control,
+    .mass-action-group .btn-go {
+      width: 100%;
+      border-left: none;
+      border-radius: 8px;
+    }
+  }
+
+  /* Align entries controls horizontally */
+  #entriesControls .entries-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: nowrap;
+  }
+  /* Ensure DataTables' length control lays out inline */
+  #entriesControls .entries-left .dataTables_length,
+  #entriesControls .entries-left .dataTables_info {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  /* Make the label/select inline and compact */
+  .dataTables_length label,
+  .dataTables_length .form-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    white-space: nowrap;
+  }
+  .dataTables_length select,
+  .dataTables_length .form-control {
+    display: inline-block;
+    vertical-align: middle;
+    width: auto;
+    min-width: 64px;
+    padding: 6px 8px;
+    height: calc(var(--control-height) - 8px);
+  }
+  /* Keep the info muted and aligned */
+  .dataTables_info {
+    margin: 0;
+    color: rgba(15,23,42,0.6);
+    font-size: 13px;
+  }
+
+  /* Pagination stays on the right (no change) */
+  #entriesControls .entries-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Responsive: allow wrap when there isn't enough space */
+  @media (max-width: 640px) {
+    #entriesControls .entries-left { flex-wrap: wrap; gap: 8px; }
+    .dataTables_length label { white-space: normal; }
   }
 </style>
 
@@ -247,20 +438,12 @@
     {# --- Move mass-action & top controls here (below query selection, above the table) --- #}
     <form method='post' action='{% url 'helpdesk:mass_update' %}' id="ticket_mass_update">
         {% csrf_token %}
-        <div id="topTableControls" class="d-flex justify-content-between align-items-center mb-3">
+        <div id="topTableControls" class="d-flex align-items-center mb-3">
             <div class="dt-buttons-placeholder">
                 {# DataTables will move its buttons (Column visibility etc.) here on init via JS. #}
             </div>
 
-            <div class="d-flex align-items-center gap-2">
-                <label class="mb-0 mr-2 small text-muted">{% trans "Select:" %}</label>
-                <div class="btn-group btn-group-sm mr-2" role="group" aria-label="{% trans 'Select controls' %}">
-                    <button id="select_all_btn" type="button" class="btn btn-outline-primary btn-sm">{% trans "All" %}</button>
-                    <button id="select_none_btn" type="button" class="btn btn-outline-primary btn-sm">{% trans "None" %}</button>
-                    <button id="select_inverse_btn" type="button" class="btn btn-outline-primary btn-sm">{% trans "Invert" %}</button>
-                </div>
-
-                <label for='id_mass_action' class="mb-0 small mr-2">{% trans "With Selected Tickets:" %}</label>
+            <div class="mass-action-group">
                 <select name='action' id='id_mass_action' class="form-control form-control-sm">
                     <option value='take'>{% trans "Take (Assign to me)" %}</option>
                     <option value='delete'>{% trans "Delete" %}</option>
@@ -282,8 +465,9 @@
                         {% endfor %}
                     </optgroup>
                 </select>
-                <button type="submit" class="btn btn-primary btn-sm ml-2">
-                    <i class="fas fa-arrow-circle-right"></i> {% trans "Go" %}
+
+                <button type="submit" class="btn btn-primary btn-go" aria-label="{% trans 'Go' %}">
+                    <i class="fas fa-arrow-circle-right"></i>
                 </button>
             </div>
         </div>
@@ -292,7 +476,7 @@
     {# --- Table card: now after the filters --- #}
     <div class="card">
         {% if helpdesk_settings.HELPDESK_TICKETS_TIMELINE_ENABLED %}
-        <div class="card-header">
+        <div class="card-header" style="background-color: #ffffffff;">
             <ul class="nav nav-tabs">
                 <li class="nav-item" style="width: 200px;">
                     {% trans "Query Results" %}:
