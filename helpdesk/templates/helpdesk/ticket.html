@@ -1126,8 +1126,28 @@ $( function() {
                   contentType: false,
                   headers: {'X-Requested-With': 'XMLHttpRequest'},
                   success: function(resp) {
-                    // On success, reload the page to reflect the update
-                    try { window.location.reload(true); } catch(e) { window.location.reload(); }
+                    try {
+                      // If server reports validation errors, update modal body with returned fragment
+                      if (resp && resp.success === false && resp.modal_form_html) {
+                        var $m = $('#followupEditModal');
+                        try { $m.find('.modal-body').html(resp.modal_form_html); } catch(ehtml) { console.warn('failed replacing modal body with server form html', ehtml); }
+                        // append attachments fragment if provided
+                        try {
+                          if (resp.attachments_html) {
+                            var $formTarget = $m.find('form').first();
+                            if ($formTarget.length) { $formTarget.append(resp.attachments_html); } else { $m.find('.modal-body').append(resp.attachments_html); }
+                          }
+                        } catch(ea) { console.warn('failed appending attachments_html', ea); }
+                        // ensure replacement wrapper exists and rebind handlers
+                        try { if (window._ensureReplacementWrapper) window._ensureReplacementWrapper(); } catch(e){}
+                        try { if (resp.debug) console.warn('followup_edit debug', resp.debug); } catch(_){}
+                        // small user hint that validation failed
+                        try { $('#followupEditModal .modal-body').prepend('<div class="alert alert-warning">There were validation errors — see form and console for details.</div>'); } catch(_){}
+                        return;
+                      }
+                      // On success, reload the page to reflect the update
+                      try { window.location.reload(true); } catch(e) { window.location.reload(); }
+                    } catch(e2) { console.error('followupEdit AJAX success handler error', e2); try { window.location.reload(); } catch(_){} }
                   },
                   error: function(xhr, status, err) {
                     console.error('followupEdit AJAX submit failed', status, err);

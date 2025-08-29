@@ -471,6 +471,13 @@ def followup_edit(request, ticket_id, followup_id):
                 "time_spent": format_time_spent(followup.time_spent),
             }
         )
+        # Ensure the ticket field includes the current followup's ticket even if it's not in OPEN_STATUSES
+        try:
+            form.fields['ticket'].queryset = Ticket.objects.filter(
+                Q(status__in=Ticket.OPEN_STATUSES) | Q(pk=followup.ticket.pk)
+            )
+        except Exception:
+            pass
         # Make title readonly in the form widget so template can render it normally
         try:
             form.fields['title'].widget.attrs.update({'class': 'form-control', 'readonly': 'readonly'})
@@ -531,12 +538,21 @@ def followup_edit(request, ticket_id, followup_id):
             },
         )
     elif request.method == "POST":
-        form = EditFollowUpForm(request.POST)
+        # include uploaded files so replacement_attachment is available
+        form = EditFollowUpForm(request.POST, request.FILES)
+        # Ensure ticket queryset includes the followup's ticket so validation won't fail
+        try:
+            form.fields['ticket'].queryset = Ticket.objects.filter(
+                Q(status__in=Ticket.OPEN_STATUSES) | Q(pk=followup.ticket.pk)
+            )
+        except Exception:
+            pass
         # Ensure title is readonly in case template relies on form rendering
         try:
             form.fields['title'].widget.attrs.update({'class': 'form-control', 'readonly': 'readonly'})
         except Exception:
             pass
+
         if form.is_valid():
             title = form.cleaned_data["title"]
             _ticket = form.cleaned_data["ticket"]
@@ -568,11 +584,6 @@ def followup_edit(request, ticket_id, followup_id):
             # Handle replacement of an attachment if requested via modal
             replace_id = request.POST.get('replace_attachment_id')
             replacement_file = request.FILES.get('replacement_attachment')
-            # DEBUG: temporary logging to verify replacement upload reached server
-            try:
-                print('[DEBUG followup_edit] replace_attachment_id=', replace_id, 'replacement_attachment present=', bool(replacement_file))
-            except Exception:
-                pass
             if replace_id and replacement_file:
                 try:
                     old_att = FollowUpAttachment.objects.get(id=int(replace_id), followup=new_followup)
@@ -595,7 +606,54 @@ def followup_edit(request, ticket_id, followup_id):
                     old_att.delete()
             # delete old followup
             followup.delete()
-        return HttpResponseRedirect(reverse("helpdesk:view", args=[ticket.id]))
+            # On success, return JSON for AJAX or redirect for normal requests
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': True})
+            return HttpResponseRedirect(reverse("helpdesk:view", args=[ticket.id]))
+        else:
+            # form is invalid: return errors appropriately depending on AJAX vs normal request
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                # re-render the form fragment so client can update modal body with errors
+                ticketcc_string = return_ticketccstring_and_show_subscribe(request.user, ticket)[0]
+                modal_form_html = render_to_string(
+                    'helpdesk/include/followup_edit_form.html',
+                    {
+                        'followup': followup,
+                        'ticket': ticket,
+                        'form': form,
+                        'ticketcc_string': ticketcc_string,
+                        'user': request.user,
+                    },
+                    request=request,
+                )
+                attachments_html = render_to_string(
+                    'helpdesk/include/followup_attachments_fragment.html',
+                    {
+                        'followup': followup,
+                        'ticket': ticket,
+                        'user': request.user,
+                    },
+                    request=request,
+                )
+                # Include lightweight debug information to help client surface validation/file issues
+                debug = {
+                    'has_replacement_file': bool(request.FILES.get('replacement_attachment')),
+                    'replace_id': request.POST.get('replace_attachment_id'),
+                    'form_errors': {k: [str(e) for e in v] for k, v in form.errors.items()},
+                }
+                return JsonResponse({'success': False, 'modal_form_html': modal_form_html, 'attachments_html': attachments_html, 'debug': debug})
+            else:
+                ticketcc_string = return_ticketccstring_and_show_subscribe(request.user, ticket)[0]
+                return render(
+                    request,
+                    "helpdesk/followup_edit.html",
+                    {
+                        "followup": followup,
+                        "ticket": ticket,
+                        "form": form,
+                        "ticketcc_string": ticketcc_string,
+                    },
+                )
 
 
 followup_edit = staff_member_required(followup_edit)
@@ -1558,7 +1616,13 @@ def ticket_list(request):
         return HttpResponseRedirect(reverse("helpdesk:list"))
 
     if saved_query:
-        pass
+        # Ensure ticket queryset includes the followup's ticket so validation won't fail
+        try:
+            form.fields['ticket'].queryset = Ticket.objects.filter(
+                Q(status__in=Ticket.OPEN_STATUSES) | Q(pk=followup.ticket.pk)
+            )
+        except Exception:
+            pass
     elif not {
         "queue",
         "assigned_to",

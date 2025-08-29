@@ -1,6 +1,21 @@
 {% load i18n %}
 <form action="{{ request.path }}" method="POST" name="edit_followup_form" enctype="multipart/form-data">
     {{ form.non_field_errors }}
+    {# Ensure ticket id is included when the modal form is submitted via AJAX #}
+    <input type="hidden" name="ticket" value="{{ ticket.id }}" />
+    {# Display an error summary so AJAX-replaced modal shows validation details #}
+    {% if form.errors %}
+        <div class="alert alert-danger">
+            <strong>{% trans "Please fix the following errors:" %}</strong>
+            <ul class="mb-0">
+                {% for field, errs in form.errors.items %}
+                    {% for err in errs %}
+                        <li>{% if field != '__all__' %}{{ field }}: {% endif %}{{ err }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
     <div class="card mb-3">
         <div class="card-body">
             <fieldset>
