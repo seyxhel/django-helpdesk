@@ -320,6 +320,12 @@ class PublicUserSettingsView(LoginRequiredMixin, FormView):
     success_url = reverse_lazy("helpdesk:user_settings")
 
     def dispatch(self, request, *args, **kwargs):
+        try:
+            logger.info("PublicUserSettingsView.dispatch called method=%s user=%s is_staff=%s", request.method, getattr(request.user, 'username', None), getattr(request.user, 'is_staff', None))
+            if request.method == 'POST':
+                logger.info("PublicUserSettingsView.dispatch POST keys: %s", list(request.POST.keys()))
+        except Exception:
+            pass
         # Staff should continue to use the staff settings view
         if request.user.is_staff:
             return staff.EditUserSettingsView.as_view()(request, *args, **kwargs)

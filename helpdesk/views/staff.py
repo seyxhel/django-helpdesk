@@ -2316,6 +2316,63 @@ class EditUserSettingsView(MustBeStaffMixin, UpdateView):
     def get_object(self, queryset=None):
         return UserSettings.objects.get_or_create(user=self.request.user)[0]
 
+    def post(self, request, *args, **kwargs):
+        try:
+            logger.info("EditUserSettingsView.post called user=%s POST keys=%s", getattr(request.user, 'username', None), list(request.POST.keys()))
+        except Exception:
+            pass
+        return super().post(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        # Save the UserSettings model first (bound to the instance)
+        us = form.save(commit=False)
+
+        # Ensure boolean fields are explicitly set from POST presence because unchecked
+        # checkboxes do not appear in POST data. This guarantees False is persisted.
+        for bool_field in ("email_on_ticket_change", "email_on_ticket_assign", "login_view_ticketlist", "use_email_as_submitter"):
+            if hasattr(us, bool_field):
+                val = self.request.POST.get(bool_field)
+                try:
+                    if isinstance(val, str):
+                        v = val.lower() in ('1', 'true', 'on', 'yes')
+                    else:
+                        v = bool(val)
+                    setattr(us, bool_field, v)
+                except Exception:
+                    # ignore any unexpected attribute errors
+                    pass
+
+        try:
+            us.save()
+        except Exception:
+            # fallback: attempt plain form.save()
+            try:
+                form.save()
+            except Exception:
+                logger.exception("Failed to save UserSettings in EditUserSettingsView.form_valid")
+
+        # Persist editable user fields submitted from the staff form
+        try:
+            u = self.request.user
+            first = self.request.POST.get('first_name', None)
+            last = self.request.POST.get('last_name', None)
+            if first is not None:
+                u.first_name = first
+            if last is not None:
+                u.last_name = last
+            u.save()
+        except Exception:
+            logger.exception("Failed to save User first/last name in EditUserSettingsView.form_valid")
+
+        # Log POST keys for debugging
+        try:
+            logger.info("EditUserSettingsView.form_valid POST keys: %s", list(self.request.POST.keys()))
+        except Exception:
+            pass
+
+        # Redirect back to /settings/?updated=1 to trigger the success overlay
+        return HttpResponseRedirect(reverse_lazy('helpdesk:user_settings') + '?updated=1')
+
 
 @helpdesk_superuser_required
 def email_ignore(request):

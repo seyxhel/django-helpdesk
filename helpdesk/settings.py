@@ -14,7 +14,7 @@ import sys
 
 
 DEFAULT_USER_SETTINGS = {
-    "login_view_ticketlist": True,
+    "login_view_ticketlist": False,
     "email_on_ticket_change": True,
     "email_on_ticket_assign": True,
     "tickets_per_page": 25,

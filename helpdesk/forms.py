@@ -824,6 +824,18 @@ class UserSettingsForm(forms.ModelForm):
     class Meta:
         model = UserSettings
         exclude = ["user", "settings_pickled"]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Ensure boolean fields render with form-check-input class for consistent checkbox markup
+        for fname in ("email_on_ticket_change", "email_on_ticket_assign", "login_view_ticketlist", "use_email_as_submitter"):
+            if fname in self.fields:
+                try:
+                    existing = self.fields[fname].widget.attrs.get('class', '')
+                    classes = (existing + ' form-check-input').strip()
+                    self.fields[fname].widget.attrs['class'] = classes
+                except Exception:
+                    pass
 
 
 class EmailIgnoreForm(forms.ModelForm):
