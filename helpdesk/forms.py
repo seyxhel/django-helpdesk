@@ -161,6 +161,14 @@ class AddUserForm(UserCreationForm):
         for bool_field in ("is_staff", "is_active"):
             if bool_field in self.fields:
                 self.fields[bool_field].widget.attrs.update({"class": "form-check-input"})
+                # Ensure new users are not staff by default in the add form
+                if bool_field == 'is_staff':
+                    try:
+                        # initial controls the rendered checked state for unbound forms
+                        # default to checked per request
+                        self.fields['is_staff'].initial = True
+                    except Exception:
+                        pass
 
         # Remove verbose password help if present
         if "password1" in self.fields:

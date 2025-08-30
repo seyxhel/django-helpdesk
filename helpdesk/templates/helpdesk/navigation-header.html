@@ -28,10 +28,11 @@
             <input type='hidden' name='search_type' value='header' />
 
             <!-- Buttons moved inside the input (visually) -->
-            <button class="btn btn-link text-white clear-btn" type="button" id="search_clear" title="{% trans 'Clear search' %}" onclick="document.getElementById('search_query').value='';document.getElementById('search_query').focus();">
-              <i class="fas fa-times"></i>
+            <button class="btn btn-link text-white clear-btn" type="button" id="search_clear" title="{% trans 'Clear search' %}" style="display:none;">
+              <i class="fas fa-times" aria-hidden="true"></i>
             </button>
-            <button class="btn btn-primary submit-btn" type="submit" title="{% trans 'Search' %}">
+            <!-- Make the Go button inert: visible but does not submit the form when clicked -->
+            <button class="btn btn-primary submit-btn" type="button" title="{% trans 'Search' %}" aria-disabled="true" onclick="event.preventDefault(); return false;">
               <span class="d-none d-sm-inline">{% trans 'Go' %}</span>
             </button>
           </div>
@@ -153,6 +154,36 @@
         });
       })();
     </script>
+      <script>
+        // Show the clear (X) button only when the search input has content.
+        (function(){
+          try {
+            var input = document.getElementById('search_query');
+            var clearBtn = document.getElementById('search_clear');
+            if (!input || !clearBtn) return;
+
+            function update() {
+              if (input.value && input.value.trim()) {
+                clearBtn.style.display = '';
+              } else {
+                clearBtn.style.display = 'none';
+              }
+            }
+
+            // wire the existing clear button behavior
+            clearBtn.addEventListener('click', function(e){
+              e.preventDefault();
+              input.value = '';
+              update();
+              try { input.focus(); } catch(_) {}
+            });
+
+            input.addEventListener('input', update);
+            // initialize on load
+            update();
+          } catch (e) { /* ignore */ }
+        })();
+      </script>
       <script>
         (function(){
           // Robust user dropdown handler: prefer finding the toggle by the

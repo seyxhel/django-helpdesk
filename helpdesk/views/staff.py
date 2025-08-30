@@ -841,7 +841,7 @@ def add_user(request):
                     except ImportError:
                         pass
 
-                    return redirect("helpdesk:system_settings")
+                    return redirect('/users/')
             except IntegrityError as e:
                 msg = str(e)
                 if "account_emailaddress.email" in msg or "UNIQUE constraint failed: account_emailaddress.email" in msg:
@@ -864,17 +864,38 @@ def user_list(request):
 @helpdesk_superuser_required
 def edit_user(request, user_id):
     user_obj = get_object_or_404(User, id=user_id)
-    if request.method == 'POST':
-        form = AddUserForm(request.POST, instance=user_obj)
-        # use EditUserForm to avoid password handling
-        form = None
-        form = None
-        form = None
-        form = None
-    else:
-        from helpdesk.forms import EditUserForm
+    from helpdesk.forms import EditUserForm
 
+    if request.method == 'POST':
+        form = EditUserForm(request.POST, instance=user_obj)
+        if form.is_valid():
+            # Only save allowed fields (EditUserForm should handle password exclusions).
+            form.save()
+            return redirect('/users/')
+    else:
         form = EditUserForm(instance=user_obj)
+
+    # Make certain fields readonly in the form widgets so the template can render them
+    # as non-editable while still submitting their values. This avoids template-level
+    # method calls with args which Django templates don't support.
+    for fname in ('first_name', 'last_name', 'username', 'email'):
+        try:
+            if fname in form.fields:
+                form.fields[fname].widget.attrs['readonly'] = 'readonly'
+        except Exception:
+            # be defensive: ignore widget attribute issues
+            pass
+    # Prevent toggling the staff checkbox on the edit page by marking it for
+    # client-side JS to block interaction. We do NOT disable the input so the
+    # value will still be submitted with the form.
+    try:
+        if 'is_staff' in form.fields:
+            form.fields['is_staff'].widget.attrs['data-readonly'] = 'true'
+            # add a class for easy targeting/styling in the template
+            old_cls = form.fields['is_staff'].widget.attrs.get('class', '')
+            form.fields['is_staff'].widget.attrs['class'] = (old_cls + ' readonly-checkbox').strip()
+    except Exception:
+        pass
 
     return render(request, 'helpdesk/add_user.html', {'form': form, 'editing': True, 'user_obj': user_obj})
 

@@ -184,7 +184,7 @@
         <div class="col-md-6 col-4" style="display: flex; align-items: center;">
             <div class="nav-links" style="display: flex; align-items: center; gap: 20px; justify-content: flex-end; width: 100%;">
                 <a href="/" class="home-link" style="color: white; text-decoration: none;">Home</a>
-                <a href="/about" class="about-link" style="color: white; text-decoration: none;">About Us</a>
+                <a href="/about/" class="about-link" style="color: white; text-decoration: none;">About Us</a>
                 <a href="/login" class="login-btn" style="background-color:white;color: #000C7D; border: none; padding: 6px 25px; border-radius: 15px; text-decoration: none;">Log In</a>
             </div>
       </div>
@@ -403,11 +403,17 @@
           if (passwordInput) {
             var pErr = document.getElementById('{{ form.password.id_for_label }}-error');
             var pErrInv = document.getElementById('{{ form.password.id_for_label }}-error-invalid');
-            var firstErr = pErr || pErrInv;
-            if (firstErr) {
+            // If there are field-specific password errors (e.g. required), mark the input invalid.
+            if (pErr) {
+              // include any other messages (like invalid_credentials) in aria-describedby
+              var described = pErr.id + (pErrInv ? (' ' + pErrInv.id) : '');
               passwordInput.setAttribute('aria-invalid', 'true');
-              passwordInput.setAttribute('aria-describedby', firstErr.id);
+              passwordInput.setAttribute('aria-describedby', described);
               passwordInput.classList.add('is-invalid');
+            } else if (pErrInv) {
+              // invalid_credentials: show message but do NOT style the password field as invalid.
+              // still reference the message for screen readers
+              passwordInput.setAttribute('aria-describedby', pErrInv.id);
             }
           }
         } catch (e) { /* ignore */ }

@@ -1,10 +1,10 @@
 {% extends "helpdesk/base.html" %}{% load i18n %}
 
-{% block helpdesk_title %}{% trans "Add User" %}{% endblock %}
+{% block helpdesk_title %}{% if editing %}{% trans "Edit User" %}{% else %}{% trans "Add User" %}{% endif %}{% endblock %}
 
 {% block helpdesk_breadcrumb %}
-<li class="breadcrumb-item">{% trans "System Settings" %}</li>
-<li class="breadcrumb-item active">{% trans "Add User" %}</li>
+<li class="breadcrumb-item"><a href="/users/">{% trans "Users" %}</a></li>
+<li class="breadcrumb-item active">{% if editing %}{% trans "Edit User" %}{% else %}{% trans "Add User" %}{% endif %}</li>
 {% endblock %}
 
 {% block helpdesk_body %}
@@ -121,6 +121,13 @@ h3.page-title { margin:0 0 8px; font-size:20px; font-weight:700; color:#0f1724; 
   .checkbox-group { flex-direction: column; align-items: flex-start; }
 }
 
+/* readonly checkbox visual hint */
+.readonly-checkbox {
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+.readonly-checkbox + .form-check-label { cursor: not-allowed; color: #6b7280; }
+
 /* Action buttons — centered, pill style */
 .form-actions {
   padding-top:22px;
@@ -166,8 +173,8 @@ h3.page-title { margin:0 0 8px; font-size:20px; font-weight:700; color:#0f1724; 
 <div class="container page-card">
   <div class="card">
     <div class="card-body">
-      <h3 class="page-title">{% trans "Add User" %}</h3>
-      <span class="page-sub">{% trans "Create a new user for the helpdesk." %}</span>
+    <h3 class="page-title">{% if editing %}{% trans "Edit User" %}{% else %}{% trans "Add User" %}{% endif %}</h3>
+    <span class="page-sub">{% if editing %}{% trans "Edit an existing user account." %}{% else %}{% trans "Create a new user for the helpdesk." %}{% endif %}</span>
 
       <form method="post" class="form helpdesk-add-user" novalidate>
         {% csrf_token %}
@@ -185,12 +192,11 @@ h3.page-title { margin:0 0 8px; font-size:20px; font-weight:700; color:#0f1724; 
             <div class="field-error-space">{% for err in form.last_name.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
           </div>
 
-          <div class="col-12 mb-3">
-            <label for="id_username">{{ form.username.label }}</label>
-            {{ form.username }}
-            {% if form.username.help_text %}<div class="form-text">{{ form.username.help_text }}</div>{% endif %}
-            <div class="field-error-space">{% for err in form.username.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
-          </div>
+                    <div class="col-12 mb-3">
+                        <label for="id_username">{{ form.username.label }}</label>
+                        {{ form.username }}
+                        <div class="field-error-space">{% for err in form.username.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
+                    </div>
 
           <div class="col-12 mb-3">
             <label for="id_email">{{ form.email.label }}</label>
@@ -200,8 +206,8 @@ h3.page-title { margin:0 0 8px; font-size:20px; font-weight:700; color:#0f1724; 
           </div>
 
           <div class="col-12 col-md-6 mb-3">
-            <label for="id_password1">{{ form.password1.label }}</label>
-            {{ form.password1 }}
+                <label for="id_password1">{{ form.password1.label }}</label>
+                {{ form.password1 }}
             {% if form.password1.help_text %}<div class="form-text">{{ form.password1.help_text }}</div>{% endif %}
             <div class="field-error-space">{% for err in form.password1.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}</div>
           </div>
@@ -229,10 +235,10 @@ h3.page-title { margin:0 0 8px; font-size:20px; font-weight:700; color:#0f1724; 
           </div>
           {% endif %}
 
-          <div class="col-12 form-actions mt-4">
-            <a class="btn btn-cancel" href="{% url 'helpdesk:system_settings' %}">{% trans "Cancel" %}</a>
-            <button type="submit" class="btn btn-primary">{% trans "Create User" %}</button>
-          </div>
+                                <div class="col-12 form-actions mt-4">
+                                    <a class="btn btn-cancel" href="/users/">{% trans "Cancel" %}</a>
+                                    <button type="submit" class="btn btn-primary">{% if editing %}{% trans "Save changes" %}{% else %}{% trans "Create User" %}{% endif %}</button>
+                                </div>
         </div>
       </form>
     </div>
@@ -766,6 +772,26 @@ h3.page-title { margin:0 0 8px; font-size:20px; font-weight:700; color:#0f1724; 
                 }
             });
         }
+})();
+</script>
+<script>
+// Prevent interaction on checkboxes marked data-readonly="true" while keeping
+// their value in the submitted form. This avoids using disabled which would
+// omit the value on submit.
+(function(){
+    try {
+        var readonlyBoxes = document.querySelectorAll('input[type="checkbox"][data-readonly="true"], input.readonly-checkbox[type="checkbox"]');
+        readonlyBoxes.forEach(function(cb){
+            // prevent mouse interaction
+            cb.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); });
+            // prevent keyboard toggling
+            cb.addEventListener('keydown', function(e){ var keys = [32,13]; if(keys.indexOf(e.keyCode)!==-1){ e.preventDefault(); e.stopPropagation(); }});
+            // ensure aria-disabled for accessibility
+            cb.setAttribute('aria-disabled', 'true');
+            // optional: show a tooltip on hover
+            cb.title = cb.title || 'This setting cannot be changed here.';
+        });
+    } catch(err){}
 })();
 </script>
 {% endblock %}
