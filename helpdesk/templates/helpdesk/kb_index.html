@@ -4,7 +4,7 @@
 {% block helpdesk_title %}{% trans "Knowledgebase" %}{% endblock %}
 
 {% block helpdesk_breadcrumb %}
-{% if not user.is_staff %}
+{% if user.is_staff %}
 <li class="breadcrumb-item active">{% trans "Knowledgebase" %}</li>
 {% else %}
 <li class="breadcrumb-item">

@@ -22,7 +22,7 @@
 
 {# 'Tickets submitted by you' table removed for staff dashboard per request #}
 
-{% if user.is_staff %}
+    {% if user.is_staff and not user.is_superuser %}
     {% trans "Assigned Tickets" as ticket_list_caption %}
     {% trans "You have no assigned tickets." as no_assigned_tickets %}
     {% trans "ut_page" as page_var %}
