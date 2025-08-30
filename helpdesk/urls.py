@@ -181,6 +181,12 @@ urlpatterns += [
     ),
 ]
 
+# Manage queues UI and checklist templates
+urlpatterns += [
+    path("manage-queues/", staff.manage_queues, name="manage_queues"),
+    path("checklist-templates/", staff.checklist_templates, name="checklist_templates"),
+]
+
 if helpdesk_settings.HELPDESK_ENABLE_DEPENDENCIES_ON_TICKET:
     urlpatterns += [
         path(

@@ -1,0 +1,168 @@
+{% extends "helpdesk/base.html" %}
+{% load i18n %}
+
+{% block helpdesk_title %}{% trans "Manage Queries" %}{% endblock %}
+
+{% block helpdesk_breadcrumb %}
+  <li class="breadcrumb-item active">{% trans "Manage Queries" %}</li>
+{% endblock %}
+
+{% block helpdesk_body %}
+<div class="container">
+
+  <h3>{% trans "Queues" %}</h3>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>{% trans "Title" %}</th>
+        <th>{% trans "Slug" %}</th>
+        <th>{% trans "E-Mail" %}</th>
+        <th>{% trans "Default owner" %}</th>
+        <th>{% trans "Public submission" %}</th>
+        <th>{% trans "Escalation Days" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for q in queues %}
+      <tr>
+        <td>{{ q.title }}</td>
+        <td>{{ q.slug }}</td>
+        <td>{{ q.email_address }}</td>
+        <td>{% if q.default_owner %}{{ q.default_owner.get_username }}{% else %}{% trans "(None)" %}{% endif %}</td>
+        <td>{% if q.allow_public_submission %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
+        <td>{{ q.escalate_days|default:"0" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">{% trans "No queues defined." %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% if paginator.num_pages > 1 %}
+    <div class="d-flex justify-content-end">
+      <nav aria-label="Queues pagination">
+        <ul class="pagination mt-3">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+          {% endif %}
+          {% for p in paginator.page_range %}
+            <li class="page-item {% if page_obj.number == p %}active{% endif %}"><a class="page-link" href="?page={{ p }}">{{ p }}</a></li>
+          {% endfor %}
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  {% endif %}
+
+  <h3>{% trans "Add Queue" %}</h3>
+  {% if errors %}
+    <div class="alert alert-danger">
+      <ul>
+        {% for e in errors %}
+          <li>{{ e }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+  <form method="post" action="">
+    {% csrf_token %}
+    <div class="form-group">
+      <label>{% trans "Title" %} <span class="text-danger">*</span></label>
+      <input name="title" class="form-control" value="{{ form_values.title|default_if_none:'' }}" required />
+    </div>
+    <div class="form-group">
+      <label>{% trans "Slug" %} <span class="text-danger">*</span></label>
+      <input name="slug" class="form-control" value="{{ form_values.slug|default_if_none:'' }}" required />
+    </div>
+    <div class="form-group">
+  <label>{% trans "E-Mail Address" %} <small class="text-muted">({% trans "optional" %})</small></label>
+  <input name="email_address" class="form-control" value="{{ form_values.email_address|default_if_none:'' }}" />
+    </div>
+    <div class="form-group">
+      <label>{% trans "Default owner" %} <small class="text-muted">({% trans "optional" %})</small></label>
+    <select name="default_owner" class="form-control">
+        <option value="">--------</option>
+        {% for u in users %}
+      <option value="{{ u.id }}" {% if form_values.default_owner|stringformat:"s" == u.id|stringformat:"s" %}selected{% endif %}>{{ u.get_username }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-check mb-2">
+      <input class="form-check-input" type="checkbox" id="allow_public_submission" name="allow_public_submission">
+      <label class="form-check-label" for="allow_public_submission">{% trans "Allow Public Submission?" %}</label>
+      <div class="form-text">{% trans "Should this queue be listed on the public submission form?" %}</div>
+    </div>
+    <div class="form-group">
+  <label>{% trans "Escalation Days" %}</label>
+      <input type="number" min="0" name="escalate_days" class="form-control" placeholder="0" />
+      {% if form_values.escalate_days %}
+        <script>document.querySelector('input[name="escalate_days"]').value = '{{ form_values.escalate_days }}';</script>
+      {% endif %}
+      <small class="form-text text-muted">{% trans "For tickets which are not held, how often do you wish to increase their priority? Set to 0 for no escalation." %}</small>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header">
+        <a data-toggle="collapse" href="#advancedOptions" aria-expanded="false">{% trans "Advanced options" %}</a>
+      </div>
+      <div id="advancedOptions" class="collapse card-body">
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox" id="allow_email_submission" name="allow_email_submission">
+          {% if form_values.allow_email_submission %}
+            <script>document.getElementById('allow_email_submission').checked = true;</script>
+          {% endif %}
+          <label class="form-check-label" for="allow_email_submission">{% trans "Allow E-Mail Submission?" %}</label>
+          <div class="form-text">{% trans "Do you want to poll the e-mail box below for new tickets?" %}</div>
+        </div>
+        <div class="form-group">
+          <label>{% trans "New Ticket CC Address" %}</label>
+          <input name="new_ticket_cc" class="form-control" />
+          {% if form_values.new_ticket_cc %}
+            <script>document.querySelector('input[name="new_ticket_cc"]').value = '{{ form_values.new_ticket_cc }}';</script>
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label>{% trans "Updated Ticket CC Address" %}</label>
+          <input name="updated_ticket_cc" class="form-control" />
+          {% if form_values.updated_ticket_cc %}
+            <script>document.querySelector('input[name="updated_ticket_cc"]').value = '{{ form_values.updated_ticket_cc }}';</script>
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label>{% trans "E-Mail Check Interval (minutes)" %}</label>
+          <input type="number" min="0" name="email_box_interval" class="form-control" />
+          {% if form_values.email_box_interval %}
+            <script>document.querySelector('input[name="email_box_interval"]').value = '{{ form_values.email_box_interval }}';</script>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" type="submit">{% trans "Create Queue" %}</button>
+  </form>
+  
+</div>
+{% endblock %}
+
+{% block helpdesk_extra_js %}
+<script>
+// Auto-fill slug from title and force lowercase
+document.addEventListener('DOMContentLoaded', function(){
+  var title = document.querySelector('input[name="title"]');
+  var slug = document.querySelector('input[name="slug"]');
+  if(!title || !slug) return;
+  function slugify(v){
+    return v.toString().trim().toLowerCase().replace(/[^a-z0-9\-]+/g, '-').replace(/(^-|-$)/g,'');
+  }
+  title.addEventListener('input', function(e){
+    slug.value = slugify(title.value);
+  });
+  // ensure slug always lowercase when user edits it directly
+  slug.addEventListener('input', function(){ slug.value = slug.value.toLowerCase(); });
+});
+</script>
+{% endblock %}

@@ -2357,6 +2357,110 @@ def saved_searches_list(request):
 saved_searches_list = staff_member_required(saved_searches_list)
 
 
+@helpdesk_superuser_required
+def manage_queues(request):
+    """UI page for managing queues (UI only) - mirrors admin add queue."""
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    form_values = {
+        'title': '',
+        'slug': '',
+        'email_address': '',
+        'default_owner': '',
+        'allow_public_submission': False,
+        'allow_email_submission': False,
+        'escalate_days': '',
+        'new_ticket_cc': '',
+        'updated_ticket_cc': '',
+        'email_box_interval': '',
+    }
+    errors = []
+
+    if request.method == "POST":
+        # Read simple fields and create Queue
+        title = (request.POST.get("title", "") or "").strip()
+        slug = (request.POST.get("slug", "") or "").strip().lower()
+        email_address = request.POST.get("email_address", "") or None
+        default_owner_id = request.POST.get("default_owner")
+        allow_public = request.POST.get("allow_public_submission") == "on"
+        allow_email = request.POST.get("allow_email_submission") == "on"
+        try:
+            escalate_days = int(request.POST.get("escalate_days", 0))
+        except Exception:
+            escalate_days = None
+
+        # populate form_values for re-render if errors occur
+        form_values.update({
+            'title': title,
+            'slug': slug,
+            'email_address': request.POST.get('email_address', ''),
+            'default_owner': default_owner_id or '',
+            'allow_public_submission': allow_public,
+            'allow_email_submission': allow_email,
+            'escalate_days': request.POST.get('escalate_days', ''),
+            'new_ticket_cc': request.POST.get('new_ticket_cc', ''),
+            'updated_ticket_cc': request.POST.get('updated_ticket_cc', ''),
+            'email_box_interval': request.POST.get('email_box_interval', ''),
+        })
+
+        # Server-side validation: title and slug required
+        if not title:
+            errors.append(_('Title is required.'))
+        if not slug:
+            errors.append(_('Slug is required.'))
+
+        if not errors:
+            new_queue = Queue(
+                title=title,
+                slug=slug,
+                email_address=email_address,
+                allow_public_submission=allow_public,
+                allow_email_submission=allow_email,
+                escalate_days=escalate_days if escalate_days is not None else None,
+            )
+        # Attach default_owner if provided
+        try:
+            if default_owner_id:
+                new_queue.default_owner = User.objects.get(id=int(default_owner_id))
+        except Exception:
+            pass
+
+        # Advanced fields
+        new_queue.new_ticket_cc = request.POST.get("new_ticket_cc", "") or None
+        new_queue.updated_ticket_cc = request.POST.get("updated_ticket_cc", "") or None
+        try:
+            email_box_interval = request.POST.get("email_box_interval")
+            if email_box_interval:
+                new_queue.email_box_interval = int(email_box_interval)
+        except Exception:
+            pass
+
+            try:
+                new_queue.save()
+            except Exception:
+                errors.append(_('Failed to create queue.'))
+
+        if not errors:
+            return redirect("helpdesk:manage_queues")
+
+    queues_qs = Queue.objects.all().order_by("title")
+    # pagination: show 5 per page
+    paginator = Paginator(queues_qs, 5)
+    page_num = request.GET.get('page', 1)
+    try:
+        page_obj = paginator.page(page_num)
+    except Exception:
+        page_obj = paginator.page(1)
+
+    users = User.objects.filter(is_active=True).order_by("username")
+    return render(
+        request,
+        "helpdesk/manage_queues.html",
+        {"queues": page_obj.object_list, "page_obj": page_obj, "paginator": paginator, "users": users, "form_values": form_values, "errors": errors},
+    )
+
+
 @helpdesk_staff_member_required
 def save_query(request):
     title = request.POST.get("title", None)
