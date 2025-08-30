@@ -4,11 +4,12 @@
 {% block helpdesk_title %}{% trans "Knowledgebase" %}{% endblock %}
 
 {% block helpdesk_breadcrumb %}
+{% if not user.is_staff %}
+<li class="breadcrumb-item active">{% trans "Knowledgebase" %}</li>
+{% else %}
 <li class="breadcrumb-item">
-    <a href="{% url 'helpdesk:kb_index' %}">{% trans "Knowledgebase" %}</a>
+  <a href="{% url 'helpdesk:kb_index' %}">{% trans "Knowledgebase" %}</a>
 </li>
-{% if user.is_staff %}
-<li class="breadcrumb-item active">{% trans "Overview" %}</li>
 {% endif %}
 {% endblock %}
 

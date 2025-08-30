@@ -164,10 +164,10 @@
 {% for item in items %}
   <div class="card">
     <div class="btn btn-link" data-toggle="collapse" data-target="#collapse{{item.id}}" role="region" aria-expanded="true" aria-controls="collapse{{item.id}}">
-      <div class="card-header" id="header{{item.id}}">
+        <div class="card-header" id="header{{item.id}}">
         <h5 class="mb-0">{{ item.title }}</h5>
         <div class="kb-meta">
-          {% if item.num_open_tickets %}{{ item.num_open_tickets }} {% trans "open" %}{% else %}{% trans "No open tickets" %}{% endif %}
+          {% if item.num_open_tickets %}{{ item.num_open_tickets }} {% trans "open" %}{% endif %}
         </div>
       </div>
     </div>
@@ -181,7 +181,7 @@
 
         <div class="kb-actions-row" role="group" aria-label="{% trans 'Item actions' %}">
           <div class="kb-votes" aria-hidden="{% if not request.user.pk %}true{% else %}false{% endif %}">
-            {% if request.user.pk %}
+            {% if request.user.pk and not user.is_staff %}
               <form method="post" action="{% url "helpdesk:kb_vote" item.pk "up" %}">{% csrf_token %}
                 <button type="submit" class="btn" title="{% trans 'Helpful' %}"><i class="fa fa-thumbs-up" aria-hidden="true"></i></button>
               </form>
@@ -192,14 +192,14 @@
           </div>
 
           <div class="kb-action-buttons" role="group" aria-label="{% trans 'Item actions' %}">
-            {% if staff %}
+            {% if staff and not user.is_staff %}
               <a href='{% url 'helpdesk:list' %}?kbitem={{item.id}}' class="btn" title="{% trans 'Open tickets list' %}">
                 <i class="fa fa-search" aria-hidden="true"></i>
                 <span class="meta">{{ item.num_open_tickets }} {% trans 'open' %}</span>
               </a>
             {% endif %}
 
-            {% if item.allow_ticket_creation %}
+            {% if item.allow_ticket_creation and not user.is_staff %}
               <a href='{% if iframe %}{% url 'helpdesk:submit_iframe' %}{% else %}{% url 'helpdesk:submit' %}{%endif%}?{% if category.queue %}queue={{category.queue.pk}}&_readonly_fields_=queue&{%endif%}kbitem={{item.id}}&{{query_param_string}}' class="btn btn--primary" title="{% trans 'Create ticket' %}">
                 <i class="fa fa-plus-circle" aria-hidden="true"></i>
                 <span>{% if iframe %}{% trans 'Contact a human' %}{% else %}{% trans 'Create New Ticket' %}{% endif %}</span>
