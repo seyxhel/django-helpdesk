@@ -1,7 +1,7 @@
 {% extends "helpdesk/base.html" %}
 {% load i18n %}
 
-{% block helpdesk_title %}SLA Overview – My Tickets{% endblock %}
+{% block helpdesk_title %}Service Level Agreement{% endblock %}
 
 {% block helpdesk_head %}
 <style>
@@ -17,15 +17,19 @@
     .status-chip.yellow { background:#fff8e6; color:#a66b00; }
     .status-chip.red { background:#fff4f4; color:#a61a1a; }
     .sla-ticket-list { margin-top:16px; }
-    .sla-ticket { display:flex; justify-content:space-between; gap:12px; padding:10px; border-radius:8px; border:1px solid rgba(15,23,42,0.04); margin-bottom:8px; }
+        .sla-ticket { display:flex; justify-content:space-between; gap:12px; padding:10px; border-radius:8px; border:1px solid rgba(15,23,42,0.04); margin-bottom:8px; }
+        /* priority color indicators for table rows */
+        .priority-1 { border-left:6px solid #d9534f; }
+        .priority-2 { border-left:6px solid #f0ad4e; }
+        .priority-3 { border-left:6px solid #ffc107; }
+        .priority-4, .priority-5 { border-left:6px solid #0b7a3a; }
     .sla-ticket .left { display:flex; gap:12px; align-items:center; }
     .sla-ticket .meta { color:#6c7783; font-size:.95rem; }
 </style>
 {% endblock %}
 
 {% block helpdesk_breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'helpdesk:dashboard' %}">{% trans "Dashboard" %}</a></li>
-<li class="breadcrumb-item active">{% trans "SLA Overview – My Tickets" %}</li>
+<li class="breadcrumb-item active">{% trans "Service Level Agreement" %}</li>
 {% endblock %}
 
 {% block helpdesk_body %}
@@ -93,39 +97,41 @@
     </div>
 
     <h3 style="margin-top:18px;">{% trans "Ticket SLA Status" %}</h3>
-    <div class="sla-ticket-list">
-        <div class="sla-ticket">
-            <div class="left">
-                <div class="status-chip green">✅ {% trans "On track" %}</div>
-                <div>
-                    <div><strong>HD-1234</strong> — {% trans "Password reset issue" %}</div>
-                    <div class="meta">{% trans "2h 10m left to respond" %}</div>
-                </div>
-            </div>
-            <div class="right meta">{% trans "Assigned to you" %}</div>
+        <div class="sla-ticket-list">
+            <table class="table" style="width:100%; border-collapse:collapse">
+                <thead>
+                    <tr>
+                        <th style="text-align:left">{% trans "Ticket" %}</th>
+                        <th>{% trans "Priority" %}</th>
+                        <th>{% trans "SLA Status" %}</th>
+                        <th>{% trans "Time to Respond" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in tickets %}
+                    {% comment %} Map priority to colors: 1- Critical (red), 2-High (orange), 3-Medium (yellow), 4-5 Low (green) {% endcomment %}
+                            <tr class="priority-{{ t.priority }}">
+                                            <td>
+                                                            {% if t.kbitem and t.kbitem.category and t.kbitem.category.slug %}
+                                                                <strong><a href="{% url 'helpdesk:view' t.pk %}">{{ t.kbitem.category.slug }}</a></strong>
+                                                                —
+                                                            {% endif %}
+                                                            <a href="{% url 'helpdesk:view' t.pk %}">{{ t.title|default:'' }}</a>
+                                            </td>
+                        <td>{{ t.get_priority_display }}</td>
+                        <td>
+                            {# Placeholder status - server-side logic needed to determine real status #}
+                            <span class="status-chip {% if t.priority == 1 %}red{% elif t.priority == 2 %}yellow{% elif t.priority == 3 %}yellow{% else %}green{% endif %}">
+                                {% if t.priority == 1 %}❌ {% trans "Breached" %}{% elif t.priority == 2 %}⚠️ {% trans "At risk" %}{% else %}✅ {% trans "On track" %}{% endif %}
+                            </span>
+                        </td>
+                        <td class="meta">{% trans "--" %}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4">{% trans "No tickets assigned to you." %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-
-        <div class="sla-ticket">
-            <div class="left">
-                <div class="status-chip yellow">⚠️ {% trans "At risk" %}</div>
-                <div>
-                    <div><strong>HD-1229</strong> — {% trans "API request failing" %}</div>
-                    <div class="meta">{% trans "30m left to respond" %}</div>
-                </div>
-            </div>
-            <div class="right meta">{% trans "Assigned to you" %}</div>
-        </div>
-
-        <div class="sla-ticket">
-            <div class="left">
-                <div class="status-chip red">❌ {% trans "Breached" %}</div>
-                <div>
-                    <div><strong>HD-1210</strong> — {% trans "Database outage" %}</div>
-                    <div class="meta">{% trans "Breach: 1h 20m ago" %}</div>
-                </div>
-            </div>
-            <div class="right meta">{% trans "Assigned to you" %}</div>
-        </div>
-    </div>
 </div>
 {% endblock %}
