@@ -22,6 +22,12 @@
         <span>{% trans "Manage Queries" %}</span>
       </a>
     </li>
+    <li class="nav-item{% if 'sla' in request.path %} active{% endif %}">
+      <a class="nav-link" href="{% url 'helpdesk:sla_staff' %}">
+        <i class="fas fa-fw fa-clock"></i>
+        <span>{% trans "Service Level Agreement" %}</span>
+      </a>
+    </li>
     <li class="nav-item{% if 'checklist-templates' in request.path %} active{% endif %}">
       <a class="nav-link" href="{% url 'helpdesk:checklist_templates' %}">
         <i class="fas fa-fw fa-clipboard-list"></i>

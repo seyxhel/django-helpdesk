@@ -98,10 +98,11 @@
 
     <h3 style="margin-top:18px;">{% trans "Ticket SLA Status" %}</h3>
         <div class="sla-ticket-list">
-            <table class="table" style="width:100%; border-collapse:collapse">
+            <table id="slaTicketTable" class="table" style="width:100%; border-collapse:collapse">
                 <thead>
                     <tr>
                         <th style="text-align:left">{% trans "Ticket" %}</th>
+                        <th>{% trans "Assigned To" %}</th>
                         <th>{% trans "Priority" %}</th>
                         <th>{% trans "SLA Status" %}</th>
                         <th>{% trans "Time to Respond" %}</th>
@@ -118,6 +119,13 @@
                                                             {% endif %}
                                                             <a href="{% url 'helpdesk:view' t.pk %}">{{ t.title|default:'' }}</a>
                                             </td>
+                        <td>
+                            {% if t.assigned_to %}
+                                {{ t.assigned_to.get_full_name|default:t.assigned_to.username }}
+                            {% else %}
+                                {% trans "Unassigned" %}
+                            {% endif %}
+                        </td>
                         <td>{{ t.get_priority_display }}</td>
                         <td>
                             {# Placeholder status - server-side logic needed to determine real status #}
@@ -132,6 +140,227 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <div id="entriesControls" class="d-flex justify-content-between align-items-center mt-3"></div>
+            <!-- Persistent controls so we can always control paging even if DataTables omits its controls -->
+            <div id="slaControlsBar" class="d-flex justify-content-between align-items-center mt-2" style="gap:12px;">
+                <div class="d-flex align-items-center" id="slaControlsLeft">
+                    <label for="slaPageSizeInput" style="margin-right:8px; white-space:nowrap;">{% trans "Show" %}</label>
+                    <input id="slaPageSizeInput" type="number" min="1" step="1" value="10" class="form-control form-control-sm d-inline-block" style="width:80px;" />
+                    <div id="slaInfoText" class="ml-3 text-muted small" style="margin-left:12px;"></div>
+                </div>
+                <div id="slaPaginatePlaceholder"></div>
+            </div>
         </div>
 </div>
+
+<script>
+(function(){
+    if (typeof $ === 'undefined') return;
+    var attempts = 0, maxAttempts = 20;
+    var tryInit = function(){
+        attempts++;
+        if(!$.fn || !$.fn.DataTable){
+            if(attempts < maxAttempts){
+                return setTimeout(tryInit, 150);
+            }
+            console.warn('DataTables not available to initialize SLA table');
+            return;
+        }
+        $(function(){
+            var slaTable = $('#slaTicketTable').DataTable({
+                language: { "emptyTable": "{% trans 'No Tickets Match Your Selection' %}" },
+                paging: true,
+                pageLength: 10,
+                lengthChange: true,
+                info: true,
+                dom: 'ltBp',
+                buttons: [],
+                order: [],
+                initComplete: function(settings, json){
+                    try {
+                        var container = $('#entriesControls');
+                        if(!container.length) return;
+                        if(!container.find('.entries-left').length){
+                            container.html('<div class="entries-left d-flex align-items-center"></div><div class="entries-right"></div>');
+                        }
+                        var left = container.find('.entries-left');
+                        var right = container.find('.entries-right');
+                        // Move length control and info to left, pagination to right
+                        $('.dataTables_length').appendTo(left);
+                        $('.dataTables_info').appendTo(left).addClass('ml-2 text-muted small');
+                        $('.dataTables_paginate').appendTo(right);
+                        // Replace the length <select> with a numeric input so users can type a custom page size
+                        try {
+                            var lengthSelect = left.find('.dataTables_length select');
+                            if(lengthSelect.length) {
+                                var current = parseInt(lengthSelect.val(), 10) || slaTable.page.len();
+                                var input = $('<input/>', {
+                                    type: 'number',
+                                    min: 1,
+                                    step: 1,
+                                    value: current,
+                                    class: 'form-control form-control-sm d-inline-block',
+                                    style: 'width:80px; margin-left:8px;'
+                                });
+                                lengthSelect.replaceWith(input);
+                                input.on('change', function() {
+                                    var v = parseInt($(this).val(), 10);
+                                    if (isNaN(v) || v < 1) v = slaTable.page.len();
+                                    slaTable.page.len(v);
+                                    slaTable.page(0).draw(false);
+                                    setTimeout(function(){
+                                        var info = slaTable.page.info();
+                                        $('#slaInfoText').text('{% trans "Showing" %} ' + (info.start+1) + ' {% trans "to" %} ' + info.end + ' {% trans "of" %} ' + info.recordsTotal + ' {% trans "entries" %}');
+                                    }, 50);
+                                });
+                            } else {
+                                // Fallback: if DataTables didn't create the length control (e.g. rows <= pageLength), create a simple numeric control
+                                if(!left.find('.dataTables_length').length){
+                                    var current = slaTable.page.len();
+                                    var input = $('<input/>', {
+                                        type: 'number',
+                                        min: 1,
+                                        step: 1,
+                                        value: current,
+                                        class: 'form-control form-control-sm d-inline-block',
+                                        style: 'width:80px; margin-left:8px;'
+                                    });
+                                    var lengthWrapper = $('<div class="dataTables_length"><label>{% trans "Show" %} </label></div>');
+                                    lengthWrapper.find('label').append(input);
+                                    left.prepend(lengthWrapper);
+                                    input.on('change', function() {
+                                        var v = parseInt($(this).val(), 10);
+                                        if (isNaN(v) || v < 1) v = slaTable.page.len();
+                                        slaTable.page.len(v).draw(false);
+                                    });
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('Could not replace length select', e);
+                        }
+                    } catch (e) {
+                        console.warn('Could not relocate DataTables controls', e);
+                    }
+                },
+                drawCallback: function(settings){
+                    var container = $('#entriesControls');
+                    if(!container.length) return;
+                    var left = container.find('.entries-left');
+                    var right = container.find('.entries-right');
+                    $('.dataTables_length').appendTo(left);
+                    $('.dataTables_info').appendTo(left);
+                    $('.dataTables_paginate').appendTo(right);
+                    try {
+                        var lengthSelect = left.find('.dataTables_length select');
+                        if(lengthSelect.length) {
+                            var current = slaTable.page.len();
+                            var input = $('<input/>', {
+                                type: 'number',
+                                min: 1,
+                                step: 1,
+                                value: current,
+                                class: 'form-control form-control-sm d-inline-block',
+                                style: 'width:80px; margin-left:8px;'
+                            });
+                            lengthSelect.replaceWith(input);
+                            input.off('change.sla').on('change.sla', function() {
+                                var v = parseInt($(this).val(), 10);
+                                if (isNaN(v) || v < 1) v = slaTable.page.len();
+                                slaTable.page.len(v);
+                                slaTable.page(0).draw(false);
+                            });
+                        } else {
+                            if(!left.find('.dataTables_length').length){
+                                var current = slaTable.page.len();
+                                var input = $('<input/>', {
+                                    type: 'number',
+                                    min: 1,
+                                    step: 1,
+                                    value: current,
+                                    class: 'form-control form-control-sm d-inline-block',
+                                    style: 'width:80px; margin-left:8px;'
+                                });
+                                var lengthWrapper = $('<div class="dataTables_length"><label>{% trans "Show" %} </label></div>');
+                                lengthWrapper.find('label').append(input);
+                                left.prepend(lengthWrapper);
+                                input.off('change.sla').on('change.sla', function() {
+                                    var v = parseInt($(this).val(), 10);
+                                    if (isNaN(v) || v < 1) v = slaTable.page.len();
+                                    slaTable.page.len(v);
+                                    slaTable.page(0).draw(false);
+                                });
+                            }
+                        }
+                        // Ensure info exists and update its text
+                        if(!left.find('.dataTables_info').length){
+                            var info = $('<div class="dataTables_info ml-2 text-muted small"></div>');
+                            left.append(info);
+                        }
+                        var infoObj = slaTable.page.info();
+                        var infoText = '{% trans "Showing" %} ' + (infoObj.start+1) + ' {% trans "to" %} ' + infoObj.end + ' {% trans "of" %} ' + infoObj.recordsTotal + ' {% trans "entries" %}';
+                        left.find('.dataTables_info').text(infoText);
+                    } catch (e) {
+                        console.warn('Could not replace length select on redraw', e);
+                    }
+                }
+            });
+
+            // Wire persistent controls
+            try {
+                var pageSizeInput = $('#slaPageSizeInput');
+                var infoText = $('#slaInfoText');
+                var paginatePlaceholder = $('#slaPaginatePlaceholder');
+
+                // initialize values
+                pageSizeInput.val(slaTable.page.len());
+                var updateInfo = function(){
+                    var info = slaTable.page.info();
+                    infoText.text('{% trans "Showing" %} ' + (info.start+1) + ' {% trans "to" %} ' + info.end + ' {% trans "of" %} ' + info.recordsTotal + ' {% trans "entries" %}');
+                };
+                updateInfo();
+
+                // handle input change
+                pageSizeInput.off('change.sla input.sla').on('change.sla input.sla', function(){
+                    var v = parseInt($(this).val(), 10);
+                    if (isNaN(v) || v < 1) return;
+                    slaTable.page.len(v);
+                    slaTable.page(0).draw(false);
+                });
+
+                // place DataTables pagination into our placeholder if available
+                var movePaginate = function(){
+                    var pag = $('.dataTables_paginate');
+                    if(pag.length){
+                        paginatePlaceholder.empty().append(pag);
+                    } else {
+                        // fallback simple controls
+                        var p = $('<div class="btn-group" role="group"></div>');
+                        var prev = $('<button class="btn btn-light btn-sm">&laquo; Prev</button>');
+                        var next = $('<button class="btn btn-light btn-sm">Next &raquo;</button>');
+                        prev.on('click', function(){ slaTable.page('previous').draw(false); });
+                        next.on('click', function(){ slaTable.page('next').draw(false); });
+                        p.empty().append(prev).append(next);
+                        paginatePlaceholder.empty().append(p);
+                    }
+                };
+
+                // Update on draw
+                slaTable.on('draw', function(){
+                    pageSizeInput.val(slaTable.page.len());
+                    updateInfo();
+                    movePaginate();
+                });
+
+                // run once to position pagination
+                movePaginate();
+            } catch (e) {
+                console.warn('Could not wire persistent SLA controls', e);
+            }
+        });
+    };
+    tryInit();
+})();
+</script>
+
 {% endblock %}
+

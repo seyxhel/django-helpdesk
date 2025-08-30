@@ -227,10 +227,14 @@ class __Query__:
 
         for ticket in self.get():
             for followup in ticket.followup_set.all():
+                # Build a safe headline even if ticket.title or followup.title is None
+                headline_title = "{} - {}".format(
+                    ticket.title or _("No title"), followup.title or _("No subject")
+                )
                 event = {
                     "start_date": self.mk_timeline_date(followup.date),
                     "text": {
-                        "headline": ticket.title + " - " + followup.title,
+                        "headline": headline_title,
                         "text": (
                             (
                                 escape(followup.comment)

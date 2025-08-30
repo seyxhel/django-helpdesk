@@ -3,10 +3,7 @@
 {% block helpdesk_title %}{% trans "Reports &amp; Statistics" %}{% endblock %}
 
 {% block helpdesk_breadcrumb %}
-<li class="breadcrumb-item">
-    <a href="{% url 'helpdesk:report_index' %}">{% trans "Reports &amp; Statistics" %}</a>
-</li>
-<li class="breadcrumb-item active">Overview</li>
+<li class="breadcrumb-item active">{% trans "Reports" %}</li>
 {% endblock %}
 
 {% block helpdesk_body %}

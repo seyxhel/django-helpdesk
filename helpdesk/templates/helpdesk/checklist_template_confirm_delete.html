@@ -5,12 +5,8 @@
 {% block helpdesk_title %}{% trans "Delete Checklist Template" %}{% endblock %}
 
 {% block helpdesk_breadcrumb %}
-    <li class="breadcrumb-item">
-        <a href="{% url 'helpdesk:system_settings' %}">{% trans "System Settings" %}</a>
-    </li>
-    <li class="breadcrumb-item">
-        <a href="{% url 'helpdesk:checklist_templates' %}">{% trans "Checklist Templates" %}</a>
-    </li>
+    <li class="breadcrumb-item">{% trans "System Settings" %}</li>
+    <li class="breadcrumb-item">{% trans "Checklist" %}</li>
     <li class="breadcrumb-item active">
         {{ checklist_template }}
     </li>

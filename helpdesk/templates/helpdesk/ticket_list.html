@@ -19,14 +19,24 @@
 
 
 {% block helpdesk_breadcrumb %}
-    <li class="breadcrumb-item">
-        <a href="{% url 'helpdesk:list' %}">{% trans "Tickets" %}</a>
-    </li>
-    {% if from_saved_query and saved_query.user == user %}
-        <li class="breadcrumb-item">{% trans "Saved Query" %}</li>
-        <li class="breadcrumb-item active">{{ saved_query.title }}</li>
+    {# If filtered by queue show Reports -> Queue Title (link Reports to reports index) #}
+    {% if request.GET.queue %}
+        <li class="breadcrumb-item">
+            <a href="{% url 'helpdesk:report_index' %}">{% trans "Reports" %}</a>
+        </li>
+        <li class="breadcrumb-item active">
+            {% for q in queue_choices %}
+                {% if q.id|stringformat:"s" == request.GET.queue %}
+                    {{ q.title }}
+                {% endif %}
+            {% endfor %}
+        </li>
     {% else %}
-        <li class="breadcrumb-item active">{% trans "Overview" %}</li>
+        <li class="breadcrumb-item active">{% trans "Tickets" %}</li>
+        {% if from_saved_query and saved_query.user == user %}
+            <li class="breadcrumb-item">{% trans "Saved Query" %}</li>
+            <li class="breadcrumb-item active">{{ saved_query.title }}</li>
+        {% endif %}
     {% endif %}
 {% endblock %}
 
@@ -379,8 +389,11 @@
                     <label class="sr-only" for="status">{% trans "Status" %}</label>
                     <select id="status" name="status" class="custom-select custom-select-sm">
                         <option value="">{% trans "All statuses" %}</option>
-                        <option value="open" {% if request.GET.status == 'open' %}selected{% endif %}>{% trans "Open" %}</option>
-                        <option value="closed" {% if request.GET.status == 'closed' %}selected{% endif %}>{% trans "Closed" %}</option>
+                        {% if status_choices %}
+                            {% for val, label in status_choices %}
+                                <option value="{{ val }}" {% if request.GET.status == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        {% endif %}
                     </select>
                 </div>
 
@@ -388,9 +401,11 @@
                     <label class="sr-only" for="priority">{% trans "Priority" %}</label>
                     <select id="priority" name="priority" class="custom-select custom-select-sm">
                         <option value="">{% trans "All priorities" %}</option>
-                        <option value="low" {% if request.GET.priority == 'low' %}selected{% endif %}>{% trans "Low" %}</option>
-                        <option value="medium" {% if request.GET.priority == 'medium' %}selected{% endif %}>{% trans "Medium" %}</option>
-                        <option value="high" {% if request.GET.priority == 'high' %}selected{% endif %}>{% trans "High" %}</option>
+                        {% if priority_choices %}
+                            {% for val, label in priority_choices %}
+                                <option value="{{ val }}" {% if request.GET.priority == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        {% endif %}
                     </select>
                 </div>
 
@@ -398,9 +413,9 @@
                     <label class="sr-only" for="queue">{% trans "Queue" %}</label>
                     <select id="queue" name="queue" class="custom-select custom-select-sm">
                         <option value="">{% trans "All queues" %}</option>
-                        {% if queues %}
-                            {% for q in queues %}
-                                <option value="{{ q.slug }}" {% if request.GET.queue == q.slug %}selected{% endif %}>{{ q.title }}</option>
+                        {% if queue_choices %}
+                            {% for q in queue_choices %}
+                                <option value="{{ q.id }}" {% if request.GET.queue == q.id|stringformat:"s" or request.GET.queue == q.slug %}selected{% endif %}>{{ q.title }}</option>
                             {% endfor %}
                         {% endif %}
                     </select>
@@ -445,9 +460,7 @@
 
             <div class="mass-action-group">
                 <select name='action' id='id_mass_action' class="form-control form-control-sm">
-                    <option value='take'>{% trans "Take (Assign to me)" %}</option>
                     <option value='delete'>{% trans "Delete" %}</option>
-                    <option value='merge'>{% trans "Merge" %}</option>
                     <optgroup label='{% trans "Close" %}'>
                         <option value='close'>{% trans "Close (Don't Send E-Mail)" %}</option>
                         <option value='close_public'>{% trans "Close (Send E-Mail)" %}</option>
@@ -455,13 +468,9 @@
                     <optgroup label='{% trans "Assign To" %}'>
                         <option value='unassign'>{% trans "Nobody (Unassign)" %}</option>
                         {% for u in assignable_users %}
-                            <option value='assign_{{ u.id }}'>{{ u.get_username }}</option>
-                        {% endfor %}
-                    </optgroup>
-                    <optgroup label='{% trans "Set KB Item" %}'>
-                        <option value='kbitem_none'>{% trans "No KB Item" %}</option>
-                        {% for kbi in kb_items %}
-                            <option value='kbitem_{{ kbi.id }}'>{{ kbi.category.title }}: {{ kbi.title }}</option>
+                            {% if u.is_staff and not u.is_superuser %}
+                                <option value='assign_{{ u.id }}'>{{ u.get_username }}</option>
+                            {% endif %}
                         {% endfor %}
                     </optgroup>
                 </select>
@@ -569,7 +578,7 @@
         $.fn.dataTable.ext.errMode = function(settings, helpPage, message) {
         alert("{% trans 'Error fetching tickets occured, please contact the system administrators of this server providing the message below:\n    ' %}" + message)
         };
-            $('#ticketTable').DataTable({
+            var ticketTable = $('#ticketTable').DataTable({
                 language: {
                     "emptyTable": "{% trans 'No Tickets Match Your Selection' %}"
                 },
@@ -583,10 +592,16 @@
                     $(row).addClass(data.row_class);
                 },
                 dom: 'ltBp',
-                buttons: ["colvis"],
+                buttons: [
+                    {
+                        extend: 'colvis',
+                        columns: ':not(.no-colvis)'
+                    }
+                ],
                 columns: [
                     {
                         data: "id",
+                        className: 'no-colvis',
                         orderable: false,
                         render: function (data, type, row, meta) {
                             const pk = data;
@@ -677,7 +692,7 @@
                     {data: "time_spent", "visible": false},
                     {% endif %}
                     {% if helpdesk_settings.HELPDESK_KB_ENABLED %}
-                    {data: "kbitem"},
+                    {data: "kbitem", className: 'no-colvis', visible: false},
                     {% endif %}
                 ],
                 initComplete: function(settings, json) {
@@ -693,6 +708,29 @@
                         $('.dataTables_length').appendTo(left);
                         $('.dataTables_info').appendTo(left).addClass('ml-2 text-muted small');
                         $('.dataTables_paginate').appendTo(right);
+                        // Replace the length <select> with a numeric input so users can type a custom page size
+                        try {
+                            var lengthSelect = left.find('.dataTables_length select');
+                            if(lengthSelect.length) {
+                                var current = parseInt(lengthSelect.val(), 10) || ticketTable.page.len();
+                                var input = $('<input/>', {
+                                    type: 'number',
+                                    min: 1,
+                                    step: 1,
+                                    value: current,
+                                    class: 'form-control form-control-sm d-inline-block',
+                                    style: 'width:80px; margin-left:8px;'
+                                });
+                                lengthSelect.replaceWith(input);
+                                input.on('change', function() {
+                                    var v = parseInt($(this).val(), 10);
+                                    if (isNaN(v) || v < 1) v = ticketTable.page.len();
+                                    ticketTable.page.len(v).draw(false);
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('Could not replace length select', e);
+                        }
                         // move DataTables buttons (colvis) into the top placeholder (below filters)
                         $('.dt-buttons').appendTo($('.dt-buttons-placeholder'));
                     } catch (e) {
@@ -710,6 +748,30 @@
                     $('.dataTables_paginate').appendTo(right);
                     // ensure buttons stay in the top placeholder after redraws
                     $('.dt-buttons').appendTo($('.dt-buttons-placeholder'));
+                    // Ensure the length select is replaced with the numeric input after redraws
+                    try {
+                        var lengthSelect = left.find('.dataTables_length select');
+                        if(lengthSelect.length) {
+                            // already a select, swap it out
+                            var current = ticketTable.page.len();
+                            var input = $('<input/>', {
+                                type: 'number',
+                                min: 1,
+                                step: 1,
+                                value: current,
+                                class: 'form-control form-control-sm d-inline-block',
+                                style: 'width:80px; margin-left:8px;'
+                            });
+                            lengthSelect.replaceWith(input);
+                            input.on('change', function() {
+                                var v = parseInt($(this).val(), 10);
+                                if (isNaN(v) || v < 1) v = ticketTable.page.len();
+                                ticketTable.page.len(v).draw(false);
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Could not replace length select on redraw', e);
+                    }
                 },
                 order: []
             });

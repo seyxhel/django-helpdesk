@@ -3,9 +3,7 @@
 {% block helpdesk_title %}{% trans "Ignored E-Mail Addresses" %}{% endblock %}
 
 {% block helpdesk_breadcrumb %}
-    <li class="breadcrumb-item">
-        <a href="{% url 'helpdesk:system_settings' %}">{% trans "System Settings" %}</a>
-    </li>
+    <li class="breadcrumb-item">{% trans "System Settings" %}</li>
     <li class="breadcrumb-item active">Ignored E-Mail Addresses</li>
 {% endblock %}
 
