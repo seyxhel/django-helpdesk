@@ -22,6 +22,15 @@
 {% endblock %}
 
 {% block helpdesk_body %}
+  <!-- Loading overlay shown when Update This Ticket is submitted -->
+  <div id="ticketLoadingOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.85);z-index:2000;align-items:center;justify-content:center;">
+    <div style="text-align:center;">
+      <div class="spinner-border text-primary" role="status" style="width:3rem;height:3rem;margin-bottom:12px;">
+        <span class="sr-only">Loading...</span>
+      </div>
+      <div style="font-size:1.1rem;font-weight:600;color:#333;">{% trans "Updating ticket, please wait..." %}</div>
+    </div>
+  </div>
 	{% if form.errors %}
 	    {% include 'helpdesk/include/alert_form_errors.html' %}
 	{% endif %}
@@ -104,7 +113,7 @@
           <div class="card-header">{% trans "Respond to this ticket" %}</div>
           <div class="card-body">
 
-    <form method="post" action="{% url 'helpdesk:update' ticket.id %}" enctype="multipart/form-data" novalidate>
+  <form id="ticketUpdateForm" method="post" action="{% url 'helpdesk:update' ticket.id %}" enctype="multipart/form-data" novalidate>
       <fieldset>
         <div class="form-row">
           <!-- Main column: comment + presets -->
@@ -202,7 +211,7 @@
         </div> <!-- /.form-row -->
 
                       <div class="d-flex justify-content-end">
-                <button type="submit" class="btn btn-primary">{% trans "Update This Ticket" %}</button>
+                <button type="submit" id="ticketUpdateSubmit" class="btn btn-primary">{% trans "Update This Ticket" %}</button>
               </div>
 
         <!-- Further edit options (keeps existing ids for JS hooks) -->
@@ -872,6 +881,7 @@ $( function() {
               if ($modalEl.length) {
                 // Append the modal element itself (not the whole HTML string)
                 $('body').append($modalEl);
+                // followup modal overlay is embedded in the modal include (no dynamic append needed)
                 // Ensure the modal contains the replacement file wrapper so file chooser can be triggered
                 try {
                   var $m = $('#followupEditModal');
@@ -1109,6 +1119,8 @@ $( function() {
 
                 // Include CSRF token header if available inside the form
                 var actionUrl = formEl.getAttribute('action') || window.location.href;
+                // Show global ticket overlay while AJAX is in progress (match ticket form UX)
+                try { $('#ticketLoadingOverlay').css('display','flex'); } catch(e) {}
                 // Send via AJAX so we can guarantee files go through
                 $.ajax({
                   url: actionUrl,
@@ -1120,7 +1132,7 @@ $( function() {
                   success: function(resp) {
                     try {
                       // If server reports validation errors, update modal body with returned fragment
-                      if (resp && resp.success === false && resp.modal_form_html) {
+                        if (resp && resp.success === false && resp.modal_form_html) {
                         var $m = $('#followupEditModal');
                         try { $m.find('.modal-body').html(resp.modal_form_html); } catch(ehtml) { console.warn('failed replacing modal body with server form html', ehtml); }
                         // append attachments fragment if provided
@@ -1135,6 +1147,8 @@ $( function() {
                         try { if (resp.debug) console.warn('followup_edit debug', resp.debug); } catch(_){}
                         // small user hint that validation failed
                         try { $('#followupEditModal .modal-body').prepend('<div class="alert alert-warning">There were validation errors — see form and console for details.</div>'); } catch(_){}
+                        // hide global overlay when validation errors are shown
+                        try { $('#ticketLoadingOverlay').hide(); } catch(e) {}
                         return;
                       }
                       // On success, reload the page to reflect the update
@@ -1143,6 +1157,7 @@ $( function() {
                   },
                   error: function(xhr, status, err) {
                     console.error('followupEdit AJAX submit failed', status, err);
+                    try { $('#ticketLoadingOverlay').hide(); } catch(e) {}
                     alert('Failed to submit followup edit. See console for details.');
                   }
                 });
@@ -1224,6 +1239,15 @@ $( function() {
     });
 
       $("[data-toggle=tooltip]").tooltip();
+
+    // Show loading overlay and disable submit on ticket update to indicate progress
+    $(document).on('submit', '#ticketUpdateForm', function(e){
+      try {
+        $('#ticketLoadingOverlay').css('display','flex');
+        $('#ticketUpdateSubmit').prop('disabled', true).addClass('disabled');
+      } catch(e) { console.warn('Failed to show ticket loading overlay', e); }
+      // let form submit normally
+    });
 
     {% if helpdesk_settings.HELPDESK_ENABLE_ATTACHMENTS %}
     // Clicking Attach opens the file picker immediately and reveals the upload area

@@ -1,7 +1,15 @@
 <div class="modal fade" id="followupEditModal" tabindex="-1" role="dialog" aria-labelledby="followupEditModalLabel" aria-hidden="true" data-followup-id="{{ followup.id }}">
 {% load i18n %}
   <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-    <div class="modal-content">
+    <div class="modal-content" style="position:relative;">
+      <!-- Follow-up modal loading overlay (hidden by default). This sits inside .modal-content
+           so it only covers modal content and does not blur/tint the rest of the page. -->
+      <div class="followup-loading-overlay" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:transparent;z-index:1060;pointer-events:auto;">
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.95);padding:12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);text-align:center;">
+          <div class="spinner-border text-primary" role="status" style="width:2.5rem;height:2.5rem;margin-bottom:8px;"><span class="sr-only">Loading...</span></div>
+          <div style="font-weight:600;color:#333">{% trans "Saving..." %}</div>
+        </div>
+      </div>
       <div class="modal-header">
         <h5 class="modal-title" id="followupEditModalLabel">{% trans "Edit Follow Up" %}</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
