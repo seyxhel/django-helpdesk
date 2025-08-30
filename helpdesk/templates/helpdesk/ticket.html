@@ -141,13 +141,14 @@
             <div id="FileUpload" style="display: none;">
               <div class="form-group">
                 <label for="file0">{% trans "Attach a File" %}</label>
-                <div class="add_file_fields_wrap">
-                  <button class="add_file_field_button btn btn-sm btn-success mb-2">{% trans "Add Another File" %}</button>
-                  <div>
+                  <div class="add_file_fields_wrap">
+                  <button class="add_file_field_button btn btn-sm btn-success mb-2" style="display:none">{% trans "Add Another File" %}</button>
+                  <div class="file-entry" data-fileindex="0">
                     <label class="btn btn-primary btn-sm btn-file">
-                      Browse... <input type="file" name="attachment" id="file0" style="display: none;" />
+                      Browse... <input type="file" name="attachment" id="file0" data-fileindex="0" style="display: none;" />
                     </label>
-                    <span class="ml-2" id="selectedfilename0">{% trans 'No files selected.' %}</span>
+                    <span class="ml-2 selectedfilename" id="selectedfilename0">{% trans 'No files selected.' %}</span>
+                    <button type="button" id="remove0" class="btn btn-danger btn-xs remove-file" data-fileindex="0" style="display:none;margin-left:8px;">&times;</button>
                   </div>
                 </div>
               </div>
@@ -1224,28 +1225,117 @@ $( function() {
 
       $("[data-toggle=tooltip]").tooltip();
 
-      {% if helpdesk_settings.HELPDESK_ENABLE_ATTACHMENTS %}
-      $("#ShowFileUpload").click(function() {
-          $("#FileUpload").fadeIn();
-          $("#ShowFileUploadPara").hide();
-      });
+    {% if helpdesk_settings.HELPDESK_ENABLE_ATTACHMENTS %}
+    // Clicking Attach opens the file picker immediately and reveals the upload area
+    $("#ShowFileUpload").click(function() {
+      $("#FileUpload").fadeIn();
+      $("#ShowFileUploadPara").hide();
+      // Trigger the primary file input so user can choose a file right away
+      var f0 = document.getElementById('file0');
+      try {
+        if (window._openHiddenFileInput) { window._openHiddenFileInput(f0); }
+        else if (f0) { f0.click(); }
+      } catch(e) { try { if (f0) f0.click(); } catch(_){} }
+    });
 
-      // lists for file input change events, then updates the associated text label
-      // with the file name selected
-      $('.add_file_fields_wrap').on('fileselect', ':file', function(event, numFiles, label, browseButtonNum) {
-          $("#selectedfilename"+browseButtonNum).html(label);
-      });
+    // lists for file input change events: update the associated text label with the filename
+    $('.add_file_fields_wrap').on('fileselect', ':file', function(event, numFiles, label, browseButtonNum) {
+      $("#selectedfilename"+browseButtonNum).html(label);
+    });
 
-      var x = 0;
-      var wrapper         = $(".add_file_fields_wrap"); //Fields wrapper
-      var add_button      = $(".add_file_field_button"); //Add button ID
+    var x = 0;
+    var wrapper         = $(".add_file_fields_wrap"); //Fields wrapper
+    var add_button      = $(".add_file_field_button"); //Add button ID
 
-      $(add_button).click(function(e){ //on add input button click
-          x++;
-          e.preventDefault();
-          $(wrapper).append("<div><label class='btn btn-primary btn-sm btn-file'>Browse... <input type='file' name='attachment' id='file" + x + "' multiple style='display: none;'/></label><span>&nbsp;</span><span id='selectedfilename" + x + "'>{% trans 'No files selected.' %}</span></div>"); //add input box
-      });
-      {% endif %}
+    // When primary file0 changes, show the Add Another File button and primary remove X
+    $(document).on('change', '#file0', function(){
+      var has = this.files && this.files.length;
+      if (has) {
+        add_button.show();
+        $('#remove0').show();
+      } else {
+        // if user cleared primary input and no other files selected, hide add controls
+        var any = false;
+        $('.add_file_fields_wrap input[type=file]').each(function(){ if (this.files && this.files.length) any = true; });
+        if (!any) {
+          add_button.hide();
+          $('#FileUpload').hide();
+          $('#ShowFileUploadPara').show();
+        }
+      }
+    });
+
+    // Add another file: append a new hidden input + browse button, then open picker
+    $(add_button).click(function(e){
+      e.preventDefault();
+      x++;
+      var idx = x;
+      var html = "<div class='file-entry' data-fileindex='"+idx+"'>"
+           + "<label class='btn btn-primary btn-sm btn-file'>Browse... <input type='file' name='attachment' id='file"+idx+"' data-fileindex='"+idx+"' style='display: none;' /></label>"
+           + "<span class='ml-2 selectedfilename' id='selectedfilename"+idx+"'>{% trans 'No files selected.' %}</span>"
+           + "<button type='button' id='remove"+idx+"' class='btn btn-danger btn-xs remove-file' data-fileindex='"+idx+"' style='display:none;margin-left:8px;'>&times;</button>"
+           + "</div>";
+      $(wrapper).append(html);
+      // Open the newly created input (user gesture inside click handler)
+      var newInput = document.getElementById('file' + idx);
+      try {
+        if (window._openHiddenFileInput) { window._openHiddenFileInput(newInput); }
+        else if (newInput) { newInput.click(); }
+      } catch(e) { try { if (newInput) newInput.click(); } catch(_){} }
+    });
+
+    // Delegated handler: when any file input changes, show its remove button and ensure Add is visible
+    $(document).on('change', ':file', function(){
+      try {
+        var input = $(this);
+        var id = input.attr('id') || '';
+        var idx = id.replace('file','');
+        if (idx !== '') {
+          $('#remove' + idx).show();
+        }
+        // if any file selected, ensure Add button shown
+        var any = false;
+        $('.add_file_fields_wrap input[type=file]').each(function(){ if (this.files && this.files.length) any = true; });
+        if (any) add_button.show();
+      } catch(e) { /* ignore */ }
+    });
+
+    // Delegated handler for remove X buttons
+    $(document).on('click', '.remove-file', function(e){
+      e.preventDefault();
+      var $btn = $(this);
+      var fileIdx = $btn.data('fileindex');
+      if (fileIdx === undefined || fileIdx === null) {
+        // fallback: parse from id (e.g., remove3)
+        var aid = $btn.attr('id') || '';
+        fileIdx = aid.replace('remove','');
+      }
+      // If primary file (index 0) remove action should NOT remove the DOM node.
+      if (String(fileIdx) === '0') {
+        try { var f0 = document.getElementById('file0'); if (f0) { f0.value = ''; } } catch(_){}
+        $('#selectedfilename0').text('{% trans "No files selected." %}');
+        $('#remove0').hide();
+        add_button.hide();
+        $('#FileUpload').hide();
+        $('#ShowFileUploadPara').show();
+        return;
+      }
+      // non-primary entries: remove the entry node
+      var $entry = $btn.closest('.file-entry');
+      $entry.remove();
+      // If no file inputs with chosen files remain, hide the upload area and restore Attach button
+      var any = false;
+      $('.add_file_fields_wrap input[type=file]').each(function(){ if (this.files && this.files.length) any = true; });
+      if (!any) {
+        add_button.hide();
+        $('#FileUpload').hide();
+        $('#ShowFileUploadPara').show();
+        // reset primary filename text
+        $('#selectedfilename0').text('{% trans "No files selected." %}');
+        try { document.getElementById('file0').value = ''; } catch(_){ }
+      }
+    });
+    {% endif %}
   });
 
   {% if helpdesk_settings.HELPDESK_ENABLE_ATTACHMENTS %}
