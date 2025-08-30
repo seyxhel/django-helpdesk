@@ -6,37 +6,32 @@
 
 {% block helpdesk_head %}
     <style>
-          /* Layout the form group so the label, field and errors stack vertically.
-             Reserve padding-bottom so errors can appear without shifting layout. */
-          .form-group { display:block; width:100%; margin-bottom:4px; padding-bottom:28px; position:relative; }
-          .form-group > label { display:block; margin-bottom:4px; }
+          /* tighter spacing / compact form */
+          .form-group { display:block; width:100%; margin-bottom:6px; padding-bottom:18px; position:relative; }
+          .form-group > label { display:block; margin-bottom:4px; font-size:0.95rem; }
 
-          /* Inputs themselves don't add extra bottom margin; the group reserves the space. */
           .form-group input, .form-group select, .form-group textarea { margin-bottom:0 !important; }
 
-          /* Server error wrapper (used for server-rendered errors). Hidden by default, but when present
-             it shows as a boxed highlighted message that sits visually close to the field. */
-          .form-errors { background:#fff4f4; border:1px solid #ffd7d7; color:#7a1212; padding:6px 12px; border-radius:8px; margin:0; }
+          .form-errors { background:#fff4f4; border:1px solid #ffd7d7; color:#7a1212; padding:6px 10px; border-radius:8px; margin:0; font-size:0.92rem; }
           .server-field-error {
               display:block;
-              min-height:20px;             /* reserve vertical space */
-              visibility:hidden;          /* keep content hidden for assistive tech until present */
-              opacity:0;                  /* hide visually */
+              min-height:18px;
+              visibility:hidden;
+              opacity:0;
               transform-origin: bottom left;
               transform: translateY(0);
-              transition: transform .08s ease, opacity .08s ease;
+              transition: transform .06s ease, opacity .06s ease;
               padding:0; margin:0; background:transparent; border:0;
               color:#7a1212;
           }
           .server-field-error:not(:empty) {
               visibility: visible;
               opacity: 1;
-              /* show the highlighted wrapper below the control */
               transform: none;
               margin-top:6px;
               background:#fff4f4;
               border:1px solid #ffd7d7;
-              padding:6px 12px;
+              padding:6px 10px;
               border-radius:8px;
               color:#7a1212;
           }
@@ -46,38 +41,108 @@
               font-size: 12px;
               margin:0;
               display:block;
-              min-height:18px;            /* reserve vertical space */
+              min-height:16px;
               visibility:hidden;
               opacity:0;
               transform-origin: bottom left;
               transform: translateY(0);
-              transition: transform .08s ease, opacity .08s ease;
+              transition: transform .06s ease, opacity .06s ease;
               padding-left:0; line-height:1.15;
           }
           .field-error:not(:empty) {
               visibility: visible;
               opacity: 1;
-              transform: none; /* show text below the control */
+              transform: none;
               margin-top:6px;
-          }
-          .field-error::before { content: none; }
-
-          /* Normalize specific server/client error blocks so they behave like kb_item */
-          #id_name-server-error, #id_name-client-error,
-          #id_title-server-error, #id_title-client-error,
-          #id_slug-server-error, #id_slug-client-error {
-              margin: 0 !important;
-              padding: 0 !important;
-              display: block;
-              line-height: 1.15;
+              font-size:12px;
           }
 
-        /* Make invalid controls use a consistent full red border and remove outlines/box-shadows */
-        input.is-invalid, select.is-invalid, textarea.is-invalid {
-            border: 1px solid #c62828 !important;
-            box-shadow: none !important;
-            outline: none !important;
-        }
+          /* invalid controls */
+          input.is-invalid, select.is-invalid, textarea.is-invalid {
+              border: 1px solid #c62828 !important;
+              box-shadow: none !important;
+              outline: none !important;
+          }
+
+          /* compact card */
+          .kb-form-card {
+            max-width: 820px;
+            margin: 12px auto;
+            background: #ffffff;
+            border: 1px solid rgba(15,23,42,0.06);
+            border-radius: 12px;
+            padding: 14px 16px;
+            box-shadow: 0 6px 16px rgba(15,23,42,0.03);
+          }
+          .kb-form-card h2 {
+            margin: 0 0 8px 0;
+            font-size: 1.1rem;
+            color: #0f2b44;
+            font-weight: 700;
+          }
+          .kb-form-note {
+            background: #fff7e6;
+            border: 1px solid rgba(245,166,35,0.12);
+            color: #8a5a00;
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-size: .92rem;
+          }
+
+          .kb-form-card .form-group input,
+          .kb-form-card .form-group textarea,
+          .kb-form-card .form-group select {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(15,23,42,0.07);
+            background: #fff;
+            font-size: 0.96rem;
+            box-shadow: none;
+          }
+          .kb-form-card .form-group textarea { min-height: 120px; }
+
+          /* Actions row: smaller, tighter */
+          .kb-form-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            margin-top: 12px;
+          }
+          .kb-form-actions .btn {
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-weight: 600;
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            border: 1px solid rgba(15,23,42,0.06);
+            transition: transform .06s ease, box-shadow .08s ease;
+          }
+          .kb-form-actions .btn-cancel { background: #fff; color: #0f2b44; }
+          .kb-form-actions .btn-primary {
+            background: #0b57d0;
+            color: #fff;
+            border-color: #0b57d0;
+            box-shadow: 0 8px 18px rgba(11,87,208,0.10);
+            padding: 10px 16px;
+          }
+          .kb-form-actions .btn-primary:hover,
+          .kb-form-actions .btn-primary:focus {
+            background: #064da8;
+            border-color: #064da8;
+            transform: translateY(-1px);
+          }
+
+          #kbcat-submit[disabled] { opacity: 0.8; cursor: not-allowed; transform: none; }
+
+         @media (max-width:720px) {
+          .kb-form-card { padding:12px; margin:10px; }
+          .kb-form-actions { flex-direction:column-reverse; gap:8px; align-items:stretch; }
+          .kb-form-actions .btn { width:100%; justify-content:center; }
+         }
     </style>
 {% endblock %}
 
@@ -90,40 +155,57 @@
 
 {% block helpdesk_body %}
 {% if form %}
-    <h2>{% trans "Add knowledge base category" %}</h2>
-    <form method="post" novalidate>
-        {% csrf_token %}
-        <div class="form-group">
-            {{ form.name.label_tag }}
-            {{ form.name }}
-            {% if form.name.errors %}
-            <div id="id_name-server-error" class="form-errors server-field-error" aria-live="polite">{{ form.name.errors|join:' ' }}</div>
-            {% endif %}
-            <div id="id_name-client-error" class="field-error" aria-live="polite"></div>
-        </div>
+    <div class="kb-form-card" role="region" aria-labelledby="kbform-heading">
+      <h2 id="kbform-heading">{% trans "Add knowledge base category" %}</h2>
 
-        <div class="form-group">
-            {{ form.title.label_tag }}
-            {{ form.title }}
-            {% if form.title.errors %}
-            <div id="id_title-server-error" class="form-errors server-field-error" aria-live="polite">{{ form.title.errors|join:' ' }}</div>
-            {% endif %}
-            <div id="id_title-client-error" class="field-error" aria-live="polite"></div>
-        </div>
-        <div class="form-group">
-            {{ form.description.label_tag }}
-            {{ form.description }}
-            {% if form.description.errors %}
-            <div id="id_description-server-error" class="form-errors server-field-error" aria-live="polite">{{ form.description.errors|join:' ' }}</div>
-            {% endif %}
-        </div>
-        <div class="form-group">
-            {{ form.public.label_tag }} {{ form.public }}
-        </div>
-        <div style="margin-top:12px">
-            <button id="kbcat-submit" type="submit" class="btn btn-primary" disabled aria-disabled="true">{% trans "Create category" %}</button>
-        </div>
-    </form>
+      {# Optional contextual note: only show if there's a 'note' variable or server message - keep for visual parity #}
+      {% if note %}
+      <div class="kb-form-note" role="status">{{ note }}</div>
+      {% endif %}
+
+      <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="form-group">
+              {{ form.name.label_tag }}
+              {{ form.name }}
+              {% if form.name.errors %}
+              <div id="id_name-server-error" class="form-errors server-field-error" aria-live="polite">{{ form.name.errors|join:' ' }}</div>
+              {% endif %}
+              <div id="id_name-client-error" class="field-error" aria-live="polite"></div>
+          </div>
+
+          <div class="form-group">
+              {{ form.title.label_tag }}
+              {{ form.title }}
+              {% if form.title.errors %}
+              <div id="id_title-server-error" class="form-errors server-field-error" aria-live="polite">{{ form.title.errors|join:' ' }}</div>
+              {% endif %}
+              <div id="id_title-client-error" class="field-error" aria-live="polite"></div>
+          </div>
+          <div class="form-group">
+              {{ form.description.label_tag }}
+              {{ form.description }}
+              {% if form.description.errors %}
+              <div id="id_description-server-error" class="form-errors server-field-error" aria-live="polite">{{ form.description.errors|join:' ' }}</div>
+              {% endif %}
+          </div>
+          <div class="form-group" style="margin-top:6px;">
+              {{ form.public.label_tag }} {{ form.public }}
+          </div>
+
+          <div class="kb-form-actions">
+              <a href="{% url 'helpdesk:kb_index' %}" class="btn btn-cancel" role="button" title="{% trans 'Cancel' %}">
+                <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                <span>{% trans "Cancel" %}</span>
+              </a>
+
+              <button id="kbcat-submit" type="submit" class="btn btn-primary" disabled aria-disabled="true">
+                <i class="fa fa-save" aria-hidden="true"></i>
+                <span>{% trans "Create category" %}</span>
+              </button>
+          </div>
+      </form>
+    </div>
 {% else %}
     {% include 'helpdesk/kb_category_base.html' %}
 {% endif %}

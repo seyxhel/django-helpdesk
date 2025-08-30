@@ -11,34 +11,164 @@
 {% endblock %}
 
 {% block helpdesk_body %}
-<h2>{% trans "Knowledgebase" %}</h2>
+<style>
+  :root{
+    --kb-bg: #ffffff;
+    --kb-muted: #6c7783;
+    --kb-ink: #0f2b44;
+    --kb-accent: #0b57d0;
+    --kb-accent-2: #eaf3ff;
+    --kb-border: rgba(15,23,42,0.06);
+    --kb-radius: 16px;
+    --kb-gap: 16px;
+  }
 
-<div style="display:flex;flex-direction:column;gap:8px;">
-    <p style="flex:1;min-width:220px">{% trans "We have listed a number of Knowledgebase articles for your perusal in the following categories. Please check to see if any of these articles address your problem prior to opening a support ticket." %}</p>
-    {% if user.is_superuser %}
-        <div style="margin-top:4px;">
-            <a class="btn btn-success mr-2" href="{% url 'helpdesk:kb_category_add' %}">{% trans 'Add Category' %}</a>
-            <a class="btn btn-success" href="{% url 'helpdesk:kb_add' %}">{% trans 'Add Item' %}</a>
-        </div>
-    {% endif %}
+  /* Page intro */
+  .kb-hero {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:18px;
+    padding: 6px 0;
+  }
+  .kb-left { flex: 1 1 auto; min-width: 0; }
+  .kb-hero h2 { margin:0; color:var(--kb-ink); font-size:1.6rem; line-height:1.1; }
+  .kb-intro { color:var(--kb-muted); margin:6px 0 0 0; line-height:1.45; font-size:0.95rem; }
+
+  .kb-actions { display:flex; gap:10px; align-items:center; justify-content:flex-end; flex-shrink:0; }
+  .kb-actions .btn { border-radius:10px; padding:8px 12px; font-weight:600; display:inline-flex; gap:8px; align-items:center; }
+  .kb-actions .btn-primary { background:var(--kb-accent); border-color:var(--kb-accent); color:#fff; box-shadow: 0 6px 18px rgba(11,87,208,0.06); }
+  .kb-actions .btn-primary:hover { background:#064da8; border-color:#064da8; transform:translateY(-2px); }
+
+  /* Grid */
+  .kb-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--kb-gap); }
+
+  /* Card (no float/translate on hover) */
+  .kb-card {
+    background: var(--kb-bg);
+    border: 1px solid var(--kb-border);
+    border-radius: var(--kb-radius);
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(15,23,42,0.03);
+    display:flex;
+    flex-direction:column;
+    transition: box-shadow .12s ease; /* only animate shadow */
+  }
+  .kb-card:hover { box-shadow: 0 8px 20px rgba(15,23,42,0.05); }
+
+  /* Header: title on left, meta/count on the right */
+  .kb-card .card-header {
+    padding:14px 16px;
+    background:transparent;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    border-bottom: none; /* removed divider */
+  }
+  .kb-card .card-header h5 { margin:0; color:var(--kb-ink); font-size:1.05rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .kb-card .card-header .kb-meta { margin-left:auto; color:var(--kb-muted); font-size:.92rem; white-space:nowrap; }
+
+  .kb-card .card-body {
+    padding:14px 16px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    flex:1 1 auto;
+  }
+  .kb-desc { color:var(--kb-muted); margin:0; line-height:1.45; max-height:4.5rem; overflow:hidden; text-overflow:ellipsis; hyphens:auto; }
+
+  /* Footer: keep actions right aligned, stack on small */
+  .kb-card .card-footer{
+    padding:12px 16px;
+    background:transparent;
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    border-top: none; /* removed divider */
+  }
+
+  .kb-card .btn-outline-primary {
+    background: var(--kb-accent-2);
+    color: var(--kb-accent);
+    border: 1px solid rgba(11,87,208,0.08);
+    border-radius: 10px;
+    padding:8px 12px;
+    font-weight:600;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+  }
+  .kb-card .btn-outline-primary:hover {
+    background:#e1efff;
+    color:#064da8;
+    transform:none; /* no vertical shift, keep subtle */
+    box-shadow: 0 6px 18px rgba(11,87,208,0.04);
+  }
+
+  /* Empty state */
+  .kb-empty { padding:18px; color:var(--kb-muted); background: #fff; border:1px solid var(--kb-border); border-radius:var(--kb-radius); }
+
+  /* Responsive adjustments */
+  @media (max-width:720px) {
+    .kb-hero { flex-direction:column; align-items:flex-start; gap:10px; }
+    .kb-actions { width:100%; justify-content:flex-end; }
+    .kb-card .card-header { gap:8px; }
+    .kb-card .card-footer { justify-content:flex-end; }
+    .kb-card .card-header h5 { font-size:1rem; }
+  }
+</style>
+
+<div class="kb-hero">
+  <div class="kb-left">
+    <h2>{% trans "Knowledgebase" %}</h2>
+  </div>
+
+  {% if user.is_superuser %}
+  <div class="kb-actions" role="toolbar" aria-label="{% trans 'Knowledgebase actions' %}">
+    <a class="btn btn-primary" href="{% url 'helpdesk:kb_category_add' %}">
+      <i class="fas fa-folder-plus" aria-hidden="true"></i>
+      <span>{% trans 'Add Category' %}</span>
+    </a>
+    <a class="btn btn-primary" href="{% url 'helpdesk:kb_add' %}">
+      <i class="fas fa-plus" aria-hidden="true"></i>
+      <span>{% trans 'Add Item' %}</span>
+    </a>
+  </div>
+  {% endif %}
 </div>
 
-{% for category in kb_categories %}
-<div class="card mb-3">
+{% if kb_categories %}
+<div class="kb-grid">
+  {% for category in kb_categories %}
+  <article class="kb-card card mb-0">
     <div class="card-header">
-        <h5 class="mb-0">{{ category.title }}</h5>
+      <h5 class="mb-0" title="{{ category.title }}">{{ category.title }}</h5>
+      {% if category.items_count %}
+        <div class="kb-meta">{{ category.items_count }} {% trans "items" %}</div>
+      {% endif %}
     </div>
+
     <div class="card-body">
-        {% if category.description %}
-            <p class="card-text mb-0 font-weight-normal">{{ category.description|linebreaksbr }}</p>
-        {% endif %}
-        <p class="card-text">
-            <small class="text-muted">
-                <a class="btn btn-primary" href="{{ category.get_absolute_url }}">{% trans 'View items' %} <i class="fa fa-share"></i></a>
-            </small>
-        </p>
+      {% if category.description %}
+        <p class="kb-desc">{{ category.description|linebreaksbr }}</p>
+      {% else %}
+        <p class="kb-desc text-muted">{% trans "No description available." %}</p>
+      {% endif %}
     </div>
+
+    <div class="card-footer">
+      <a class="btn btn-outline-primary" href="{{ category.get_absolute_url }}" aria-label="{% blocktrans %}View items in {{ category.title }}{% endblocktrans %}">
+        <span>{% trans 'View items' %}</span>
+        <i class="fa fa-share" style="margin-left:6px;" aria-hidden="true"></i>
+      </a>
+    </div>
+  </article>
+  {% endfor %}
 </div>
-{% endfor %}
+{% else %}
+  <div class="kb-empty">{% trans "No knowledgebase categories available." %}</div>
+{% endif %}
 
 {% endblock %}

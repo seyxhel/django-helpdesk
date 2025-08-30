@@ -5,83 +5,162 @@
 
 {% block helpdesk_head %}
     <style>
-          /* Layout the form group so the label, field and errors stack vertically.
-             Reserve padding-bottom so errors can appear without shifting layout. */
-          .form-group { display:block; width:100%; margin-bottom:4px; padding-bottom:18px; position:relative; }
-          .form-group > label { display:block; margin-bottom:4px; }
+        :root{
+          --kb-bg: #ffffff;
+          --kb-ink: #0f2b44;
+          --kb-muted: #6c7783;
+          --kb-accent: #0b57d0;
+          --kb-border: rgba(15,23,42,0.06);
+          --kb-radius: 14px;
+        }
 
-          /* Inputs themselves don't add extra bottom margin; the group reserves the space. */
-          .form-group input, .form-group select, .form-group textarea { margin-bottom:0 !important; }
+        /* Card wrapper — slightly lighter shadow + tighter padding */
+        .kb-form-card {
+          max-width: 920px;
+          margin: 18px auto;
+          background: var(--kb-bg);
+          border: 1px solid var(--kb-border);
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 6px 18px rgba(15,23,42,0.03);
+        }
+        .kb-form-card h2 {
+          margin: 0 0 10px 0;
+          font-size: 1.25rem;
+          color: var(--kb-ink);
+          font-weight: 700;
+        }
 
-          /* Server error wrapper (used for server-rendered errors). Hidden by default, but when present
-             it shows as a boxed highlighted message that sits visually close to the field. */
-          .form-errors { background:#fff4f4; border:1px solid #ffd7d7; color:#7a1212; padding:6px 12px; border-radius:8px; margin:0; }
-          .server-field-error {
-              display:block;
-              min-height:20px;             /* reserve vertical space */
-              visibility:hidden;          /* keep content hidden for assistive tech until present */
-              opacity:0;                  /* hide visually */
-              transform-origin: bottom left;
-              transform: translateY(0);
-              transition: transform .08s ease, opacity .08s ease;
-              padding:0; margin:0; background:transparent; border:0;
-              color:#7a1212;
-          }
-          .server-field-error:not(:empty) {
-              visibility: visible;
-              opacity: 1;
-              /* visually bring the server error up and show the highlighted wrapper */
-              transform: translateY(-18px);
-              background:#fff4f4;
-              border:1px solid #ffd7d7;
-              padding:6px 12px;
-              border-radius:8px;
-              color:#7a1212;
-          }
+        /* Form spacing and labels — tighter spacing */
+        .kb-form-card .form-group { margin-bottom: 14px; padding-bottom: 0; }
+        .kb-form-card .form-group > label { display:block; margin-bottom:6px; color:var(--kb-ink); font-weight:600; font-size:0.95rem; }
 
-          /* Client-side inline error uses the same reserved-space approach and is pulled up
-             slightly so it appears adjacent to the control while the group's reserved space prevents layout shift. */
-          .field-error {
-              color: #c62828;
-              font-size: 12px;
-              margin:0;
-              display:block;
-              min-height:18px;            /* reserve vertical space */
-              visibility:hidden;
-              opacity:0;
-              transform-origin: bottom left;
-              transform: translateY(0);
-              transition: transform .08s ease, opacity .08s ease;
-              padding-left:0; line-height:1.15;
-          }
-          .field-error:not(:empty) {
-              visibility: visible;
-              opacity: 1;
-              transform: translateY(-18px); /* visually bring text closer to the control */
-          }
-          .field-error::before { content: none; }
+        /* Inputs: slightly reduced padding */
+        .kb-form-card input[type="text"],
+        .kb-form-card textarea,
+        .kb-form-card select,
+        .kb-form-card .form-control {
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: 10px;
+          border: 1px solid rgba(15,23,42,0.08);
+          background: #fff;
+          font-size: 0.98rem;
+          box-shadow: none;
+          box-sizing: border-box;
+        }
+        .kb-form-card textarea { min-height: 160px; resize: vertical; }
 
-          /* Make the category dropdown shorter */
-          #id_category {
-              min-width: 180px;
-              width: 180px;
-              max-width: 100%;
-          }
+        /* Helper/meta text */
+        .kb-form-card .help-text { color: var(--kb-muted); font-size: .92rem; margin-top:6px; }
 
-          /* Normalize category/title error blocks so they behave the same as others */
-          #id_category-server-error, #id_category-client-error,
-          #id_title-server-error, #id_title-client-error {
-              margin: 0 !important;
-              padding: 0 !important;
-              display: block;
-              line-height: 1.15;
-          }
+        /* Actions: centered, primedesk-style primary */
+        .kb-form-actions { display:flex; gap:12px; justify-content:center; margin-top:18px; }
+        .kb-form-actions .btn {
+          border-radius: 999px;
+          padding: 10px 18px;
+          font-weight:600;
+          border: 1px solid rgba(15,23,42,0.06);
+          background: #fff;
+          color: var(--kb-ink);
+        }
+        .kb-form-actions .btn-primary {
+          background: var(--kb-accent);
+          color: #fff;
+          border-color: var(--kb-accent);
+          box-shadow: 0 10px 24px rgba(11,87,208,0.10);
+          padding: 12px 22px;
+        }
+        .kb-form-actions .btn-primary:hover { background:#064da8; border-color:#064da8; }
 
-        /* Make invalid controls use a consistent full red border and remove outlines/box-shadows */
-        input.is-invalid, select.is-invalid, textarea.is-invalid {
-            border: 1px solid #c62828 !important;
-            box-shadow: none !important;
-            outline: none !important;
+        /* Make server errors inline (remove boxed red card appearance) */
+        .server-field-error {
+          display: block;
+          background: transparent;  /* remove red box */
+          border: none;             /* remove red border */
+          color: #c62828;           /* keep red text for visibility */
+          padding: 0;
+          margin-top: 6px;
+          font-size: 0.92rem;
+        }
+        /* Hide empty server-error nodes */
+        .server-field-error:empty { display: none; }
+
+        /* client-side field errors: subtle red text below field */
+        .field-error {
+          color: #c62828;
+          background: transparent;
+          padding: 0;
+          margin-top: 6px;
+          font-size: 0.9rem;
+        }
+
+        /* inline select + action button */
+        .input-with-action { display:flex; gap:8px; align-items:center; }
+        .input-with-action > select,
+        .input-with-action .form-control { flex:1; min-width:0; } /* allow select to shrink in flex */
+        .add-kb-cat-btn {
+            flex: 0 0 auto;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            width:36px;
+            height:36px;
+            border-radius:8px;
+            padding:0;
+            border:1px solid rgba(11,87,208,0.12);
+            background:#fff;
+            color:var(--kb-accent);
+            text-decoration:none;
+        }
+        .add-kb-cat-btn i { font-size:16px; line-height:1; }
+        .add-kb-cat-btn:hover { background:var(--kb-accent); color:#fff; border-color:var(--kb-accent); }
+
+        /* inline checkbox rows */
+        .form-group-inline { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+        .form-group-inline > label { flex:1; margin:0; color:var(--kb-ink); font-weight:600; font-size:0.95rem; }
+        .form-group-inline .inline-control { flex:0 0 auto; display:inline-flex; align-items:center; }
+
+        /* compact custom checkbox (small visual size, full click area via label) */
+        .kb-checkbox {
+          width:14px;
+          height:14px;
+          -webkit-appearance: none;
+          appearance: none;
+          border: 1px solid rgba(15,23,42,0.12);
+          border-radius:4px;
+          background: #fff;
+          display:inline-block;
+          position:relative;
+          vertical-align:middle;
+          margin:0;
+        }
+        /* ensure Django-rendered checkboxes inside inline-control match size */
+        .form-group-inline .inline-control input[type="checkbox"] { width:14px; height:14px; margin:0; }
+        .kb-checkbox:checked {
+          background: var(--kb-accent);
+          border-color: var(--kb-accent);
+        }
+        .kb-checkbox:checked::after {
+          content: "";
+          position: absolute;
+          left: 3px;
+          top: 1px;
+          width: 5px;
+          height: 8px;
+          border: solid #fff;
+          border-width: 0 2px 2px 0;
+          transform: rotate(45deg);
+        }
+        .kb-checkbox:focus {
+          outline: 3px solid rgba(11,87,208,0.08);
+          outline-offset: 2px;
+        }
+
+        @media (max-width:720px) {
+          .kb-form-card { padding:16px; margin:12px; }
+          .kb-form-actions { flex-direction:column-reverse; gap:10px; align-items:stretch; }
+          .kb-form-actions .btn { width:100%; justify-content:center; }
         }
     </style>
 {% endblock %}
@@ -94,19 +173,22 @@
 {% endblock %}
 
 {% block helpdesk_body %}
-<h2>{% trans "Add knowledge base item" %}</h2>
-<form method="post" novalidate>
+<div class="kb-form-card" role="region" aria-labelledby="kbitem-heading">
+  <h2 id="kbitem-heading">{% trans "Add knowledge base item" %}</h2>
+  <form method="post" novalidate>
         {% csrf_token %}
 
         <div class="form-group">
                 {{ form.category.label_tag }}
-                {{ form.category }}
-                {% if request.user.is_superuser %}
-                <a href="{% url 'helpdesk:kb_category_add' %}" class="btn btn-outline-primary btn-sm ml-2" title="{% trans 'Add KB category' %}">
-                    <i class="fa fa-plus" aria-hidden="true"></i>
-                    <span class="sr-only">{% trans 'Add KB category' %}</span>
-                </a>
-                {% endif %}
+                <div class="input-with-action">
+                    {{ form.category }}
+                    {% if request.user.is_superuser %}
+                    <a href="{% url 'helpdesk:kb_category_add' %}" class="add-kb-cat-btn" title="{% trans 'Add KB category' %}">
+                        <i class="fa fa-plus" aria-hidden="true"></i>
+                        <span class="sr-only">{% trans 'Add KB category' %}</span>
+                    </a>
+                    {% endif %}
+                </div>
                 <div id="id_category-server-error" class="form-errors server-field-error" aria-live="polite">{% if form and form.category.errors %}{{ form.category.errors|join:' ' }}{% endif %}</div>
                 <div id="id_category-client-error" class="field-error" aria-live="polite"></div>
         </div>
@@ -140,10 +222,12 @@
         {{ form.enabled.label_tag }} {{ form.enabled }}
     </div>
 
-        <div style="margin-top:12px">
+        <div class="kb-form-actions">
+            <a href="{% url 'helpdesk:kb_index' %}" class="btn" role="button">{% trans "Cancel" %}</a>
             <button id="kb-submit" type="submit" class="btn btn-primary" disabled aria-disabled="true">{% trans "Create" %}</button>
         </div>
-</form>
+    </form>
+</div>
 
     <script>
     (function(){
