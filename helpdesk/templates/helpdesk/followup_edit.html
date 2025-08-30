@@ -43,65 +43,26 @@
                         <div class="form-group">
                             <label for="id_comment" class="font-weight-600">{% trans "Comment" %}</label>
                             {{ form.comment }}
-                            <small class="form-text text-muted">{% trans "You can insert ticket and queue details in your message." %}</small>
                         </div>
 
                         {% if helpdesk_settings.HELPDESK_ENABLE_ATTACHMENTS %}
-                        <p id="ShowFileUploadPara" class="mb-2">
-                            <button type="button" id="ShowFileUpload" class="btn btn-outline-secondary btn-sm">
-                                <i class="fas fa-paperclip mr-1"></i> {% trans "Attach File(s)" %} &raquo;
-                            </button>
-                        </p>
-                        <div id="FileUpload" style="display: none;">
-                            <div class="form-group">
-                                <label for="file0">{% trans "Attach a File" %}</label>
-                                <div class="add_file_fields_wrap">
-                                    <button class="add_file_field_button btn btn-sm btn-success mb-2">{% trans "Add Another File" %}</button>
-                                    <div>
-                                        <label class="btn btn-primary btn-sm btn-file">
-                                            Browse... <input type="file" name="attachment" id="file0" style="display: none;" />
-                                        </label>
-                                        <span class="ml-2" id="selectedfilename0">{% trans 'No files selected.' %}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                            {% include 'helpdesk/include/attachment_fields.html' %}
                         {% endif %}
                     </div>
 
-                    <!-- Side column: status / public / time / actions -->
-                    <div class="col-lg-4 col-md-12">
-                        <div class="card card-body p-3 mb-3">
-                            <div class="mb-2">
-                                <label class="d-block font-weight-600">{% trans "Edit Status" %}</label>
-                                <div class="btn-group-toggle btn-group d-flex flex-wrap" data-toggle="buttons" role="group">
-                                    {{ form.new_status }}
-                                </div>
-                            </div>
-
-                            {% if helpdesk_settings.HELPDESK_UPDATE_PUBLIC_DEFAULT %}
-                                <input type="hidden" name="public" value="1">
-                            {% else %}
-                                <div class="form-group form-check mb-2">
-                                    {{ form.public }}
-                                    <small class="form-text text-muted">{% trans "If this is public, the submitter will be e-mailed your comment or resolution." %}</small>
-                                </div>
-                            {% endif %}
-
-                            {% if form.time_spent %}
-                            <div class="form-group mb-2">
-                                <label for="id_time_spent" class="font-weight-600">{% trans "Time spent" %} <small class="text-muted">({% trans "Optional" %})</small></label>
-                                {{ form.time_spent }}
-                            </div>
-                            {% endif %}
-
-                            <div class="d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary">{% trans "Submit" %}</button>
-                            </div>
+                    {% comment %} Side column removed per request: status/public/time_spent controls are intentionally omitted from the edit follow-up UI. {% endcomment %}
+                    <!-- Submit button moved into main column to keep the form usable without the side controls -->
+                    <div class="col-12">
+                        <div class="mt-3 d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">{% trans "Submit" %}</button>
                         </div>
                     </div>
                 </div> <!-- /.form-row -->
             </fieldset>
+            {% csrf_token %}
+        </form>
+        {# Hidden form used to submit attachment delete POSTs from the modal/page. Kept outside main form for valid HTML and JS target. #}
+        <form id="followup-attachment-delete-form" method="post" style="display:none;">
             {% csrf_token %}
         </form>
     </div>

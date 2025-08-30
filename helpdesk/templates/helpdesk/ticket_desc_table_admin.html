@@ -559,9 +559,9 @@
 																</div>
 														</div>
 												 </th>
-										 </tr>
-								</thead>
-								<tbody>
+										<tr>
+											<th class="table-active">{% trans "Resolution" %}{% if ticket.get_status_display == "Resolved" and not user.is_staff %} <a href="{{ ticket.ticket_url }}&close"><button type="button" class="btn btn-primary btn-xs">{% trans "Accept and Close" %}</button></a>{% endif %}</th>
+										</tr>
 										{% for customfield in ticket.ticketcustomfieldvalue_set.all %}
 												<tr>
 														<th class="table-secondary">{{ customfield.field.label }}</th>
@@ -834,13 +834,13 @@
 												<tr>
 														<th colspan='4'>
 																{% trans "Resolution" %}
-																{% if "Resolved" == ticket.get_status_display %}
+																{% if "Resolved" == ticket.get_status_display and not user.is_staff %}
 																		<a href='?close'>
-																				<button type="button" class="btn btn-warning btn-sm">
-																				{% trans "Accept and Close" %}
-																				</button>
+																			<button type="button" class="btn btn-warning btn-sm">
+																			{% trans "Accept and Close" %}
+																			</button>
 																		</a>
-																{% endif %}
+																	{% endif %}
 														</th>
 												</tr>
 												<tr>

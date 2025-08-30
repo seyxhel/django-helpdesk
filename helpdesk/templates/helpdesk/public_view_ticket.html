@@ -33,9 +33,9 @@
 
 {% if ticket.due_date %}
     <tr>
-        <th>{% trans "Due On" %}</th>
-        <td>{{ ticket.due_date|date:"DATETIME_FORMAT" }} ({{ ticket.due_date|naturaltime }})</td>
-    </tr>
+<tr>
+    <th colspan='2'>{% trans "Resolution" %}{% if ticket.get_status_display == "Resolved" and not user.is_staff %} <a href='{{ ticket.ticket_url }}&close'><button type="button" class="btn btn-primary btn-xs">{% trans "Accept and Close" %}</button></a>{% endif %}</th>
+</tr>
 {% endif %}
 
 <tr>
@@ -70,7 +70,7 @@
 </tr>
 
 {% if ticket.resolution %}<tr>
-    <th colspan='2'>{% trans "Resolution" %}{% if ticket.get_status_display == "Resolved" %} <a href='{{ ticket.ticket_url }}&close'><button type="button" class="btn btn-primary btn-xs">{% trans "Accept and Close" %}</button></a>{% endif %}</th>
+    <th colspan='2'>{% trans "Resolution" %}{% if ticket.get_status_display == "Resolved" and not user.is_staff %} <a href='{{ ticket.ticket_url }}&close'><button type="button" class="btn btn-primary btn-xs">{% trans "Accept and Close" %}</button></a>{% endif %}</th>
 </tr>
 <tr>
     <td colspan='2'>{{ ticket.resolution|urlizetrunc:50|linebreaksbr }}</td>

@@ -20,8 +20,15 @@
         <div class="card-body">
             <fieldset>
                 <div class="form-row">
-                    <!-- Main column: comment -->
+                    <!-- Main column: title + comment -->
                     <div class="col-lg-8 col-md-12 mb-3">
+                        {# Hidden title: keep value for submission but hide the field in the modal UI #}
+                        {% if form.title %}
+                            <input type="hidden" name="title" value="{{ form.initial.title|default:followup.title }}" />
+                        {% else %}
+                            <input type="hidden" name="title" value="{{ followup.title|default:_('Follow Up') }}" />
+                        {% endif %}
+
                         <div class="form-group">
                             <label for="commentBox" class="font-weight-600">{% trans "Comment / Resolution" %}</label>
                             {{ form.comment }}
@@ -77,61 +84,11 @@
                         {% endif %}
                     </div>
 
-                    <!-- Side column: status / public / time / actions -->
-                    <div class="col-lg-4 col-md-12">
-                        <div class="card card-body p-3 mb-3">
-
-                            <div class="mb-2">
-                                <label class="d-block font-weight-600">{% trans "Edit Status" %}</label>
-                                <div class="btn-group-toggle btn-group d-flex flex-wrap" data-toggle="buttons" role="group" aria-label="{% trans 'Status' %}">
-                                    {% with current_status=followup.new_status|default:ticket.status %}
-                                        {% for status_choice in ticket.get_allowed_status_flow %}
-                                            {% comment %} Use the status name as a stable id (lowered) {% endcomment %}
-                                            <label class="btn btn-outline-secondary mb-2 flex-fill {% if current_status == status_choice.0 %}active{% endif %}">
-                                                <input type="radio"
-                                                       name="new_status"
-                                                       value="{{ status_choice.0 }}"
-                                                       id="st_{{ status_choice.1|lower }}"
-                                                       {% if not ticket.can_be_resolved %} disabled="disabled"{% endif %}
-                                                       {% if current_status == status_choice.0 %} checked="checked"{% endif %}>
-                                                {{ status_choice.1 }}
-                                            </label>
-                                        {% endfor %}
-                                        {# Add an explicit Reopened option in case it's needed in the modal UI #}
-                                        <label class="btn btn-outline-secondary mb-2 flex-fill {% if current_status == 'reopened' %}active{% endif %}">
-                                            <input type="radio"
-                                                   name="new_status"
-                                                   value="reopened"
-                                                   id="st_reopened"
-                                                   {% if current_status == 'reopened' %} checked="checked"{% endif %}>
-                                            {% trans "Reopened" %}
-                                        </label>
-                                    {% endwith %}
-    
-{# Hidden form used to submit attachment delete POSTs from the modal #}
-<form id="followup-attachment-delete-form" method="post" style="display:none;">
-    {% csrf_token %}
-</form>
-                            
-                            {% if helpdesk_settings.HELPDESK_UPDATE_PUBLIC_DEFAULT %}
-                                <input type="hidden" name="public" value="1">
-                            {% else %}
-                                <div class="form-group form-check mb-2">
-                                    {{ form.public }}
-                                    <small class="form-text text-muted">{% trans "If this is public, the submitter will be e-mailed your comment or resolution." %}</small>
-                                </div>
-                            {% endif %}
-
-                            {% if form.time_spent %}
-                            <div class="form-group mb-2">
-                                <label for="id_time_spent" class="font-weight-600">{% trans "Time spent" %} <small class="text-muted">({% trans "Optional" %})</small></label>
-                                {{ form.time_spent }}
-                            </div>
-                            {% endif %}
-
-                            <div class="d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary">{% trans "Update this follow up" %}</button>
-                            </div>
+                    <!-- Side column removed per request: status/public/time removed from edit follow-up modal -->
+                    <!-- Submit button moved into main column to keep the form usable without the side controls -->
+                    <div class="col-12">
+                        <div class="mt-3 d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">{% trans "Update this follow up" %}</button>
                         </div>
                     </div>
                 </div> <!-- /.form-row -->

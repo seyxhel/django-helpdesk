@@ -128,11 +128,7 @@
               <label for="commentBox" class="font-weight-600">{% trans "Comment / Resolution" %}</label>
               <textarea id="commentBox" name="comment" rows="8" class="form-control" placeholder="{% trans 'Write your comment or resolution here...' %}">{% if form.errors %}{{ xform.comment }}{% endif %}</textarea>
               {% url "helpdesk:help_context" as context_help_url %}
-              <small class="form-text text-muted">
-                {% blocktrans %}
-                You can insert ticket and queue details in your message. For more information, see the <a href='{{ context_help_url }}'>context help page</a>.
-                {% endblocktrans %}
-              </small>
+              {# help sentence intentionally removed per UI request #}
             </div>
 
             <!-- Attachments toggle kept for backward compatibility -->
@@ -180,10 +176,7 @@
                       {{ status_choice.1 }}
                     </label>
                   {% endfor %}
-                  <label class="btn btn-outline-secondary mb-2 flex-fill {% if ticket.status == 'reopened' %}active{% endif %}">
-                      <input type="radio" name="new_status" value="reopened" id="st_reopened" {% if ticket.status == 'reopened' %} checked="checked"{% endif %}>
-                      {% trans "Reopened" %}
-                  </label>
+                  {# Hardcoded 'Reopened' removed to avoid duplication; status choices include it already when applicable #}
                 </div>
               </div>
 
@@ -192,8 +185,7 @@
               {% else %}
                 <div class="form-group form-check mb-2">
                   <input type="checkbox" class="form-check-input" id="id_public" name="public" value="1" checked="checked">
-                  <label class="form-check-label" for="id_public">{% trans "Yes, make this update public." %}</label>
-                  <small class="form-text text-muted">{% trans "If this is public, the submitter will be e-mailed your comment or resolution." %}</small>
+                  <label class="form-check-label" for="id_public">{% trans "Notify the submitter" %}</label>
                 </div>
               {% endif %}
 
@@ -209,7 +201,6 @@
         </div> <!-- /.form-row -->
 
                       <div class="d-flex justify-content-end">
-                <button type="button" class="btn btn-outline-warning btn-sm mr-2" id="ShowFurtherEditOptions">{% trans "Change Further Details" %} &raquo;</button>
                 <button type="submit" class="btn btn-primary">{% trans "Update This Ticket" %}</button>
               </div>
 
