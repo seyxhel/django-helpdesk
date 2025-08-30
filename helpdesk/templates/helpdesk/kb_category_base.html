@@ -1,64 +1,226 @@
 {% load i18n %}
 {% block header %}
-<div class="d-flex align-items-start justify-content-between">
-    <div>
+<style>
+  :root{
+    --kb-bg: #ffffff;
+    --kb-ink: #0f2b44;
+    --kb-muted: #6c7783;
+    --kb-accent: #0b57d0;
+    --kb-border: rgba(15,23,42,0.06);
+    --kb-radius: 12px;
+    --kb-gap: 12px;
+  }
+
+  /* Container title */
+  .kb-header { margin-bottom: 14px; }
+  .kb-header h2 { margin: 0 0 6px 0; color:var(--kb-ink); font-size:1.25rem; }
+  .kb-header p { margin: 0; color:var(--kb-muted); font-size:0.95rem; }
+
+  /* Accordion card: clean, no gradients, subtle shadow, rounded corners */
+  .kb-accordion .card {
+    background: var(--kb-bg);
+    border: 1px solid var(--kb-border);
+    border-radius: var(--kb-radius);
+    overflow: hidden;
+    box-shadow: 0 6px 14px rgba(15,23,42,0.03);
+    margin-bottom: 12px;
+  }
+
+  /* Clickable header behaves like a button; remove inner borders/dividers */
+  .kb-accordion .btn-link {
+    display: block;
+    width: 100%;
+    padding: 0;
+    text-align: left;
+    color: inherit;
+    text-decoration: none;
+    background: transparent;
+    border: none;
+  }
+
+  .kb-accordion .card-header {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: transparent;
+    border-bottom: none;
+    cursor: pointer;
+  }
+  .kb-accordion .card-header h5 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--kb-ink);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Content area: readable, comfortable spacing, no divider */
+  .kb-accordion .card-body {
+    padding: 16px;
+    background: transparent;
+    color: #333;
+    line-height: 1.45;
+  }
+  .card-answer { margin-top: 10px; color: #374151; }
+
+  /* Actions row: left votes, right action buttons; responsive */
+  .kb-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* Votes block */
+  .kb-votes {
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .kb-votes form { margin:0; }
+  .kb-votes .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    padding: 0;
+    font-size: 16px;
+    border: 1px solid var(--kb-border);
+    background: #fff;
+    color: var(--kb-ink);
+    transition: background .12s ease, transform .08s ease;
+  }
+  .kb-votes .btn:active { transform: translateY(1px); }
+  .kb-votes .btn--danger { color:#d9534f; border-color: rgba(217,83,79,0.08); }
+
+  /* Action buttons (right) */
+  .kb-action-buttons {
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .kb-action-buttons .btn {
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-weight: 600;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    border: 1px solid var(--kb-border);
+    background: #fff;
+    color: var(--kb-ink);
+  }
+  .kb-action-buttons .btn--primary {
+    background: var(--kb-accent);
+    color: #fff;
+    border-color: var(--kb-accent);
+  }
+  .kb-action-buttons .btn--primary:hover { background:#064da8; border-color:#064da8; }
+
+  .kb-action-buttons .meta {
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    color:var(--kb-muted);
+    font-size:.95rem;
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+
+  /* Remove floats and use flex columns for layout instead */
+  .kb-btn-col { display:flex; gap:8px; align-items:center; justify-content:flex-end; width:100%; }
+
+  /* Small note about votes/feedback */
+  .kb-feedback { margin-top:10px; color:var(--kb-muted); font-size:0.95rem; }
+
+  /* Accessibility focus */
+  .kb-accordion .btn-link:focus { outline: 3px solid rgba(11,87,208,0.08); border-radius: 8px; }
+
+  /* Responsive */
+  @media (max-width:720px) {
+    .kb-actions-row { flex-direction: column; align-items:stretch; }
+    .kb-action-buttons { justify-content:flex-end; width:100%; }
+    .kb-votes { justify-content:flex-start; }
+  }
+</style>
+
+<div class="kb-header">
     <h2>{% blocktrans with category.title as kbcat %}{{ kbcat }}{% endblocktrans %}</h2>
     <p class="mb-0 font-weight-normal">{{ category.description|linebreaksbr }}</p>
-    </div>
-    
 </div>
 {% endblock %}
 
 {% block item_list %}
-<div id="accordion">
+<div id="accordion" class="kb-accordion">
 {% for item in items %}
-<div class="card mb-3">
+  <div class="card">
     <div class="btn btn-link" data-toggle="collapse" data-target="#collapse{{item.id}}" role="region" aria-expanded="true" aria-controls="collapse{{item.id}}">
-        <div class="card-header" id="header{{item.id}}">
-            <h5 class="mb-0">
-                {{ item.title }}
-            </h5>
+      <div class="card-header" id="header{{item.id}}">
+        <h5 class="mb-0">{{ item.title }}</h5>
+        <div class="kb-meta">
+          {% if item.num_open_tickets %}{{ item.num_open_tickets }} {% trans "open" %}{% else %}{% trans "No open tickets" %}{% endif %}
         </div>
+      </div>
     </div>
-    <div id="collapse{{item.id}}" class="collapse {% if item.id == selected_item %}show{% endif %}" role="region" aria-labelledby="header{{item.id}}" data-parent="#accordion">
-        {% block card_body %}
-        <div class="card-body">
-            <p class="card-text">{{ item.question }}</p>
-            <div class="card-answer">
-               {{ item.get_markdown }}
-            </div>
-            <div class="row">
-                {% if request.user.pk and not staff %}
-                <div class="col-sm">
-                    <form method="post" action="{% url "helpdesk:kb_vote" item.pk "up" %}" style="display: inline">{% csrf_token %}
-                    <button type="submit" class="btn btn-success btn-circle btn-xl"><i class="fa fa-thumbs-up fa-lg"></i></button></form>
-                    <form method="post" action="{% url "helpdesk:kb_vote" item.pk "down" %}" style="display: inline">{% csrf_token %}
-                    <button type="submit" class="btn btn-danger btn-circle btn-xl"><i class="fa fa-thumbs-down fa-lg"></i></submit></form>
-                </div>
-                {% endif %}
-                {% if item.allow_ticket_creation and not staff %}
-                <a href='{% if iframe %}{% url 'helpdesk:submit_iframe' %}{% else %}{% url 'helpdesk:submit' %}{%endif%}?{% if category.queue %}queue={{category.queue.pk}}&_readonly_fields_=queue&{%endif%}kbitem={{item.id}}&{{query_param_string}}' class="col-sm">
-                    {% if iframe %}
-                    <div class="btn btn-success btn-circle btn-xl float-right"><i  class="fa fa-envelope fa-lg"></i> {% trans 'Contact a human' %}</div>
-                    {% else %}
-                    <div class="btn btn-success btn-circle btn-xl float-right"><i  class="fa fa-plus-circle fa-lg"></i> {% trans 'Create New Ticket' %}</div>
-                    {% endif %}
-                </a>
-                {% endif %}
-            </div>
-            <div>
-            {% if item.votes != 0 %}
-            {% blocktrans with recommendations=item.recommendations votes=item.votes  %}{{ recommendations }} people found this answer useful of {{votes}}{% endblocktrans %}
-            {% endif %}
-            </div>
 
+    <div id="collapse{{item.id}}" class="collapse {% if item.id == selected_item %}show{% endif %}" role="region" aria-labelledby="header{{item.id}}" data-parent="#accordion">
+      <div class="card-body">
+        <p class="card-text mb-2">{{ item.question }}</p>
+        <div class="card-answer">
+          {{ item.get_markdown }}
         </div>
-        {% endblock %}
+
+        <div class="kb-actions-row" role="group" aria-label="{% trans 'Item actions' %}">
+          <div class="kb-votes" aria-hidden="{% if not request.user.pk %}true{% else %}false{% endif %}">
+            {% if request.user.pk %}
+              <form method="post" action="{% url "helpdesk:kb_vote" item.pk "up" %}">{% csrf_token %}
+                <button type="submit" class="btn" title="{% trans 'Helpful' %}"><i class="fa fa-thumbs-up" aria-hidden="true"></i></button>
+              </form>
+              <form method="post" action="{% url "helpdesk:kb_vote" item.pk "down" %}">{% csrf_token %}
+                <button type="submit" class="btn btn--danger" title="{% trans 'Not helpful' %}"><i class="fa fa-thumbs-down" aria-hidden="true"></i></button>
+              </form>
+            {% endif %}
+          </div>
+
+          <div class="kb-action-buttons" role="group" aria-label="{% trans 'Item actions' %}">
+            {% if staff %}
+              <a href='{% url 'helpdesk:list' %}?kbitem={{item.id}}' class="btn" title="{% trans 'Open tickets list' %}">
+                <i class="fa fa-search" aria-hidden="true"></i>
+                <span class="meta">{{ item.num_open_tickets }} {% trans 'open' %}</span>
+              </a>
+            {% endif %}
+
+            {% if item.allow_ticket_creation %}
+              <a href='{% if iframe %}{% url 'helpdesk:submit_iframe' %}{% else %}{% url 'helpdesk:submit' %}{%endif%}?{% if category.queue %}queue={{category.queue.pk}}&_readonly_fields_=queue&{%endif%}kbitem={{item.id}}&{{query_param_string}}' class="btn btn--primary" title="{% trans 'Create ticket' %}">
+                <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                <span>{% if iframe %}{% trans 'Contact a human' %}{% else %}{% trans 'Create New Ticket' %}{% endif %}</span>
+              </a>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if item.votes != 0 %}
+          <div class="kb-feedback" aria-live="polite">
+            {% blocktrans with recommendations=item.recommendations votes=item.votes %}
+              {{ recommendations }} people found this answer useful of {{ votes }}
+            {% endblocktrans %}
+          </div>
+        {% endif %}
+      </div>
     </div>
-</div>
+  </div>
 {% endfor %}
 </div>
 {% endblock %}
-{% block footer %}
-{% endblock %}
+
+{% block footer %}{% endblock %}
 
