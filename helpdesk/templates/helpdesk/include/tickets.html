@@ -176,6 +176,12 @@ input[type=number].helpdesk-show-spinner { appearance: auto; -webkit-appearance:
                           <option value="{{ code }}"{% if request.GET|get_param:key == code|stringformat:"s" %} selected{% endif %}>{{ label }}</option>
                         {% endwith %}
                       {% endif %}
+                    {% elif filter_namespace == 'ut_open' and open_status_only %}
+                      {% if code in open_status_only %}
+                        {% with key=filter_namespace|stringformat:"s"|add:'_status' %}
+                          <option value="{{ code }}"{% if request.GET|get_param:key == code|stringformat:"s" %} selected{% endif %}>{{ label }}</option>
+                        {% endwith %}
+                      {% endif %}
                     {% else %}
                       {% with key=filter_namespace|stringformat:"s"|add:'_status' %}
                         <option value="{{ code }}"{% if request.GET|get_param:key == code|stringformat:"s" %} selected{% endif %}>{{ label }}</option>

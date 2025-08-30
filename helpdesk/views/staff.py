@@ -159,6 +159,8 @@ def ajax_ticket_count(request):
     qs = Ticket.objects.filter(queue__in=queues)
     if status == 'open':
         qs = qs.exclude(status__in=[Ticket.CLOSED_STATUS, Ticket.RESOLVED_STATUS, Ticket.DUPLICATE_STATUS])
+    elif status == 'resolved':
+        qs = qs.filter(status__exact=Ticket.RESOLVED_STATUS)
     elif status == 'closed':
         qs = qs.filter(status__in=[Ticket.CLOSED_STATUS, Ticket.RESOLVED_STATUS, Ticket.DUPLICATE_STATUS])
     count = qs.count()
@@ -172,6 +174,11 @@ def ajax_user_count(request):
     qs = User.objects.all()
     if filt == 'staff':
         qs = qs.filter(is_staff=True)
+    elif filt == 'regular':
+        # regular users: not staff and active
+        qs = qs.filter(is_staff=False, is_active=True)
+    elif filt == 'admin':
+        qs = qs.filter(is_superuser=True)
     elif filt == 'active':
         qs = qs.filter(is_active=True)
     count = qs.count()
@@ -182,14 +189,15 @@ if helpdesk_settings.HELPDESK_KB_ENABLED:
     @helpdesk_staff_member_required
     def ajax_kb_likes(request):
         """Return JSON {'count': n} for KB likes. Optional 'queue' or 'author' ignored for now."""
-        # KBItem model has a 'likes' integer field in some forks; fallback to counting Vote objects if present
+        # Count likes made by regular (non-staff) users using the ManyToMany through table if available
         try:
-            # prefer simple aggregate if 'likes' field exists
-            count = KBItem.objects.aggregate(total=__import__('django').db.models.Sum('likes'))['total'] or 0
+            through = KBItem.voted_by.through
+            # through typically has fields: kbitem_id, user_id (names may vary); use ORM join to user
+            count = through.objects.filter(user__is_staff=False).count()
         except Exception:
-            # fallback: count KBItem objects that have positive rating or an explicit 'likes' related model
+            # fallback: try aggregate on 'recommendations' (positive votes) but this is not user-specific
             try:
-                count = KBItem.objects.filter(likes__gt=0).count()
+                count = KBItem.objects.aggregate(total=__import__('django').db.models.Sum('recommendations'))['total'] or 0
             except Exception:
                 count = 0
         return JsonResponse({'count': count})
@@ -198,12 +206,17 @@ if helpdesk_settings.HELPDESK_KB_ENABLED:
     def ajax_kb_dislikes(request):
         """Return JSON {'count': n} for KB dislikes."""
         try:
-            count = KBItem.objects.aggregate(total=__import__('django').db.models.Sum('dislikes'))['total'] or 0
+            through = KBItem.downvoted_by.through
+            count = through.objects.filter(user__is_staff=False).count()
         except Exception:
             try:
-                count = KBItem.objects.filter(dislikes__gt=0).count()
+                # fallback: if dislikes integer exists
+                count = KBItem.objects.aggregate(total=__import__('django').db.models.Sum('dislikes'))['total'] or 0
             except Exception:
-                count = 0
+                try:
+                    count = KBItem.objects.filter(dislikes__gt=0).count()
+                except Exception:
+                    count = 0
         return JsonResponse({'count': count})
 
 
@@ -231,7 +244,11 @@ def dashboard(request):
         tickets_per_page = 25
 
     # page vars for the three ticket tables
-    user_tickets_page = request.GET.get(_("ut_page"), 1)
+    # pick the correct page GET param for the open tickets table; superusers may use ut_open_page or utcr_page
+    if request.user.is_superuser:
+        user_tickets_page = request.GET.get(_('ut_open_page')) or request.GET.get(_('utcr_page')) or request.GET.get(_('ut_page')) or 1
+    else:
+        user_tickets_page = request.GET.get(_('ut_page'), 1)
     user_tickets_closed_resolved_page = request.GET.get(_("utcr_page"), 1)
     all_tickets_reported_by_current_user_page = request.GET.get(_("atrbcu_page"), 1)
 
@@ -244,8 +261,12 @@ def dashboard(request):
         ],
     )
 
-    # open & reopened tickets, assigned to current user
-    tickets = active_tickets.filter(assigned_to=request.user)
+    # open & reopened tickets
+    # For superusers show all open tickets in the system; otherwise show tickets assigned to current user
+    if request.user.is_superuser:
+        tickets = active_tickets
+    else:
+        tickets = active_tickets.filter(assigned_to=request.user)
 
     # compute assigned open count from the unfiltered assigned queryset so
     # the stats card shows the total assigned tickets regardless of filter UI
@@ -254,10 +275,19 @@ def dashboard(request):
     except Exception:
         assigned_open_count = 0
 
-    # Apply optional server-side filters for assigned tickets (namespace: ut_*)
-    ut_status = request.GET.get('ut_status', '')
-    ut_queue = request.GET.get('ut_queue', '')
-    ut_order = request.GET.get('ut_order', 'desc')
+    # Apply optional server-side filters for assigned/open tickets.
+    # For superusers use the same filter namespace as the closed/resolved table (utcr_*),
+    # for others use the assigned namespace (ut_*).
+    if request.user.is_superuser:
+        # prefer ut_open_* params (used by the open tickets include), fall back to utcr_*
+        ut_status = request.GET.get('ut_open_status', '') or request.GET.get('utcr_status', '')
+        ut_queue = request.GET.get('ut_open_queue', '') or request.GET.get('utcr_queue', '')
+        ut_order = request.GET.get('ut_open_order', '') or request.GET.get('utcr_order', 'desc')
+    else:
+        ut_status = request.GET.get('ut_status', '')
+        ut_queue = request.GET.get('ut_queue', '')
+        ut_order = request.GET.get('ut_order', 'desc')
+
     if ut_status:
         try:
             tickets = tickets.filter(status=int(ut_status))
@@ -273,18 +303,28 @@ def dashboard(request):
     else:
         tickets = tickets.order_by('-created')
 
-    # closed & resolved tickets previously worked on by current user
-    # include tickets the user is/was assigned to or where the user authored followups
-    tickets_closed_resolved = (
-        Ticket.objects.select_related("queue")
-        .filter(status__in=[
-                Ticket.CLOSED_STATUS,
-                Ticket.RESOLVED_STATUS,
-                Ticket.DUPLICATE_STATUS,
-            ])
-        .filter(Q(assigned_to=request.user) | Q(followup__user=request.user))
-        .distinct()
-    )
+    # closed & resolved tickets
+    # For superusers show all closed/resolved tickets in the system; otherwise show tickets the user worked on
+    if request.user.is_superuser:
+        tickets_closed_resolved = (
+            Ticket.objects.select_related("queue")
+            .filter(status__in=[
+                    Ticket.CLOSED_STATUS,
+                    Ticket.RESOLVED_STATUS,
+                    Ticket.DUPLICATE_STATUS,
+                ])
+        )
+    else:
+        tickets_closed_resolved = (
+            Ticket.objects.select_related("queue")
+            .filter(status__in=[
+                    Ticket.CLOSED_STATUS,
+                    Ticket.RESOLVED_STATUS,
+                    Ticket.DUPLICATE_STATUS,
+                ])
+            .filter(Q(assigned_to=request.user) | Q(followup__user=request.user))
+            .distinct()
+        )
 
     # compute assigned closed/resolved count from the unfiltered queryset so
     # the stats card shows the total closed/resolved tickets the user worked on
@@ -324,14 +364,47 @@ def dashboard(request):
 
     user_queues = huser.get_queues()
 
-    unassigned_tickets = active_tickets.filter(
-        assigned_to__isnull=True, queue__in=user_queues
-    )
+    # unassigned tickets: superusers see all unassigned tickets; staff see unassigned tickets in their queues
+    if request.user.is_superuser:
+        unassigned_tickets_qs = active_tickets.filter(assigned_to__isnull=True)
+    else:
+        unassigned_tickets_qs = active_tickets.filter(
+            assigned_to__isnull=True, queue__in=user_queues
+        )
     kbitems = None
     # Teams mode uses assignment via knowledge base items so exclude tickets assigned to KB items
     if helpdesk_settings.HELPDESK_TEAMS_MODE_ENABLED:
-        unassigned_tickets = unassigned_tickets.filter(kbitem__isnull=True)
+        unassigned_tickets_qs = unassigned_tickets_qs.filter(kbitem__isnull=True)
         kbitems = huser.get_assigned_kb_items()
+
+    # Apply optional filters for unassigned tickets (namespace: unq_*)
+    unq_queue = request.GET.get('unq_queue', '')
+    unq_order = request.GET.get('unq_order', 'desc')
+    try:
+        if unq_queue:
+            unassigned_tickets_qs = unassigned_tickets_qs.filter(queue__id=int(unq_queue))
+    except Exception:
+        pass
+    if unq_order == 'asc':
+        unassigned_tickets_qs = unassigned_tickets_qs.order_by('created')
+    else:
+        unassigned_tickets_qs = unassigned_tickets_qs.order_by('-created')
+
+    # Pagination for unassigned tickets (namespace: un_*)
+    try:
+        un_shown = int(request.GET.get('un_shown', request.GET.get('un_shown_bottom', 5)))
+        if un_shown <= 0:
+            un_shown = 5
+    except Exception:
+        un_shown = 5
+    un_page = request.GET.get('un_page', 1)
+    paginator_un = Paginator(unassigned_tickets_qs, un_shown)
+    try:
+        unassigned_tickets = paginator_un.page(un_page)
+    except PageNotAnInteger:
+        unassigned_tickets = paginator_un.page(1)
+    except EmptyPage:
+        unassigned_tickets = paginator_un.page(paginator_un.num_pages)
 
     # 'Tickets submitted by you' section removed from dashboard; do not compute list to save queries
 
@@ -339,6 +412,12 @@ def dashboard(request):
         queue__in=user_queues,
     )
     basic_ticket_stats = calc_basic_ticket_stats(tickets_in_queues)
+
+    # compute escalated tickets: tickets in user's queues that have been escalated
+    try:
+        escalated_tickets_count = Ticket.objects.filter(queue__in=user_queues, last_escalation__isnull=False).count()
+    except Exception:
+        escalated_tickets_count = 0
 
     # The following query builds a grid of queues & ticket statuses,
     # to be displayed to the user. EG:
@@ -359,7 +438,17 @@ def dashboard(request):
     DEFAULT_DASHBOARD_PAGE_SIZE = 5
     # assigned tickets page size (ns: ut_shown)
     try:
-        ut_page_size = int(request.GET.get('ut_shown', DEFAULT_DASHBOARD_PAGE_SIZE))
+        # For superusers the open tickets table may use ut_open_shown (or utcr_shown),
+        # so prefer ut_open_shown, then utcr_shown, then ut_shown.
+        if request.user.is_superuser:
+            _val = (
+                request.GET.get('ut_open_shown')
+                or request.GET.get('utcr_shown')
+                or request.GET.get('ut_shown')
+            )
+        else:
+            _val = request.GET.get('ut_shown')
+        ut_page_size = int(_val) if _val is not None else DEFAULT_DASHBOARD_PAGE_SIZE
         if ut_page_size <= 0:
             ut_page_size = DEFAULT_DASHBOARD_PAGE_SIZE
     except Exception:
@@ -400,6 +489,7 @@ def dashboard(request):
             "user_tickets": tickets,
             "user_tickets_closed_resolved": tickets_closed_resolved,
             "unassigned_tickets": unassigned_tickets,
+            "un_shown": un_shown,
             "kbitems": kbitems,
             # 'all_tickets_reported_by_current_user' removed from context
             "basic_ticket_stats": basic_ticket_stats,
@@ -407,12 +497,12 @@ def dashboard(request):
             "assigned_tickets_total": assigned_total,
             "assigned_tickets_percent_open": assigned_percent_open,
             "closed_tickets_count": assigned_closed_count,
-            # placeholder for escalated tickets - computed elsewhere if needed
-            "escalated_tickets_count": 0,
+            "escalated_tickets_count": escalated_tickets_count,
             "status_choices": Ticket.STATUS_CHOICES,
             "queues": list(user_queues),
             "ut_shown": ut_page_size,
             "utcr_shown": utcr_page_size,
+            "open_status_only": Ticket.OPEN_STATUSES,
                 # for assigned tickets filters, hide resolved/closed statuses in the dropdown
                 "assigned_status_exclude": [Ticket.RESOLVED_STATUS, Ticket.CLOSED_STATUS],
                 "closed_status_only": [Ticket.RESOLVED_STATUS, Ticket.CLOSED_STATUS],

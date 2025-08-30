@@ -214,10 +214,11 @@
                 <div id="id_answer-client-error" class="field-error" aria-live="polite"></div>
         </div>
 
-    <div class="form-group">
-        <label for="id_allow_ticket">Allow regular users to make ticket about this?</label>
-        <input type="checkbox" id="id_allow_ticket" name="allow_ticket" {% if form.allow_ticket.value %}checked{% endif %} />
-    </div>
+  <div class="form-group-inline">
+    {{ form.allow_ticket_creation.label_tag }}
+    <div class="inline-control">{{ form.allow_ticket_creation }}</div>
+    <div class="help-text">{% trans "If checked, regular users can create tickets from this knowledgebase item." %}</div>
+  </div>
     <div class="form-group">
         {{ form.enabled.label_tag }} {{ form.enabled }}
     </div>

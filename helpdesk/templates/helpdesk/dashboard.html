@@ -5,9 +5,6 @@
 
 {% block helpdesk_breadcrumb %}
 <li class="breadcrumb-item active">{% trans "Dashboard" %}</li>
-{% if user.is_superuser %}
-<li class="breadcrumb-item active">{% trans "Overview" %}</li>
-{% endif %}
 {% endblock %}
 
 {% block helpdesk_body %}
@@ -22,12 +19,17 @@
 
 {# 'Tickets submitted by you' table removed for staff dashboard per request #}
 
-    {% if user.is_staff and not user.is_superuser %}
+    {% if user.is_superuser %}
+     {% trans "Open tickets" as ticket_list_caption %}
+     {% trans "You have no assigned tickets." as no_assigned_tickets %}
+     {% trans "utcr_page" as page_var %}
+    
+     {% include 'helpdesk/include/tickets.html' with ticket_list=user_tickets ticket_list_empty_message=no_assigned_tickets page_var=page_var show_filters=True filter_namespace='ut_open' open_status_only=open_status_only page_size=utcr_shown %}
+    {% elif user.is_staff %}
     {% trans "Assigned Tickets" as ticket_list_caption %}
     {% trans "You have no assigned tickets." as no_assigned_tickets %}
     {% trans "ut_page" as page_var %}
-    {# Staff should see the full tickets UI (filters, pagination, footer) like admins #}
-    {# pass a custom border radius for the assigned tickets card container for staff #}
+    {# Staff (non-superuser) see assigned tickets with their own filter namespace #}
     {% include 'helpdesk/include/tickets.html' with ticket_list=user_tickets ticket_list_empty_message=no_assigned_tickets page_var=page_var show_filters=True filter_namespace='ut' %}
 {% else %}
     {% trans "Open tickets" as ticket_list_caption %}

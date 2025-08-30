@@ -72,7 +72,35 @@
         {% trans "Unassigned Tickets" %}
     </div>
     <div class="card-body">
-        <div class="table-responsive-professional">
+    <div class="tickets-filters mb-3">
+      <form method="get" class="form-inline" aria-label="Unassigned filters">
+        <div class="form-row w-100">
+          <div class="col-auto pr-2">
+            <select name="unq_queue" class="form-control form-control-sm">
+              <option value="">All queues</option>
+              {% if queues %}
+                {% for q in queues %}
+                <option value="{{ q.id }}"{% if request.GET.unq_queue == q.id|stringformat:"s" %} selected{% endif %}>{{ q.title }}</option>
+                {% endfor %}
+              {% endif %}
+            </select>
+          </div>
+          <div class="col-auto pr-2">
+            <select name="unq_order" class="form-control form-control-sm">
+              <option value="desc"{% if request.GET.unq_order != 'asc' %} selected{% endif %}>{% trans "Newest" %}</option>
+              <option value="asc"{% if request.GET.unq_order == 'asc' %} selected{% endif %}>{% trans "Oldest" %}</option>
+            </select>
+          </div>
+                    <div class="col-auto sr-only">
+                      <input id="un_shown" name="un_shown" type="hidden" value="{{ un_shown|default:5 }}" />
+                    </div>
+          <div class="col-auto sr-only">
+            <button type="submit" class="btn btn-sm btn-primary visually-hidden">{% trans "Apply" %}</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="table-responsive-professional">
             <table class="professional-table table-sm table-striped" id="dataTable" width="100%" cellspacing="0" role="table" aria-label="{% trans 'Unassigned tickets' %}">
                 <thead>
                     <tr>
@@ -80,7 +108,6 @@
                       <th>{% trans "Priority" %}</th>
                       <th>{% trans "Queue" %}</th>
                       <th>{% trans "Created" %}</th>
-                      <th class="text-center">{% trans "Actions" %}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -90,19 +117,72 @@
                         <td>{{ ticket.priority }}</td>
                         <td>{{ ticket.queue }}</td>
                         <td><span title="{{ ticket.created|date:'DATETIME_FORMAT' }}">{{ ticket.created|naturaltime }}</span></td>
-                        <td class="text-center">
-                          <a href="{{ ticket.get_absolute_url }}?take" class="d-inline-block"><button class="btn btn-primary btn-sm" type="button"><i class="fas fa-hand-paper"></i>&nbsp;{% trans "Take" %}</button></a>
-                          <a href="{% url 'helpdesk:delete' ticket.id %}?next=dashboard" class="d-inline-block"><button class="btn btn-danger btn-sm" type="button"><i class="fas fa-trash"></i>&nbsp;{% trans "Delete" %}</button></a>
-                        </td>
                     </tr>
                 {% empty %}
-                    <tr><td colspan="5" class="text-muted small">{% trans "There are no unassigned tickets." %}</td></tr>
+                    <tr><td colspan="4" class="text-muted small">{% trans "There are no unassigned tickets." %}</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-    <div class="card-footer small text-muted">Listing {{ unassigned_tickets|length }} ticket(s).</div>
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <div class="text-left">
+        <label class="small text-muted mr-2" for="un_shown_bottom">{% trans "Show" %}</label>
+        <input id="un_shown_bottom" type="number" min="1" max="100" value="{{ un_shown|default:5 }}" class="form-control form-control-sm d-inline-block helpdesk-show-spinner" style="width:6rem;" />
+      </div>
+      <div class="text-right">
+      {% if unassigned_tickets.has_other_pages %}
+        <nav aria-label="{% trans 'Unassigned ticket pagination' %}" class="mt-0">
+          <ul class="pagination mb-0">
+            {% if unassigned_tickets.has_previous %}
+              <li class="page-item"><a class="page-link" href="?un_page=1{% if request.GET.unq_queue %}&unq_queue={{ request.GET.unq_queue }}{% endif %}{% if request.GET.unq_order %}&unq_order={{ request.GET.unq_order }}{% endif %}">&laquo;&laquo;</a></li>
+              <li class="page-item"><a class="page-link" href="?un_page={{ unassigned_tickets.previous_page_number }}{% if request.GET.unq_queue %}&unq_queue={{ request.GET.unq_queue }}{% endif %}{% if request.GET.unq_order %}&unq_order={{ request.GET.unq_order }}{% endif %}">&laquo;</a></li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">&laquo;&laquo;</span></li>
+              <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+            {% endif %}
+
+            {% with 5 as thresh %}
+            {% for i in unassigned_tickets.paginator.page_range %}
+                {% if unassigned_tickets.number == i %}
+                <li class="page-item active" aria-current="page"><span class="page-link">{{ i }}</span></li>
+              {% elif i <= unassigned_tickets.number|add:5 and i >= unassigned_tickets.number|add:-5 %}
+                <li class="page-item"><a class="page-link" href="?un_page={{ i }}{% if request.GET.unq_queue %}&unq_queue={{ request.GET.unq_queue }}{% endif %}{% if request.GET.unq_order %}&unq_order={{ request.GET.unq_order }}{% endif %}">{{ i }}</a></li>
+              {% endif %}
+            {% endfor %}
+            {% endwith %}
+
+            {% if unassigned_tickets.has_next %}
+              <li class="page-item"><a class="page-link" href="?un_page={{ unassigned_tickets.next_page_number }}{% if request.GET.unq_queue %}&unq_queue={{ request.GET.unq_queue }}{% endif %}{% if request.GET.unq_order %}&unq_order={{ request.GET.unq_order }}{% endif %}">&raquo;</a></li>
+              <li class="page-item"><a class="page-link" href="?un_page={{ unassigned_tickets.paginator.num_pages }}{% if request.GET.unq_queue %}&unq_queue={{ request.GET.unq_queue }}{% endif %}{% if request.GET.unq_order %}&unq_order={{ request.GET.unq_order }}{% endif %}">&raquo;&raquo;</a></li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+              <li class="page-item disabled"><span class="page-link">&raquo;&raquo;</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+      </div>
+    </div>
+    <script>
+      (function(){
+        try{
+          var bottom = document.getElementById('un_shown_bottom');
+          if(!bottom) return;
+          var topHidden = document.getElementById('un_shown');
+          bottom.addEventListener('change', function(){
+            try{
+              var v = parseInt(this.value,10) || parseInt('{{ un_shown|default:5 }}',10) || 5;
+              if(topHidden){ topHidden.value = v; var form = topHidden.closest('form'); if(form){ form.submit(); return; } }
+              var url = new URL(window.location.href);
+              url.searchParams.set('un_shown', String(v));
+              window.location.href = url.toString();
+            }catch(e){}
+          });
+        }catch(e){}
+      })();
+    </script>
+  <div class="card-footer small text-muted">Listing {% if unassigned_tickets.paginator %}{{ unassigned_tickets.paginator.count }}{% else %}{{ unassigned_tickets|length }}{% endif %} ticket(s).</div>
 </div>
 
 {% for kbitem in kbitems %}

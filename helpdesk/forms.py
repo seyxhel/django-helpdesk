@@ -59,7 +59,8 @@ if helpdesk_settings.HELPDESK_KB_ENABLED:
     class KBItemForm(ModelForm):
         class Meta:
             model = KBItem
-            fields = ["category", "title", "question", "answer", "enabled"]
+            # include allow_ticket_creation so staff users can enable/disable
+            fields = ["category", "title", "question", "answer", "enabled", "allow_ticket_creation"]
 
     class KBCategoryForm(ModelForm):
         class Meta:

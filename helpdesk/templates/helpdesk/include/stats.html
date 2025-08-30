@@ -273,6 +273,7 @@
               <div class="dropdown-menu" role="menu" aria-hidden="true">
                 <a href="#" data-value="all" role="menuitem">{% trans "All tickets" %}</a>
                 <a href="#" data-value="open" role="menuitem">{% trans "Open tickets" %}</a>
+                <a href="#" data-value="resolved" role="menuitem">{% trans "Resolved tickets" %}</a>
                 <a href="#" data-value="closed" role="menuitem">{% trans "Closed tickets" %}</a>
               </div>
             </div>
@@ -298,6 +299,24 @@
         </div>
       </div>
 
+      <!-- ESCALATED TICKETS CARD: show count of escalated tickets (staff-style red) -->
+      <div class="stats-grid-item">
+        <div class="card stats-card kb-dislikes" style="position:relative;">
+          <div class="card-body d-flex align-items-center">
+            <div class="w-100">
+              <div class="stats-count">
+                {% if escalated_tickets_count is not None %}
+                  {{ escalated_tickets_count }}
+                {% else %}
+                  0
+                {% endif %}
+              </div>
+              <div class="stats-label">{% trans "Escalated Tickets" %}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- SECOND CARD: Users (uses user_count if provided, fallback to 0) -->
       <div class="stats-grid-item">
         <div class="card stats-card users" style="position:relative;">
@@ -309,6 +328,8 @@
               <div class="dropdown-menu" role="menu" aria-hidden="true">
                 <a href="#" data-value="all" role="menuitem">{% trans "All users" %}</a>
                 <a href="#" data-value="staff" role="menuitem">{% trans "Staff users" %}</a>
+                <a href="#" data-value="regular" role="menuitem">{% trans "Regular users" %}</a>
+                <a href="#" data-value="admin" role="menuitem">{% trans "Admin users" %}</a>
                 <a href="#" data-value="active" role="menuitem">{% trans "Active users" %}</a>
               </div>
             </div>
@@ -336,7 +357,7 @@
       <div class="stats-grid-item">
         <div class="card stats-card kb-likes" style="position:relative;">
           <div class="card-actions">
-            <a href="#" class="kb-view-link view-link">{% trans "View Articles" %}</a>
+            <!-- view-link removed per request: KB Likes shows total regular-user likes -->
           </div>
           <div class="card-body d-flex align-items-center">
             <div class="w-100">
@@ -359,7 +380,7 @@
       <div class="stats-grid-item">
         <div class="card stats-card kb-dislikes" style="position:relative;">
           <div class="card-actions">
-            <a href="#" class="kb-view-link view-link">{% trans "View Articles" %}</a>
+            <!-- view-link removed per request: KB Dislikes shows total regular-user dislikes -->
           </div>
           <div class="card-body d-flex align-items-center">
             <div class="w-100">
@@ -427,6 +448,7 @@
 
         var text = a.textContent.trim();
         var url = a.getAttribute('data-url') || a.getAttribute('href') || null;
+        var value = a.getAttribute('data-value');
 
         // update label if present
         if(label) label.textContent = text;
@@ -434,6 +456,13 @@
         // close the menu
         menu.classList.remove('show');
         btn.setAttribute('aria-expanded','false');
+
+        // dispatch a custom event so other scripts can react (e.g., AJAX fetches)
+        try{
+          var evDetail = {value: value, text: text, source: d};
+          var custom = new CustomEvent('stats:selection', {detail: evDetail});
+          d.dispatchEvent(custom);
+        }catch(e){ /* ignore if CustomEvent unavailable */ }
 
         // navigate if a real URL provided (ignore plain '#')
         if(url && url !== '#' && url.trim() !== ''){
@@ -477,10 +506,17 @@
     // wire up ticket dropdown
     var ticketDropdown = document.querySelector('.stats-card.tickets .dropdown');
     if(ticketDropdown){
+      // existing click-based behaviour
       ticketDropdown.addEventListener('click', function(e){
         var a = e.target.closest('a[data-value]');
         if(!a) return;
         var val = a.getAttribute('data-value');
+        fetchJSON('{% url "helpdesk:ajax_ticket_count" %}?status=' + encodeURIComponent(val), function(err, data){ if(!err && data && data.count!=null) updateCount(ticketCard, data.count); });
+      });
+
+      // listen for programmatic selection events from the dropdown handler
+      ticketDropdown.addEventListener('stats:selection', function(ev){
+        var val = ev.detail && ev.detail.value ? ev.detail.value : 'all';
         fetchJSON('{% url "helpdesk:ajax_ticket_count" %}?status=' + encodeURIComponent(val), function(err, data){ if(!err && data && data.count!=null) updateCount(ticketCard, data.count); });
       });
     }
@@ -492,6 +528,11 @@
         var a = e.target.closest('a[data-value]');
         if(!a) return;
         var val = a.getAttribute('data-value');
+        fetchJSON('{% url "helpdesk:ajax_user_count" %}?filter=' + encodeURIComponent(val), function(err, data){ if(!err && data && data.count!=null) updateCount(userCard, data.count); });
+      });
+
+      userDropdown.addEventListener('stats:selection', function(ev){
+        var val = ev.detail && ev.detail.value ? ev.detail.value : 'all';
         fetchJSON('{% url "helpdesk:ajax_user_count" %}?filter=' + encodeURIComponent(val), function(err, data){ if(!err && data && data.count!=null) updateCount(userCard, data.count); });
       });
     }

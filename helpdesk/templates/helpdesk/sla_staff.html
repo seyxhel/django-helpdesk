@@ -1,20 +1,131 @@
-{% extends "helpdesk/base.html" %}{% load i18n %}
+{% extends "helpdesk/base.html" %}
+{% load i18n %}
 
-{% block helpdesk_title %}{% trans "Service Level Agreement" %}{% endblock %}
+{% block helpdesk_title %}SLA Overview – My Tickets{% endblock %}
+
+{% block helpdesk_head %}
+<style>
+    .sla-container { max-width:980px; margin:18px auto; background:#fff; border-radius:12px; padding:18px; border:1px solid rgba(15,23,42,0.06); }
+    .sla-hero { display:flex; gap:18px; align-items:flex-start; }
+    .sla-basics { flex:1; }
+    .sla-policy { flex:1; }
+    .sla-policy table { width:100%; border-collapse:collapse; }
+    .sla-policy th, .sla-policy td { padding:8px 10px; border-bottom:1px solid rgba(15,23,42,0.06); text-align:left; }
+    .sla-policy th { background:transparent; font-weight:700; }
+    .status-chip { display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; font-weight:600; }
+    .status-chip.green { background:#e6f6ee; color:#0b7a3a; }
+    .status-chip.yellow { background:#fff8e6; color:#a66b00; }
+    .status-chip.red { background:#fff4f4; color:#a61a1a; }
+    .sla-ticket-list { margin-top:16px; }
+    .sla-ticket { display:flex; justify-content:space-between; gap:12px; padding:10px; border-radius:8px; border:1px solid rgba(15,23,42,0.04); margin-bottom:8px; }
+    .sla-ticket .left { display:flex; gap:12px; align-items:center; }
+    .sla-ticket .meta { color:#6c7783; font-size:.95rem; }
+</style>
+{% endblock %}
 
 {% block helpdesk_breadcrumb %}
-<li class="breadcrumb-item">
-    <a href="#">{% trans "Service Level Agreement" %}</a>
-</li>
-<li class="breadcrumb-item active">{% trans "Overview" %}</li>
+<li class="breadcrumb-item"><a href="{% url 'helpdesk:dashboard' %}">{% trans "Dashboard" %}</a></li>
+<li class="breadcrumb-item active">{% trans "SLA Overview – My Tickets" %}</li>
 {% endblock %}
 
 {% block helpdesk_body %}
-<div class="row">
-    <div class="col-12">
-        <h2>{% trans "Service Level Agreement Overview" %}</h2>
-        <p>{% trans "This page will display SLA information and metrics for staff." %}</p>
-        <!-- Add SLA stats, tables, or widgets here as needed -->
+<div class="sla-container">
+    <div class="sla-hero">
+        <div class="sla-basics">
+            <h2>{% trans "SLA Basics" %}</h2>
+            <p><strong>{% trans "Response Time" %}</strong> — {% trans "How fast you must acknowledge a ticket." %}</p>
+            <p><strong>{% trans "Resolution Time" %}</strong> — {% trans "How fast you must resolve it." %}</p>
+            <p><strong>{% trans "Escalation" %}</strong> — {% trans "What happens if SLA is breached." %}</p>
+
+            <h3 style="margin-top:12px;">{% trans "Responsibilities for Staff" %}</h3>
+            <ul>
+                <li>{% trans "Work on My Assigned Tickets only." %}</li>
+                <li>{% trans "Update ticket status regularly." %}</li>
+                <li>{% trans "Escalate or request help if nearing SLA breach." %}</li>
+            </ul>
+
+            <h3 style="margin-top:12px;">{% trans "Notifications" %}</h3>
+            <ul>
+                <li>{% trans "Alerts before SLA breach." %}</li>
+                <li>{% trans "Notification if ticket is reassigned." %}</li>
+            </ul>
+        </div>
+
+        <div class="sla-policy">
+            <h2>{% trans "SLA Policy" %}</h2>
+            <table aria-describedby="sla-policy-desc">
+                <thead>
+                    <tr>
+                        <th>{% trans "Priority" %}</th>
+                        <th>{% trans "Response Time" %}</th>
+                        <th>{% trans "Resolution Time" %}</th>
+                        <th>{% trans "Escalation" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>🔴 {% trans "Critical" %}</td>
+                        <td>15 min</td>
+                        <td>4 hrs</td>
+                        <td>{% trans "Escalates to Admin" %}</td>
+                    </tr>
+                    <tr>
+                        <td>🟠 {% trans "High" %}</td>
+                        <td>30 min</td>
+                        <td>8 hrs</td>
+                        <td>{% trans "Escalates after 2 hrs" %}</td>
+                    </tr>
+                    <tr>
+                        <td>🟡 {% trans "Medium" %}</td>
+                        <td>2 hrs</td>
+                        <td>24 hrs</td>
+                        <td>{% trans "Escalates after 6 hrs" %}</td>
+                    </tr>
+                    <tr>
+                        <td>🟢 {% trans "Low" %}</td>
+                        <td>4 hrs</td>
+                        <td>3 days</td>
+                        <td>{% trans "Escalates after 1 day" %}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <h3 style="margin-top:18px;">{% trans "Ticket SLA Status" %}</h3>
+    <div class="sla-ticket-list">
+        <div class="sla-ticket">
+            <div class="left">
+                <div class="status-chip green">✅ {% trans "On track" %}</div>
+                <div>
+                    <div><strong>HD-1234</strong> — {% trans "Password reset issue" %}</div>
+                    <div class="meta">{% trans "2h 10m left to respond" %}</div>
+                </div>
+            </div>
+            <div class="right meta">{% trans "Assigned to you" %}</div>
+        </div>
+
+        <div class="sla-ticket">
+            <div class="left">
+                <div class="status-chip yellow">⚠️ {% trans "At risk" %}</div>
+                <div>
+                    <div><strong>HD-1229</strong> — {% trans "API request failing" %}</div>
+                    <div class="meta">{% trans "30m left to respond" %}</div>
+                </div>
+            </div>
+            <div class="right meta">{% trans "Assigned to you" %}</div>
+        </div>
+
+        <div class="sla-ticket">
+            <div class="left">
+                <div class="status-chip red">❌ {% trans "Breached" %}</div>
+                <div>
+                    <div><strong>HD-1210</strong> — {% trans "Database outage" %}</div>
+                    <div class="meta">{% trans "Breach: 1h 20m ago" %}</div>
+                </div>
+            </div>
+            <div class="right meta">{% trans "Assigned to you" %}</div>
+        </div>
     </div>
 </div>
 {% endblock %}

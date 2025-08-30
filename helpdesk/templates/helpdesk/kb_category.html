@@ -182,6 +182,16 @@
               {% endif %}
               <div id="id_title-client-error" class="field-error" aria-live="polite"></div>
           </div>
+          {% if form.slug %}
+          <div class="form-group">
+              {{ form.slug.label_tag }}
+              {{ form.slug }}
+              {% if form.slug.errors %}
+              <div id="id_slug-server-error" class="form-errors server-field-error" aria-live="polite">{{ form.slug.errors|join:' ' }}</div>
+              {% endif %}
+              <div id="id_slug-client-error" class="field-error" aria-live="polite"></div>
+          </div>
+          {% endif %}
           <div class="form-group">
               {{ form.description.label_tag }}
               {{ form.description }}
@@ -192,6 +202,14 @@
           <div class="form-group" style="margin-top:6px;">
               {{ form.public.label_tag }} {{ form.public }}
           </div>
+          {% if form.queue %}
+          <div class="form-group" style="margin-top:6px;">
+              {{ form.queue.label_tag }} {{ form.queue }}
+              {% if form.queue.errors %}
+              <div class="form-errors server-field-error" aria-live="polite">{{ form.queue.errors|join:' ' }}</div>
+              {% endif %}
+          </div>
+          {% endif %}
 
           <div class="kb-form-actions">
               <a href="{% url 'helpdesk:kb_index' %}" class="btn btn-cancel" role="button" title="{% trans 'Cancel' %}">
@@ -199,7 +217,7 @@
                 <span>{% trans "Cancel" %}</span>
               </a>
 
-              <button id="kbcat-submit" type="submit" class="btn btn-primary" disabled aria-disabled="true">
+              <button id="kbcat-submit" type="submit" class="btn btn-primary">
                 <i class="fa fa-save" aria-hidden="true"></i>
                 <span>{% trans "Create category" %}</span>
               </button>

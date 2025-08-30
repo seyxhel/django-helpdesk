@@ -12,7 +12,7 @@ from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.clickjacking import xframe_options_exempt
 from helpdesk import settings as helpdesk_settings, user
-from helpdesk.models import KBCategory, KBItem
+from helpdesk.models import KBCategory, KBItem, Queue
 from django.contrib.auth.decorators import user_passes_test
 from django.shortcuts import redirect
 from helpdesk.forms import KBItemForm
@@ -100,22 +100,27 @@ def add_kb_category(request):
     """Simple staff-only view to create a KBCategory via a minimal form."""
     if request.method == "POST":
         form = KBCategoryForm(request.POST)
-        # Hide slug and queue from the public add form
+        # Hide slug and queue in the UI; we will generate slug and assign queue server-side
         for f in ("slug", "queue"):
             if f in form.fields:
                 form.fields.pop(f)
         if form.is_valid():
             # Ensure slug is present; if user omitted it (we hide it from UI)
             category = form.save(commit=False)
-            if not category.slug:
-                # Use name if available, otherwise title
-                base = category.name or category.title or "category"
-                category.slug = slugify(base)[:50]
+            # Generate slug from name (lowercase) or title if name missing
+            base = (category.name or category.title or "category").lower()
+            category.slug = slugify(base)[:50]
+
+            # Map/create a Queue matching this category's name/slug and assign it
+            qslug = category.slug
+            qtitle = category.name or category.title or category.slug
+            queue_obj, created = Queue.objects.get_or_create(slug=qslug, defaults={"title": qtitle})
+            category.queue = queue_obj
             category.save()
             return redirect('helpdesk:kb_category', slug=category.slug)
     else:
         form = KBCategoryForm()
-        # Hide slug and queue from the public add form
+        # Hide slug and queue in the UI form; server will generate slug and assign queue
         for f in ("slug", "queue"):
             if f in form.fields:
                 form.fields.pop(f)
@@ -179,7 +184,8 @@ def add_kb_item(request):
             if "category" in form.fields:
                 form.fields["category"].queryset = KBCategory.objects.filter(public=True)
             # Hide the enabled/publish field from public-facing form
-            if "enabled" in form.fields:
-                form.fields.pop("enabled")
+            for f in ("enabled", "allow_ticket_creation"):
+                if f in form.fields:
+                    form.fields.pop(f)
 
     return render(request, "helpdesk/kb_item.html", {"form": form, "staff": staff})
